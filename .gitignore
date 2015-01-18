@@ -6,6 +6,8 @@
 *.filters
 *.opensdf
 *.tmp
+*.log
+*.dat
 a.txt
 tools/cparser/Debug
 tools/cparser/Release
