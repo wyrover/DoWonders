@@ -71,8 +71,7 @@ namespace cparser
         Node(const Node& n) : m_loc(n.m_loc) { }
         virtual ~Node() { }
 
-        void operator=(const Node& n)
-        {
+        void operator=(const Node& n) {
             m_loc = n.m_loc;
         }
 

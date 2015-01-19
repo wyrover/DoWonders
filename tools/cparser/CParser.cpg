@@ -264,7 +264,7 @@ struct_declarator_list<DeclorList>
 struct_declarator<Declor>
     : [DoStructDeclor1] declarator(0) T_COLON constant_expression(1)
     | [DoStructDeclor2] declarator(0)
-    | [DoStructDeclor3] T_COLON constant_expression(0)
+    | [DoStructDeclor3] T_COLON(0) constant_expression(1)
     ;
 
 enum_specifier<TypeSpec>

@@ -2591,9 +2591,10 @@ private:
         return push_stack(dest_index, v);
     }
 
-    bool call_0_DoStructDeclor3(Nonterminal nonterminal, int base, int arg_index0) {
-        shared_ptr<CondExpr> arg0; sa_.downcast(arg0, get_arg(base, arg_index0));
-        shared_ptr<Declor> r = sa_.DoStructDeclor3(arg0);
+    bool call_0_DoStructDeclor3(Nonterminal nonterminal, int base, int arg_index0, int arg_index1) {
+        shared_ptr<TokenValue> arg0; sa_.downcast(arg0, get_arg(base, arg_index0));
+        shared_ptr<CondExpr> arg1; sa_.downcast(arg1, get_arg(base, arg_index1));
+        shared_ptr<Declor> r = sa_.DoStructDeclor3(arg0, arg1);
         value_type v; sa_.upcast(v, r);
         pop_stack(base);
         int dest_index = (this->*(stack_top()->entry->gotof))(nonterminal);
@@ -14322,7 +14323,7 @@ private:
         case T_COMMA:
         case T_SEMICOLON:
             // reduce
-            return call_0_DoStructDeclor3(Nonterminal_struct_declarator, /*pop*/ 2, 1);
+            return call_0_DoStructDeclor3(Nonterminal_struct_declarator, /*pop*/ 2, 0, 1);
         default:
             sa_.syntax_error();
             error_ = true;

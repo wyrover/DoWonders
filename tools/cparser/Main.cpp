@@ -228,208 +228,232 @@ int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue)
 
 int CrCalcConstIntCastExpr(CR_NameScope& namescope, CastExpr *ce)
 {
-    int n;
+    int result = 0;
     switch (ce->m_cast_type) {
     case CastExpr::UNARY:
-        n = CrCalcConstIntUnaryExpr(namescope, ce->m_unary_expr.get());
-        return n;
+        result = CrCalcConstIntUnaryExpr(namescope, ce->m_unary_expr.get());
+        break;
     
     case CastExpr::INITERLIST:
         // TODO:
         //ce->m_type_name
         //ce->m_initer_list
-        return 0;
+        break;
 
     case CastExpr::CAST:
         //ce->m_type_name
-        n = CrCalcConstIntCastExpr(namescope, ce->m_cast_expr.get());
-        return n;
+        result = CrCalcConstIntCastExpr(namescope, ce->m_cast_expr.get());
+        break;
 
     default:
         assert(0);
     }
-    return 0;
+    return result;
 }
 
 int CrCalcConstIntMulExpr(CR_NameScope& namescope, MulExpr *me)
 {
-    int n1, n2;
+    int n1, n2, result = 0;
     switch (me->m_mul_type) {
     case MulExpr::SINGLE:
-        n2 = CrCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
-        return n2;
+        result = CrCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
+        break;
 
     case MulExpr::ASTERISK:
         n1 = CrCalcConstIntMulExpr(namescope, me->m_mul_expr.get());
         n2 = CrCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
-        return n1 * n2;
+        result = (n1 * n2);
+        break;
 
     case MulExpr::SLASH:
         n1 = CrCalcConstIntMulExpr(namescope, me->m_mul_expr.get());
         n2 = CrCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
-        return n1 / n2;
+        result = (n1 / n2);
+        break;
 
     case MulExpr::PERCENT:
         n1 = CrCalcConstIntMulExpr(namescope, me->m_mul_expr.get());
         n2 = CrCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
-        return n1 % n2;
+        result = (n1 % n2);
+        break;
 
     default:
         assert(0);
     }
-    return 0;
+    return result;
 }
 
 int CrCalcConstIntAddExpr(CR_NameScope& namescope, AddExpr *ae)
 {
-    int n1, n2;
+    int n1, n2, result = 0;
     switch (ae->m_add_type) {
     case AddExpr::SINGLE:
-        n2 = CrCalcConstIntMulExpr(namescope, ae->m_mul_expr.get());
-        return n2;
+        result = CrCalcConstIntMulExpr(namescope, ae->m_mul_expr.get());
+        break;
 
     case AddExpr::PLUS:
         n1 = CrCalcConstIntAddExpr(namescope, ae->m_add_expr.get());
         n2 = CrCalcConstIntMulExpr(namescope, ae->m_mul_expr.get());
-        return n1 + n2;
+        result = (n1 + n2);
+        break;
 
     case AddExpr::MINUS:
         n1 = CrCalcConstIntAddExpr(namescope, ae->m_add_expr.get());
         n2 = CrCalcConstIntMulExpr(namescope, ae->m_mul_expr.get());
-        return n1 - n2;
+        result = (n1 - n2);
+        break;
 
     default:
         assert(0);
     }
-    return 0;
+    return result;
 }
 
 int CrCalcConstIntShiftExpr(CR_NameScope& namescope, ShiftExpr *se)
 {
-    int n1, n2;
+    int n1, n2, result = 0;
     switch (se->m_shift_type) {
     case ShiftExpr::SINGLE:
-        n2 = CrCalcConstIntAddExpr(namescope, se->m_add_expr.get());
-        return n2;
+        result = CrCalcConstIntAddExpr(namescope, se->m_add_expr.get());
+        break;
 
     case ShiftExpr::L_SHIFT:
         n1 = CrCalcConstIntShiftExpr(namescope, se->m_shift_expr.get());
         n2 = CrCalcConstIntAddExpr(namescope, se->m_add_expr.get());
-        return n1 << n2;
+        result = (n1 << n2);
+        break;
 
     case ShiftExpr::R_SHIFT:
         n1 = CrCalcConstIntShiftExpr(namescope, se->m_shift_expr.get());
         n2 = CrCalcConstIntAddExpr(namescope, se->m_add_expr.get());
-        return n1 >> n2;
+        result = (n1 >> n2);
+        break;
 
     default:
         assert(0);
     }
-    return 0;
+    return result;
 }
 
 int CrCalcConstIntRelExpr(CR_NameScope& namescope, RelExpr *re)
 {
-    int n1, n2;
+    int n1, n2, result = 0;
     switch (re->m_rel_type) {
     case RelExpr::SINGLE:
-        n2 = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
-        return n2;
+        result = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
+        break;
 
     case RelExpr::LT:
         n1 = CrCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
         n2 = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
-        return n1 < n2;
+        result = (n1 < n2);
+        break;
 
     case RelExpr::GT:
         n1 = CrCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
         n2 = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
-        return n1 > n2;
+        result = (n1 > n2);
+        break;
 
     case RelExpr::LE:
         n1 = CrCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
         n2 = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
-        return n1 <= n2;
+        result = (n1 <= n2);
+        break;
 
     case RelExpr::GE:
         n1 = CrCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
         n2 = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
-        return n1 >= n2;
+        result = (n1 >= n2);
+        break;
 
     default:
         assert(0);
     }
-    return 0;
+    return result;
 }
 
 int CrCalcConstIntEqualExpr(CR_NameScope& namescope, EqualExpr *ee)
 {
-    int n1, n2;
+    int n1, n2, result = 0;
     switch (ee->m_equal_type) {
     case EqualExpr::SINGLE:
-        return CrCalcConstIntRelExpr(namescope, ee->m_rel_expr.get());
+        result = CrCalcConstIntRelExpr(namescope, ee->m_rel_expr.get());
+        break;
 
     case EqualExpr::EQUAL:
         n1 = CrCalcConstIntEqualExpr(namescope, ee->m_equal_expr.get());
         n2 = CrCalcConstIntRelExpr(namescope, ee->m_rel_expr.get());
-        return n1 == n2;
+        result = (n1 == n2);
+        break;
 
     case EqualExpr::NE:
         n1 = CrCalcConstIntEqualExpr(namescope, ee->m_equal_expr.get());
         n2 = CrCalcConstIntRelExpr(namescope, ee->m_rel_expr.get());
-        return n1 != n2;
+        result = (n1 != n2);
+        break;
 
     default:
         assert(0);
     }
-    return 0;
+    return result;
 }
 
-int CrCalcConstIntAndExpr(CR_NameScope& namescope, AndExpr *ae)
-{
-    int n = CrCalcConstIntEqualExpr(namescope, (*ae)[0].get());
+int CrCalcConstIntAndExpr(CR_NameScope& namescope, AndExpr *ae) {
+    int result = CrCalcConstIntEqualExpr(namescope, (*ae)[0].get());
     for (std::size_t i = 1; i < ae->size(); ++i) {
-        n &= CrCalcConstIntEqualExpr(namescope, (*ae)[i].get());
+        result &= CrCalcConstIntEqualExpr(namescope, (*ae)[i].get());
     }
-    return n;
+    return result;
 }
 
-int CrCalcConstIntExclOrExpr(CR_NameScope& namescope, ExclOrExpr *eoe)
-{
-    int n = 0;
+int CrCalcConstIntExclOrExpr(CR_NameScope& namescope, ExclOrExpr *eoe) {
+    int result = 0;
     for (auto& ae : *eoe) {
-        n ^= CrCalcConstIntAndExpr(namescope, ae.get());
+        result ^= CrCalcConstIntAndExpr(namescope, ae.get());
     }
-    return n;
+    return result;
 }
 
-int CrCalcConstIntInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe)
-{
-    int n = 0;
+int CrCalcConstIntInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
+    int result = 0;
     for (auto& eoe : *ioe) {
-        n |= CrCalcConstIntExclOrExpr(namescope, eoe.get());
+        result |= CrCalcConstIntExclOrExpr(namescope, eoe.get());
     }
-    return n;
+    return result;
 }
 
 int CrCalcConstIntLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae)
 {
-    int n = 1;
-    for (auto& ioe : *lae) {
-        n = n && CrCalcConstIntInclOrExpr(namescope, ioe.get());
-        if (n == 0)
-            break;
+    int result = 1;
+    if (lae->size() == 1) {
+        result = CrCalcConstIntInclOrExpr(namescope, (*lae)[0].get());
+    } else {
+        for (auto& ioe : *lae) {
+            result = result && CrCalcConstIntInclOrExpr(namescope, ioe.get());
+            if (!result) {
+                break;
+            }
+        }
     }
-    return n;
+    return result;
 }
 
 int CrCalcConstIntLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe)
 {
-    for (auto& lae : *loe) {
-        if (CrCalcConstIntLogAndExpr(namescope, lae.get()))
-            return 1;
+    int result = 0;
+    if (loe->size() == 1) {
+        result = CrCalcConstIntLogAndExpr(namescope, (*loe)[0].get());
+    } else {
+        for (auto& lae : *loe) {
+            result = CrCalcConstIntLogAndExpr(namescope, lae.get());
+            if (result) {
+                result = 1;
+                break;
+            }
+        }
     }
-    return 0;
+    return result;
 }
 
 int CrCalcConstIntAssignExpr(CR_NameScope& namescope, AssignExpr *ae)
@@ -510,33 +534,34 @@ int CrCalcConstIntAssignExpr(CR_NameScope& namescope, AssignExpr *ae)
     return 0;
 }
 
-int CrCalcConstIntExpr(CR_NameScope& namescope, Expr *e)
-{
-    int n = 0;
+int CrCalcConstIntExpr(CR_NameScope& namescope, Expr *e) {
+    int result = 0;
     for (auto& ae : *e) {
-        n = CrCalcConstIntAssignExpr(namescope, ae.get());
+        result = CrCalcConstIntAssignExpr(namescope, ae.get());
     }
-    return n;
+    return result;
 }
 
-int CrCalcConstIntCondExpr(CR_NameScope& namescope, CondExpr *ce)
-{
+int CrCalcConstIntCondExpr(CR_NameScope& namescope, CondExpr *ce) {
+    int result = 0;
     switch (ce->m_cond_type) {
     case CondExpr::SINGLE:
-        return CrCalcConstIntLogOrExpr(namescope, ce->m_log_or_expr.get());
+        result = CrCalcConstIntLogOrExpr(namescope, ce->m_log_or_expr.get());
+        break;
 
     case CondExpr::QUESTION:
         if (CrCalcConstIntLogOrExpr(namescope, ce->m_log_or_expr.get())) {
-            return CrCalcConstIntExpr(namescope, ce->m_expr.get());
+            result = CrCalcConstIntExpr(namescope, ce->m_expr.get());
         } else {
-            return CrCalcConstIntCondExpr(namescope, ce->m_cond_expr.get());
+            result = CrCalcConstIntCondExpr(namescope, ce->m_cond_expr.get());
         }
+        break;
 
     default:
         assert(0);
         break;
     }
-    return 0;
+    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -574,6 +599,7 @@ CR_TypeID CrAnalysePointers(CR_NameScope& namescope, Pointers *pointers,
     assert(pointers);
     for (auto& ac : *pointers) {
         assert(ac);
+        
         tid = namescope.AddPtrType(tid, ac->m_flags, location);
     }
     return tid;
@@ -620,13 +646,12 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
 
             case Declor::FUNCTION:
                 {
-                    CR_LogFunc lf;
-                    lf.m_return_type = tid2;
-                    if (d->m_param_list)
-                    {
-                        CrAnalyseParamList(namescope, lf, d->m_param_list.get());
+                    CR_LogFunc func;
+                    func.m_return_type = tid2;
+                    if (d->m_param_list) {
+                        CrAnalyseParamList(namescope, func, d->m_param_list.get());
                     }
-                    tid2 = namescope.AddFuncType(lf);
+                    tid2 = namescope.AddFuncType(func, d->location());
                 }
                 d = d->m_declor.get();
                 continue;
@@ -689,11 +714,10 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 {
                     CR_LogFunc lf;
                     lf.m_return_type = tid2;
-                    if (d->m_param_list)
-                    {
+                    if (d->m_param_list) {
                         CrAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
-                    tid2 = namescope.AddFuncType(lf);
+                    tid2 = namescope.AddFuncType(lf, d->location());
                 }
                 d = d->m_declor.get();
                 break;
@@ -743,11 +767,10 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
             case Declor::FUNCTION:
                 {
                     CR_LogFunc lf;
-                    if (d->m_param_list)
-                    {
+                    if (d->m_param_list) {
                         CrAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
-                    tid2 = namescope.AddFuncType(lf);
+                    tid2 = namescope.AddFuncType(lf, d->location());
                 }
                 d = d->m_declor.get();
                 continue;
@@ -857,7 +880,7 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
                     if (d->m_param_list) {
                         CrAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
-                    tid2 = namescope.AddFuncType(lf);
+                    tid2 = namescope.AddFuncType(lf, d->location());
                 }
                 d = d->m_declor.get();
                 continue;
@@ -889,7 +912,7 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
                 CrAnalyseDeclList(namescope, decl_list);
                 if (declor->m_param_list) {
                     CrAnalyseParamList(namescope, func, declor->m_param_list.get());
-                    namescope.AddFuncType(func);
+                    namescope.AddFuncType(func, declor->location());
                 } else {
                     assert(0);
                 }
@@ -897,7 +920,7 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
                 assert(declor->m_param_list);
                 if (declor->m_param_list) {
                     CrAnalyseParamList(namescope, func, declor->m_param_list.get());
-                    namescope.AddFuncType(func);
+                    namescope.AddFuncType(func, declor->location());
                 }
             }
         }
@@ -908,8 +931,7 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
                                   const CR_String& name, DeclList *dl, int pack,
                                   const CR_Location& location)
 {
-    CR_LogStruct ls;
-    ls.m_struct_or_union = true;    // struct
+    CR_LogStruct ls(true);  // struct
     ls.m_pack = pack;
     assert(pack >= 1);
 
@@ -955,26 +977,24 @@ CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
                                  const CR_Location& location)
 {
     CR_LogStruct ls(false);     // union
+    ls.m_pack = 1;
+    assert(dl);
 
+    CR_TypeID tid;
     assert(dl);
     for (auto& decl : *dl) {
         switch (decl->m_decl_type) {
         case Decl::DECLORLIST:
-            {
-                CR_TypeID tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
-                CrAnalyseStructDeclorList(namescope, tid, decl->m_declor_list.get(),
-                                          ls);
-            }
+            tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
+            CrAnalyseStructDeclorList(namescope, tid, decl->m_declor_list.get(), ls);
             break;
 
         case Decl::SINGLE:
-            {
-                CR_TypeID tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
-                if (tid != cr_invalid_id) {
-                    ls.m_type_list.push_back(tid);
-                    ls.m_name_list.push_back("");
-                    ls.m_bitfield.push_back(0);
-                }
+            tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
+            if (tid != cr_invalid_id) {
+                ls.m_type_list.push_back(tid);
+                ls.m_name_list.push_back("");
+                ls.m_bitfield.push_back(0);
             }
             break;
 
@@ -1173,17 +1193,12 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds)
     }
 
     flags = CrNormalizeTypeFlags(flags);
-    if (flags & TF_CONST) {
-        flags &= ~TF_CONST;
-        size_t size = namescope.SizeFromFlags(flags);
-        tid = namescope.AddType("", flags, size);
-        assert(tid != cr_invalid_id);
-        tid = namescope.AddConstType(tid);
-    } else {
-        size_t size = namescope.SizeFromFlags(flags);
-        tid = namescope.AddType("", flags, size);
-    }
+    tid = namescope.TypeIDFromFlags(flags & ~TF_CONST);
     assert(tid != cr_invalid_id);
+    if (flags & TF_CONST) {
+        tid = namescope.AddConstType(tid);
+        assert(tid != cr_invalid_id);
+    }
     return tid;
 }
 
@@ -1366,32 +1381,45 @@ void CrDumpSemantic(
 
     fp = fopen((strPrefix + "types" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(type_id)\t(name)\t(size)\t(file)\t(line)\t(definition)\n");
+        fprintf(fp, "(type_id)\t(name)\t(flags)\t(sub_id)\t(count)\t(size)\t(file)\t(line)\t(definition)\n");
         for (const auto& it : namescope.MapTypeIDToName()) {
             auto tid = it.first;
             const auto& name = it.second;
             const auto& type = namescope.LogType(tid);
             if (namescope.IsCrExtendedType(tid)) {
                 size_t size = namescope.GetSizeofType(tid);
-                fprintf(fp, "%d\t%s\t%d\t(cr_extended)\t0\t(cr_extended)\n",
-                    static_cast<int>(tid), name.data(), static_cast<int>(size));
+                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(cr_extended)\t0\t(cr_extended)\n",
+                    static_cast<int>(tid), name.data(), type.m_flags,
+                    static_cast<int>(type.m_id), 0, static_cast<int>(size));
             } else if (namescope.IsPredefinedType(tid)) {
                 size_t size = namescope.GetSizeofType(tid);
-                fprintf(fp, "%d\t%s\t%d\t(predefined)\t0\t(predefined)\n",
-                    static_cast<int>(tid), name.data(), static_cast<int>(size));
-            } else {
-                auto strDef = namescope.StringOfType(type.m_id, name, true);
+                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(predefined)\t0\t(predefined)\n",
+                    static_cast<int>(tid), name.data(), type.m_flags,
+                    static_cast<int>(type.m_id), 0, static_cast<int>(size));
+            } else if (type.m_flags & (TF_STRUCT | TF_UNION | TF_ENUM)) {
+                auto strDef = namescope.StringOfType(tid, "", true);
                 const auto& location = type.location();
                 size_t size = namescope.GetSizeofType(type.m_id);
-                if (strDef.empty()) {
-                    fprintf(fp, "%d\t%s\t%d\t%s\t%d\t\n",
-                        static_cast<int>(tid), name.data(), static_cast<int>(size),
-                        location.m_file.data(), location.m_line);
-                } else {
-                    fprintf(fp, "%d\t%s\t%d\t%s\t%d\ttypedef %s;\n",
-                        static_cast<int>(tid), name.data(), static_cast<int>(size),
-                        location.m_file.data(), location.m_line, strDef.data());
-                }
+                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\t%s;\n",
+                    static_cast<int>(tid), name.data(), type.m_flags,
+                    static_cast<int>(type.m_id), 0, static_cast<int>(size),
+                    location.m_file.data(), location.m_line, strDef.data());
+            } else if (type.m_flags & (TF_POINTER | TF_FUNCTION | TF_ARRAY)) {
+                const auto& location = type.location();
+                size_t size = namescope.GetSizeofType(type.m_id);
+                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\n",
+                    static_cast<int>(tid), name.data(), type.m_flags,
+                    static_cast<int>(type.m_id),
+                    static_cast<int>(type.m_count), static_cast<int>(size),
+                    location.m_file.data(), location.m_line);
+            } else {
+                auto strDef = namescope.StringOfType(tid, name, true);
+                const auto& location = type.location();
+                size_t size = namescope.GetSizeofType(tid);
+                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\ttypedef %s;\n",
+                    static_cast<int>(tid), name.data(), type.m_flags,
+                    static_cast<int>(type.m_id), 0, static_cast<int>(size),
+                    location.m_file.data(), location.m_line, strDef.data());
             }
         }
         fclose(fp);
@@ -1399,7 +1427,7 @@ void CrDumpSemantic(
 
     fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(pack)\t(file)\t(line)\t(definition)\t(item_1_type_id)\t(item_1_name)\t(item_1_bits)\t(item_2_type_id)\t...\n");
+        fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(count)\t(pack)\t(file)\t(line)\t(definition)\t(item_1_type_id)\t(item_1_name)\t(item_1_bits)\t(item_2_type_id)\t...\n");
         for (const auto& it : namescope.MapTypeIDToName()) {
             auto tid = it.first;
             const auto& type = namescope.LogType(tid);
@@ -1415,10 +1443,11 @@ void CrDumpSemantic(
             auto sid = type.m_id;
             const auto& ls = namescope.LogStruct(sid);
             assert(ls.m_type_list.size() == ls.m_name_list.size());
-            fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
+            fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
                 static_cast<int>(tid), name.data(), 
                 static_cast<int>(sid), static_cast<int>(ls.m_struct_or_union),
-                static_cast<int>(size), static_cast<int>(ls.m_pack),
+                static_cast<int>(size), static_cast<int>(ls.m_type_list.size()),
+                static_cast<int>(ls.m_pack),
                 location.m_file.data(), location.m_line, strDef.data());
             if (type.m_flags & TF_UNION) {
                 for (size_t i = 0; i < ls.m_type_list.size(); ++i) {

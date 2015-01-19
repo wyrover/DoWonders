@@ -13,46 +13,45 @@
 
 enum
 {
-    TF_VOID         = (1 << 0),
-    TF_CHAR         = (1 << 1),
-    TF_SHORT        = (1 << 2),
-    TF_LONG         = (1 << 3),
-    TF_LONGLONG     = (1 << 4),
-    TF_INT          = (1 << 5),
-    TF_VA_LIST      = (1 << 6),
-    TF_FLOAT        = (1 << 7),
-    TF_DOUBLE       = (1 << 8),
+    TF_VOID         = 0x00000001,
+    TF_CHAR         = 0x00000002,
+    TF_SHORT        = 0x00000004,
+    TF_LONG         = 0x00000008,
+    TF_LONGLONG     = 0x00000010,
+    TF_INT          = 0x00000020,
+    TF_VA_LIST      = 0x00000040,
+    TF_FLOAT        = 0x00000080,
+    TF_DOUBLE       = 0x00000100,
     TF_SIGNED       = 0,
-    TF_UNSIGNED     = (1 << 9),
-    TF_XSIGNED      = (1 << 10), // CodeReverse extension: signed and/or unsigned
-    TF_STRUCT       = (1 << 11),
-    TF_UNION        = (1 << 12),
-    TF_ENUM         = (1 << 13),
-    TF_POINTER      = (1 << 14),
-    TF_ARRAY        = (1 << 15),
-    TF_FUNCTION     = (1 << 16),
-    TF_CDECL        = (1 << 17),
-    TF_STDCALL      = (1 << 18),
-    TF_FASTCALL     = (1 << 19),
-    TF_CONST        = (1 << 20),
-    TF_VOLATILE     = (1 << 21),
-    TF_COMPLEX      = (1 << 22),
-    TF_IMAGINARY    = (1 << 23),
-    TF_ATOMIC       = (1 << 24),
-    TF_EXTERN       = (1 << 25),
-    TF_STATIC       = (1 << 26),
-    TF_THREADLOCAL  = (1 << 27),
-    TF_INLINE       = (1 << 28),
-    TF_ALIAS        = (1 << 29),
-    TF_ENUMITEM     = (1 << 30)
+    TF_UNSIGNED     = 0x00000200,
+    TF_XSIGNED      = 0x00000400, // CodeReverse extension: signed and/or unsigned
+    TF_STRUCT       = 0x00000800,
+    TF_UNION        = 0x00001000,
+    TF_ENUM         = 0x00002000,
+    TF_POINTER      = 0x00004000,
+    TF_ARRAY        = 0x00008000,
+    TF_FUNCTION     = 0x00010000,
+    TF_CDECL        = 0x00020000,
+    TF_STDCALL      = 0x00040000,
+    TF_FASTCALL     = 0x00080000,
+    TF_CONST        = 0x00100000,
+    TF_VOLATILE     = 0x00200000,
+    TF_COMPLEX      = 0x00400000,
+    TF_IMAGINARY    = 0x00800000,
+    TF_ATOMIC       = 0x01000000,
+    TF_EXTERN       = 0x02000000,
+    TF_STATIC       = 0x04000000,
+    TF_THREADLOCAL  = 0x08000000,
+    TF_INLINE       = 0x10000000,
+    TF_ALIAS        = 0x20000000,
+    TF_ENUMITEM     = 0x40000000
 };
 typedef unsigned long CR_TypeFlags;
 
 ////////////////////////////////////////////////////////////////////////////
 // CrNormalizeTypeFlags
 
-inline CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags)
-{
+inline CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags) {
     if (flags & TF_INT) {
         if (flags & TF_SHORT)
             flags &= ~TF_INT;
@@ -158,7 +157,7 @@ struct CR_LogType
 
     CR_LogType() : m_flags(0), m_id(0), m_count(0), m_size(0) { }
 
-    CR_LogType(CR_TypeFlags flags, size_t size, const CR_Location& location = CR_Location()) :
+    CR_LogType(CR_TypeFlags flags, size_t size, const CR_Location& location) :
         m_flags(flags), m_id(0), m_count(0), m_size(size), m_loc(location) { }
 
     bool operator==(const CR_LogType& type) const {
@@ -322,7 +321,7 @@ public:
     {
     }
 
-    void operator=(const CR_NameScope& ns) {
+    CR_NameScope& operator=(const CR_NameScope& ns) {
         m_is_64bit = ns.m_is_64bit;
         m_mNameToTypeID = ns.m_mNameToTypeID;
         m_mTypeIDToName = ns.m_mTypeIDToName;
@@ -334,6 +333,7 @@ public:
         m_structs = ns.m_structs;
         m_enums = ns.m_enums;
         m_vars = ns.m_vars;
+        return *this;
     }
 
     bool Is64Bit() const {
@@ -376,8 +376,17 @@ public:
         AddType("enumitem", TF_ENUMITEM, 4);
     }
 
-    CR_TypeID SizeFromFlags(CR_TypeFlags flags) {
-        flags &= ~TF_CONST;
+    CR_TypeID TypeIDFromFlags(CR_TypeFlags flags) const {
+        const size_t siz = m_types.size();
+        for (size_t i = 0; i < siz; ++i) {
+            if (m_types[i].m_flags == flags)
+                return i;
+        }
+        return cr_invalid_id;
+    }
+
+    size_t SizeFromFlags(CR_TypeFlags flags) const {
+        flags = CrNormalizeTypeFlags(flags & ~TF_CONST);
         for (const auto& t : m_types) {
             if (t.m_flags == flags)
                 return t.m_size;
@@ -402,7 +411,7 @@ public:
     }
 
     CR_TypeID AddType(const CR_String& name, const CR_LogType& lt) {
-        CR_TypeID tid = m_types.Insert(lt);
+        auto tid = m_types.AddUnique(lt);
         if (!name.empty()) {
             m_mNameToTypeID[name] = tid;
             m_mTypeIDToName[tid] = name;
@@ -425,23 +434,21 @@ public:
         lt.m_id = tid;
         lt.m_size = GetSizeofType(tid);
         lt.location() = location;
-        m_types.push_back(lt);
-        tid = static_cast<CR_TypeID>(m_types.size()) - 1;
-        if (!name.empty()) {
-            m_mNameToTypeID[name] = tid;
-            m_mTypeIDToName[tid] = name;
-        }
+        tid = m_types.insert(lt);
+        m_mNameToTypeID[name] = tid;
+        m_mTypeIDToName[tid] = name;
         return tid;
     }
 
-    CR_VarID AddVar(const CR_String& name, CR_TypeID tid, const CR_Location& location) {
+    CR_VarID AddVar(const CR_String& name, CR_TypeID tid,
+                    const CR_Location& location)
+    {
         assert(tid != cr_invalid_id);
         CR_LogVar var;
         var.m_type_id = tid;
         var.m_int_value = 0;
         var.location() = location;
-        m_vars.push_back(var);
-        CR_VarID vid = static_cast<CR_VarID>(m_vars.size()) - 1;;
+        auto vid = m_vars.insert(var);
         if (!name.empty()) {
             m_mNameToVarID[name] = vid;
             m_mVarIDToName[vid] = name;
@@ -450,7 +457,7 @@ public:
     }
 
     CR_VarID AddVar(const CR_String& name, const CR_LogType& lt) {
-        CR_TypeID tid = m_types.Insert(lt);
+        auto tid = m_types.AddUnique(lt);
         if (!name.empty()) {
             m_mNameToTypeID[name] = tid;
             m_mTypeIDToName[tid] = name;
@@ -464,13 +471,13 @@ public:
         lt.m_flags = TF_CONST;
         lt.m_id = tid;
         lt.m_size = GetSizeofType(tid);
-        CR_TypeID newtid = m_types.Insert(lt);
-        CR_String name = NameFromTypeID(tid);
+        auto newtid = m_types.AddUnique(lt);
+        auto name = NameFromTypeID(tid);
         if (!name.empty()) {
             name = CR_String("const ") + name;
             m_mNameToTypeID[name] = newtid;
+            m_mTypeIDToName[newtid] = name;
         }
-        m_mTypeIDToName[newtid] = name;
         return newtid;
     }
 
@@ -483,9 +490,9 @@ public:
         lt.m_id = tid;
         lt.m_size = (Is64Bit() ? 8 : 4);
         lt.location() = location;
-        CR_TypeID newtid = m_types.Insert(lt);
-        CR_LogType type = m_types[tid];
-        CR_String name = NameFromTypeID(tid);
+        auto newtid = m_types.AddUnique(lt);
+        auto type = m_types[tid];
+        auto name = NameFromTypeID(tid);
         if (!name.empty()) {
             if (!(type.m_flags & TF_FUNCTION)) {
                 if (flags & TF_CONST)
@@ -499,7 +506,9 @@ public:
         return newtid;
     }
 
-    CR_TypeID AddArrayType(CR_TypeID tid, int count, const CR_Location& location) {
+    CR_TypeID AddArrayType(CR_TypeID tid, int count,
+                           const CR_Location& location)
+    {
         assert(tid != cr_invalid_id);
         CR_LogType lt;
         lt.m_flags = TF_ARRAY;
@@ -507,24 +516,24 @@ public:
         lt.m_count = count;
         lt.m_size = GetSizeofType(tid) * count;
         lt.location() = location;
-        tid = m_types.Insert(lt);
+        tid = m_types.AddUnique(lt);
         m_mTypeIDToName[tid] = "";
         return tid;
     }
 
-    CR_TypeID AddFuncType(const CR_LogFunc& lf) {
+    CR_TypeID AddFuncType(const CR_LogFunc& lf, const CR_Location& location) {
         CR_LogFunc func(lf);
         if (func.m_type_list.size() == 1 && func.m_type_list[0] == 0) {
             func.m_type_list.clear();
             func.m_name_list.clear();
         }
-        m_funcs.push_back(func);
-        CR_FuncID fid = static_cast<CR_FuncID>(m_funcs.size()) - 1;
+        auto fid = m_funcs.insert(func);
         CR_LogType lt;
         lt.m_flags = TF_FUNCTION;
         lt.m_id = fid;
         lt.m_size = (Is64Bit() ? 8 : 4);
-        CR_TypeID tid = m_types.Insert(lt);
+        lt.location() = location;
+        CR_TypeID tid = m_types.AddUnique(lt);
         m_mTypeIDToName[tid] = "";
         return tid;
     }
@@ -534,25 +543,23 @@ public:
     {
         CR_LogType lt;
         if (name.empty()) {
-            m_structs.push_back(ls);
-            CR_StructID sid = static_cast<CR_StructID>(m_structs.size()) - 1;
+            CR_StructID sid = m_structs.insert(ls);
             lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
             lt.m_id = sid;
             lt.m_size = GetSizeofStruct(sid);
             lt.location() = location;
-            CR_TypeID newtid = m_types.Insert(lt);
+            CR_TypeID newtid = m_types.AddUnique(lt);
             m_mTypeIDToName[newtid] = name;
             return newtid;
         }
         auto it = m_mNameToTypeID.find(name);
         if (it == m_mNameToTypeID.end()) {
-            m_structs.push_back(ls);
-            CR_StructID sid = static_cast<CR_StructID>(m_structs.size()) - 1;
+            CR_StructID sid = m_structs.insert(ls);
             lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
             lt.m_id = sid;
             lt.m_size = GetSizeofStruct(sid);
             lt.location() = location;
-            CR_TypeID newtid = m_types.Insert(lt);
+            CR_TypeID newtid = m_types.AddUnique(lt);
             m_mNameToTypeID[name] = newtid;
             m_mTypeIDToName[newtid] = name;
             return newtid;
@@ -573,25 +580,23 @@ public:
     {
         CR_LogType lt;
         if (name.empty()) {
-            m_structs.push_back(ls);
-            CR_StructID sid = static_cast<CR_StructID>(m_structs.size()) - 1;
+            CR_StructID sid = m_structs.insert(ls);
             lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
             lt.m_id = sid;
             lt.m_size = GetSizeofUnion(sid);
             lt.location() = location;
-            CR_TypeID newtid = m_types.Insert(lt);
+            CR_TypeID newtid = m_types.AddUnique(lt);
             m_mTypeIDToName[newtid] = name;
             return newtid;
         }
         auto it = m_mNameToTypeID.find(name);
         if (it == m_mNameToTypeID.end()) {
-            m_structs.push_back(ls);
-            CR_StructID sid = static_cast<CR_StructID>(m_structs.size()) - 1;
+            CR_StructID sid = m_structs.insert(ls);
             lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
             lt.m_id = sid;
             lt.m_size = GetSizeofUnion(sid);
             lt.location() = location;
-            CR_TypeID newtid = m_types.Insert(lt);
+            CR_TypeID newtid = m_types.AddUnique(lt);
             m_mNameToTypeID[name] = newtid;
             m_mTypeIDToName[newtid] = name;
             return newtid;
@@ -612,25 +617,23 @@ public:
     {
         CR_LogType lt;
         if (name.empty()) {
-            m_enums.push_back(le);
-            CR_EnumID eid = static_cast<CR_EnumID>(m_enums.size()) - 1;
+            CR_EnumID eid = m_enums.insert(le);
             lt.m_flags = TF_ENUM;
             lt.m_id = eid;
             lt.m_size = 4;
             lt.location() = location;
-            CR_TypeID newtid = m_types.Insert(lt);
+            CR_TypeID newtid = m_types.AddUnique(lt);
             m_mTypeIDToName[newtid] = name;
             return newtid;
         }
         auto it = m_mNameToTypeID.find(name);
         if (it == m_mNameToTypeID.end()) {
-            m_enums.push_back(le);
-            CR_EnumID eid = static_cast<CR_EnumID>(m_enums.size()) - 1;
+            CR_EnumID eid = m_enums.insert(le);
             lt.m_flags = TF_ENUM;
             lt.m_id = eid;
             lt.m_size = 4;
             lt.location() = location;
-            CR_TypeID newtid = m_types.Insert(lt);
+            CR_TypeID newtid = m_types.AddUnique(lt);
             m_mNameToTypeID[name] = newtid;
             m_mTypeIDToName[newtid] = name;
             return newtid;
@@ -757,8 +760,10 @@ public:
         } else {
             str += "union ";
         }
-        str += name;
-        str += " ";
+        if (name.size()) {
+            str += name;
+            str += " ";
+        }
         if (s.m_type_list.size()) {
             str += "{ ";
             const std::size_t siz = s.m_type_list.size();
@@ -776,96 +781,128 @@ public:
         return str;
     }
 
-    CR_String StringOfType(CR_TypeID tid, const CR_String& content,
-                           bool expand = true) const
+    CR_String StringOfType(CR_TypeID tid, const CR_String& name,
+                           bool expand = true, bool no_convension = false) const
     {
         assert(tid != cr_invalid_id);
         if (tid == cr_invalid_id) {
             return "";
         }
-        const CR_LogType& type = m_types[tid];
-        const auto& name = NameFromTypeID(tid);
-        if (type.m_flags & TF_STRUCT) {
-            if (expand || name.empty()) {
-                return StringOfStructType(name, type.m_id) + content;
+        assert(tid < m_types.size());
+        const auto& type = m_types[tid];
+        auto type_name = NameFromTypeID(tid);
+        if (type.m_flags & TF_ALIAS) {
+            if (expand || type_name.empty()) {
+                return StringOfType(type.m_id, name, false);
             } else {
-                return "struct " + name + " " + content;
+                return type_name + " " + name;
             }
         }
-        if (type.m_flags & TF_UNION) {
-            if (expand || name.empty()) {
-                return StringOfStructType(name, type.m_id) + content;
+        if (type.m_flags & (TF_STRUCT | TF_UNION)) {
+            if (expand || type_name.empty()) {
+                return StringOfStructType(type_name, type.m_id) + name;
             } else {
-                return "union " + name + " " + content;
+                if (type.m_flags & TF_STRUCT) {
+                    return "struct " + type_name + " " + name;
+                } else {
+                    return "union " + type_name + " " + name;
+                }
             }
         }
         if (type.m_flags & TF_ENUM) {
-            if (expand || name.empty()) {
-                return StringOfEnumType(name, type.m_id) + content;
+            if (expand || type_name.empty()) {
+                return StringOfEnumType(type_name, type.m_id) + name;
             } else {
-                return "enum " + name + " " + content;
+                return "enum " + type_name + " " + name;
             }
         }
         if (type.m_flags & TF_ENUMITEM) {
-            return "enumitem " + name + " = " + content;
-        }
-        if (type.m_flags & TF_POINTER) {
-            const CR_LogType& type2 = m_types[type.m_id];
-            if ((type2.m_flags & TF_FUNCTION) || (type2.m_flags & TF_ARRAY) ||
-                (type2.m_flags & TF_POINTER))
-            {
-                if (type2.m_flags & TF_FUNCTION) {
-                    if (type.m_flags & TF_CDECL)
-                        return StringOfType(type.m_id, "(__cdecl *" + content + ")", false);
-                    if (type.m_flags & TF_STDCALL)
-                        return StringOfType(type.m_id, "(__stdcall *" + content + ")", false);
-                    if (type.m_flags & TF_FASTCALL)
-                        return StringOfType(type.m_id, "(__fastcall *" + content + ")", false);
-                }
-                return StringOfType(type.m_id, "(*" + content + ")", false);
-            } else if (type.m_flags & TF_CONST) {
-                return StringOfType(type.m_id, "", false) + " * const " + content;
-            } else {
-                return StringOfType(type.m_id, "", false) + " *" + content;
-            }
+            return "enumitem " + type_name + " = " + name;
         }
         if (type.m_flags & TF_ARRAY) {
             if (type.m_count) {
                 char buf[64];
                 std::sprintf(buf, "[%d]", static_cast<int>(type.m_count));
-                return StringOfType(type.m_id, content + buf, false);
+                return StringOfType(type.m_id, name + buf, false);
             } else {
-                return StringOfType(type.m_id, content + "[]", false);
+                return StringOfType(type.m_id, name + "[]", false);
+            }
+        }
+        if (type.m_flags & TF_FUNCTION) {
+            assert(type.m_id < m_funcs.size());
+            const auto& func = m_funcs[type.m_id];
+            auto rettype = StringOfType(func.m_return_type, "", false);
+            auto paramlist = StringOfParamList(func.m_type_list, func.m_name_list);
+            CR_String convension;
+            if (!no_convension) {
+                if (type.m_flags & TF_STDCALL)
+                    convension = "__stdcall ";
+                else if (type.m_flags & TF_FASTCALL)
+                    convension = "__fastcall ";
+                else if (type.m_flags & TF_CDECL)
+                    convension = "__cdecl ";
+            }
+            if (func.m_ellipsis)
+                paramlist += ", ...";
+            return rettype + " " + convension + name + "(" + paramlist + ")";
+        }
+        if (type.m_flags & TF_POINTER) {
+            auto tid2 = type.m_id;
+            assert(tid2 < m_types.size());
+            const auto& type2 = m_types[tid2];
+            if (type2.m_flags & TF_FUNCTION) {
+                if (type.m_flags & TF_CONST) {
+                    if (type.m_flags & TF_STDCALL)
+                        return StringOfType(tid2, "(__stdcall * const " + name + ")", false, true);
+                    else if (type.m_flags & TF_FASTCALL)
+                        return StringOfType(tid2, "(__fastcall * const " + name + ")", false, true);
+                    else
+                        return StringOfType(tid2, "(__cdecl * const " + name + ")", false, true);
+                } else {
+                    if (type.m_flags & TF_STDCALL)
+                        return StringOfType(tid2, "(__stdcall *" + name + ")", false, true);
+                    else if (type.m_flags & TF_FASTCALL)
+                        return StringOfType(tid2, "(__fastcall *" + name + ")", false, true);
+                    else
+                        return StringOfType(tid2, "(__cdecl *" + name + ")", false, true);
+                }
+            } else if (type2.m_flags & TF_POINTER) {
+                if (type.m_flags & TF_CONST) {
+                    return StringOfType(tid2, "(* const " + name + ")", false);
+                } else {
+                    return StringOfType(tid2, "(*" + name + ")", false);
+                }
+            } else if (type2.m_flags & TF_ARRAY) {
+                if (type.m_flags & TF_CONST) {
+                    if (type2.m_count) {
+                        char buf[64];
+                        sprintf(buf, "[%d]", static_cast<int>(type2.m_count));
+                        return StringOfType(tid2, "(* const " + name + buf + ")", false);
+                    } else {
+                        return StringOfType(tid2, "(* const " + name + "[])", false);
+                    }
+                } else {
+                    if (type2.m_count) {
+                        char buf[64];
+                        sprintf(buf, "[%d]", static_cast<int>(type2.m_count));
+                        return StringOfType(tid2, "(*" + name + buf + ")", false);
+                    } else {
+                        return StringOfType(tid2, "(*" + name + "[])", false);
+                    }
+                }
+            } else {
+                if (type.m_flags & TF_CONST) {
+                    return StringOfType(tid2, "", false) + "* const " + name;
+                } else {
+                    return StringOfType(tid2, "", false) + "*" + name;
+                }
             }
         }
         if (type.m_flags & TF_CONST) {
-            return CR_String("const ") + StringOfType(type.m_id, content, false);
+            return "const " + StringOfType(type.m_id, name, false);
         }
-        if (type.m_flags & TF_FUNCTION) {
-            const CR_LogFunc& lf = m_funcs[type.m_id];
-            CR_String rettype = StringOfType(lf.m_return_type, "", false);
-            CR_String paramlist =
-                StringOfParamList(lf.m_type_list, lf.m_name_list);
-            CR_String convension;
-            if (type.m_flags & TF_CDECL)
-                convension = "__cdecl";
-            if (type.m_flags & TF_STDCALL)
-                convension = "__stdcall";
-            if (type.m_flags & TF_FASTCALL)
-                convension = "__fastcall";
-            if (lf.m_ellipsis)
-                paramlist += ", ...";
-            return rettype + " " + convension + " " + content + "(" + paramlist + ")";
-        }
-        if ((type.m_flags & TF_ALIAS)) {
-            if (name.empty()) {
-               return StringOfType(type.m_id, content);
-            } else {
-               return name + " " + content;
-            }
-        }
-        if (!name.empty()) {
-            return name + " " + content;
+        if (type_name.size()) {
+            return type_name + " " + name;
         }
         return "";
     }
