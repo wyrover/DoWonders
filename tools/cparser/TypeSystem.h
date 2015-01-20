@@ -844,7 +844,7 @@ public:
             }
             if (func.m_ellipsis)
                 paramlist += ", ...";
-            return rettype + " " + convension + name + "(" + paramlist + ")";
+            return rettype + convension + name + "(" + paramlist + ")";
         }
         if (type.m_flags & TF_POINTER) {
             auto tid2 = type.m_id;
@@ -1115,6 +1115,14 @@ public:
     const CR_LogEnum& LogEnum(CR_EnumID eid) const {
         assert(eid < m_enums.size());
         return m_enums[eid];
+    }
+
+    CR_DeqSet<CR_LogType>& LogTypes() {
+        return m_types;
+    }
+
+    const CR_DeqSet<CR_LogType>& LogTypes() const {
+        return m_types;
     }
 
 protected:

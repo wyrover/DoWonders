@@ -7,19 +7,19 @@ const char * const cr_logo =
     "///////////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser sample 0.1.7 (64-bit) for gcc     //\n"
+    "// CParser sample 0.1.8 (64-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.1.7 (64-bit) for clang    //\n"
+    "// CParser sample 0.1.8 (64-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.1.7 (64-bit) for cl      //\n"
+    "// CParser sample 0.1.8 (64-bit) for cl      //\n"
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser sample 0.1.7 (32-bit) for gcc     //\n"
+    "// CParser sample 0.1.8 (32-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.1.7 (32-bit) for clang    //\n"
+    "// CParser sample 0.1.8 (32-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.1.7 (32-bit) for cl      //\n"
+    "// CParser sample 0.1.8 (32-bit) for cl      //\n"
 # endif
 #endif  // !64-bit
     "// public domain software                    //\n"
@@ -599,7 +599,6 @@ CR_TypeID CrAnalysePointers(CR_NameScope& namescope, Pointers *pointers,
     assert(pointers);
     for (auto& ac : *pointers) {
         assert(ac);
-        
         tid = namescope.AddPtrType(tid, ac->m_flags, location);
     }
     return tid;
@@ -631,6 +630,11 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 break;
 
             case Declor::POINTERS:
+                if (namescope.IsFuncType(tid2)) {
+                    Pointers *pointers = d->m_pointers.get();
+                    auto ac = (*pointers)[0];
+                    namescope.AddTypeFlags(tid2, ac->m_flags);
+                }
                 tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, location);
                 d = d->m_declor.get();
                 continue;
@@ -652,8 +656,8 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                         CrAnalyseParamList(namescope, func, d->m_param_list.get());
                     }
                     tid2 = namescope.AddFuncType(func, d->location());
+                    d = d->m_declor.get();
                 }
-                d = d->m_declor.get();
                 continue;
 
             case Declor::BITS:
@@ -697,6 +701,11 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 break;
 
             case Declor::POINTERS:
+                if (namescope.IsFuncType(tid2)) {
+                    Pointers *pointers = d->m_pointers.get();
+                    auto ac = (*pointers)[0];
+                    namescope.AddTypeFlags(tid2, ac->m_flags);
+                }
                 tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, d->location());
                 d = d->m_declor.get();
                 break;
@@ -718,8 +727,8 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                         CrAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
                     tid2 = namescope.AddFuncType(lf, d->location());
+                    d = d->m_declor.get();
                 }
-                d = d->m_declor.get();
                 break;
 
             default:
@@ -750,6 +759,11 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 break;
 
             case Declor::POINTERS:
+                if (namescope.IsFuncType(tid2)) {
+                    Pointers *pointers = d->m_pointers.get();
+                    auto ac = (*pointers)[0];
+                    namescope.AddTypeFlags(tid2, ac->m_flags);
+                }
                 tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2,
                                          d->location());
                 d = d->m_declor.get();
@@ -771,8 +785,8 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                         CrAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
                     tid2 = namescope.AddFuncType(lf, d->location());
+                    d = d->m_declor.get();
                 }
-                d = d->m_declor.get();
                 continue;
 
             case Declor::BITS:
@@ -859,6 +873,11 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
                 break;
 
             case Declor::POINTERS:
+                if (namescope.IsFuncType(tid2)) {
+                    Pointers *pointers = d->m_pointers.get();
+                    auto ac = (*pointers)[0];
+                    namescope.AddTypeFlags(tid2, ac->m_flags);
+                }
                 tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2,
                                          d->location());
                 d = d->m_declor.get();
@@ -881,8 +900,8 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
                         CrAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
                     tid2 = namescope.AddFuncType(lf, d->location());
+                    d = d->m_declor.get();
                 }
-                d = d->m_declor.get();
                 continue;
 
             case Declor::BITS:
@@ -1382,9 +1401,8 @@ void CrDumpSemantic(
     fp = fopen((strPrefix + "types" + strSuffix).data(), "w");
     if (fp) {
         fprintf(fp, "(type_id)\t(name)\t(flags)\t(sub_id)\t(count)\t(size)\t(file)\t(line)\t(definition)\n");
-        for (const auto& it : namescope.MapTypeIDToName()) {
-            auto tid = it.first;
-            const auto& name = it.second;
+        for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
+            const auto& name = namescope.MapTypeIDToName()[tid];
             const auto& type = namescope.LogType(tid);
             if (namescope.IsCrExtendedType(tid)) {
                 size_t size = namescope.GetSizeofType(tid);
@@ -1428,14 +1446,12 @@ void CrDumpSemantic(
     fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
     if (fp) {
         fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(count)\t(pack)\t(file)\t(line)\t(definition)\t(item_1_type_id)\t(item_1_name)\t(item_1_bits)\t(item_2_type_id)\t...\n");
-        for (const auto& it : namescope.MapTypeIDToName()) {
-            auto tid = it.first;
+        for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& type = namescope.LogType(tid);
             if (!(type.m_flags & (TF_STRUCT | TF_UNION))) {
                 continue;
             }
-
-            const auto& name = it.second;
+            const auto& name = namescope.MapTypeIDToName()[tid];
             auto strDef = namescope.StringOfType(tid, "");
             assert(!strDef.empty());
             const auto& location = type.location();
@@ -1469,11 +1485,10 @@ void CrDumpSemantic(
     fp = fopen((strPrefix + "enums" + strSuffix).data(), "w");
     if (fp) {
         fprintf(fp, "(type_id)\t(name)\t(num_items)\t(file)\t(line)\t(item_name_1)\t(item_value_1)\t(item_name_2)\t...\n");
-        for (const auto& it : namescope.MapTypeIDToName()) {
-            auto tid = it.first;
+        for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& type = namescope.LogType(tid);
             if (type.m_flags & TF_ENUM) {
-                const auto& name = it.second;
+                const auto& name = namescope.MapTypeIDToName()[tid];
                 const auto& le = namescope.LogEnum(type.m_id);
                 size_t num_items = le.MapNameToValue().size();
                 const auto& location = type.location();
