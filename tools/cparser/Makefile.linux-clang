@@ -1,19 +1,19 @@
-# Makefile.g++32 --- Makefile for 32-bit GNU C++
-# Usage: make -f Makefile.g++32
+# Makefile.linux-clang --- Makefile for Linux clang++
+# Usage: make -f Makefile.linux-clang
 
 DOTOBJ = .o
 DOTEXE =
 
 CXX = clang++
-CAPER = ../../caper$(DOTEXE)
+CAPER = caper$(DOTEXE)
 
-DEFS = -static -m32
+DEFS = -static -m32 -DJAPAN
 DEFS2 = 
 
-#OPTIONS = -mconsole -O9 -Ofast -DNDEBUG $(DEFS) $(DEFS2) -Wall -pedantic
-OPTIONS =-O0 -D_DEBUG $(DEFS) $(DEFS2) -Wall -pedantic
+OPTIONS = -O9 -Ofast -DNDEBUG $(DEFS) $(DEFS2) -Wall -pedantic
+#OPTIONS = -O0 -D_DEBUG $(DEFS) $(DEFS2) -Wall -pedantic
 
-CXXFLAGS = -std=c++0x
+CXXFLAGS = -std=c++11
 
 OBJS = \
 	Main$(DOTOBJ) \
