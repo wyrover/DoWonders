@@ -34,5 +34,12 @@ tools/redirector/Release
 tools/redirector/x64
 !tools/redirector/Debug/redirector.exe
 !tools/redirector/Release/redirector.exe
-!tools/redirector/x64/Debug/redirector.exe
-!tools/redirector/x64/Release/redirector.exe
+!tools/redirector/x64/Debug/redirector64.exe
+!tools/redirector/x64/Release/redirector64.exe
+tools/dllexpdumper/Debug
+tools/dllexpdumper/Release
+tools/dllexpdumper/x64
+!tools/dllexpdumper/Debug/redirector.exe
+!tools/dllexpdumper/Release/redirector.exe
+!tools/dllexpdumper/x64/Debug/redirector64.exe
+!tools/dllexpdumper/x64/Release/redirector64.exe

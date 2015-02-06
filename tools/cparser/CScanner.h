@@ -698,7 +698,7 @@ namespace cparser
                     if (d == '=')   // closed
                         return commit_token(T_AND_ASSIGN);
                     else if (d == '&')  // closed
-                        return commit_token(T_AND_ASSIGN);
+                        return commit_token(T_AND);
                     else {
                         ungetch();   // closed
                         return commit_token(T_AND);

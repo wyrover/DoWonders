@@ -21,6 +21,9 @@
 #include <sys/timeb.h>
 #include <sys/types.h>
 
+/* winsock version 2 */
+#include <winsock2.h>
+
 /* windows */
 #include <windows.h>
 #include <commdlg.h>
@@ -48,9 +51,6 @@
 
 /* input method */
 #include <imm.h>
-
-/* winsock version 2 */
-#include <winsock2.h>
 
 /* messaging */
 #include <mapi.h>
@@ -96,6 +96,7 @@
 #include <lmrepl.h>
 #include <dhcpsapi.h>
 #include <urlmon.h>
+#include <ipexport.h>
 #include <icmpapi.h>
 #include <dwmapi.h>
 #include <errorrep.h>
@@ -103,7 +104,12 @@
 #include <hidpi.h>
 #include <msdrm.h>
 #include <propsys.h>
+#define SECURITY_WIN32
+#include <sspi.h>
+#include <ntsecapi.h>
 #include <ntsecpkg.h>
-#include <wlanapi.h>
+#if (_WIN32_WINNT >= _WIN32_WINNT_WINXP)
+    #include <wlanapi.h>
+#endif
 #include <rpc.h>
 #include <hlink.h>

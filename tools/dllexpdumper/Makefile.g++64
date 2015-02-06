@@ -1,0 +1,31 @@
+# Makefile.g++64 --- Makefile for 64-bit GNU C++
+# Usage: make -f Makefile.g++64
+
+DOTOBJ = .o
+DOTEXE = .exe
+
+CXX = g++
+
+DEFS = -static -m64 -DJAPAN -ansi -std=c++11
+DEFS2 = 
+
+OPTIONS = -O9 -Ofast -DNDEBUG $(DEFS) $(DEFS2) -Wall -pedantic
+#OPTIONS = -O0 -D_DEBUG $(DEFS) $(DEFS2) -Wall -pedantic
+
+CXXFLAGS = 
+
+OBJS = \
+	dllexpdumper64$(DOTOBJ) \
+
+LIBS = -lcomdlg32 -limagehlp
+
+all: dllexpdumper64$(DOTEXE)
+
+dllexpdumper64$(DOTEXE): $(OBJS)
+	$(CXX) -o dllexpdumper64$(DOTEXE) $(CXXFLAGS) $(OPTIONS) $(OBJS) $(LIBS)
+
+dllexpdumper64$(DOTOBJ): dllexpdumper.hpp dllexpdumper_inl.hpp dllexpdumper.cpp
+	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o dllexpdumper64$(DOTOBJ) dllexpdumper.cpp
+
+clean:
+	rm -f *$(DOTOBJ)
