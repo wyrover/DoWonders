@@ -54,6 +54,7 @@
 %token T_INT<TokenValue>;
 %token T_INT32<TokenValue>;
 %token T_INT64<TokenValue>;
+%token T_INT128<TokenValue>;
 %token T_LE<TokenValue>;
 %token T_LONG<TokenValue>;
 %token T_LT<TokenValue>;
@@ -142,6 +143,7 @@ declaration_list<DeclList>
 
 declaration<Decl>
     : [DoDecl1] T_TYPEDEF(0) typedef_declaration_specifiers(1) typedef_declarator_list(2) T_SEMICOLON
+    | [DoDecl7] T_TYPEDEF(0) typedef_declaration_specifiers(1) T_SEMICOLON
     | [DoDecl2] declaration_specifiers(0) init_declarator_list(1) T_SEMICOLON
     | [DoDecl3] declaration_specifiers(0) T_SEMICOLON
     | [DoDecl4] static_assert_declaration(0)
@@ -184,6 +186,7 @@ type_specifier<TypeSpec>
     | [DoTypeSpec4] T_INT
     | [DoTypeSpec5] T_INT32
     | [DoTypeSpec6] T_INT64
+    | [DoTypeSpec22] T_INT128
     | [DoTypeSpec7] T_LONG
     | [DoTypeSpec8] T_FLOAT
     | [DoTypeSpec9] T_DOUBLE

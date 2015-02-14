@@ -83,6 +83,7 @@ namespace cparser
             using namespace cparser;
             char c, d, e;
 
+            info.m_text.clear();
             for (;;) {
                 c = skip_space();   // open
 
@@ -205,6 +206,7 @@ namespace cparser
                         // D+
                         if (isdigit(c)) {
                             std::string str2;
+                            str2 += c;
                             for (;;) {
                                 c = getch();
                                 if (!isdigit(c))
@@ -221,14 +223,14 @@ namespace cparser
                                 c = nonescaped_string_guts(file);   // open
                                 #if 1
                                     int lineno = std::atoi(str2.c_str());
-                                    location().set(file.c_str(), lineno - 1);
+                                    location().set(file.c_str(), lineno);
                                     //std::printf("1: %s\n", location().to_string().c_str());
                                 #endif
                             } else {
                                 // #line lineno
                                 #if 1
                                     int lineno = std::atoi(str2.c_str());
-                                    location().m_line = lineno - 1;
+                                    location().m_line = lineno;
                                     //std::printf("2: %s\n", location().to_string().c_str());
                                 #endif
                             }   // open
@@ -488,7 +490,6 @@ namespace cparser
                 }
 
                 // identifier or keyword
-                info.m_text.clear();
                 if (isalpha(c) || c == '_') // open
                 {
                     info.m_text += c;
@@ -540,6 +541,7 @@ namespace cparser
                             else if (d == 'i' && str == "__inline__") return commit_token(T_INLINE);
                             else if (d == 'i' && str == "__int32") return commit_token(T_INT32);
                             else if (d == 'i' && str == "__int64") return commit_token(T_INT64);
+                            else if (d == 'i' && str == "__int128") return commit_token(T_INT128);
                             else if (d == 'n' && str == "__noreturn__") return commit_token(T_NORETURN);
                             else if (d == 'n' && str == "__nothrow__") return commit_token(T_NOTHROW);
                             else if (d == 'p' && str == "__pragma") return commit_token(T_PRAGMA);
@@ -1176,6 +1178,7 @@ namespace cparser
                 m_type_names.insert("__builtin_va_list");
             #else
                 m_type_names.insert("va_list");
+                m_type_names.insert("SOCKADDR_STORAGE");
             #endif
 
             for (TokenInfoIt it = begin; it != end; ++it) {
@@ -1186,6 +1189,9 @@ namespace cparser
                     ++it;
                     if (it->m_token == T_IDENTIFIER) {
                         it->set_token(T_TAGNAME);
+                        if ((it + 1)->m_token == T_SEMICOLON) {
+                            m_type_names.insert(it->m_text);
+                        }
                     }
                 }
             }
@@ -1437,7 +1443,7 @@ namespace cparser
                     while (it2 != paren_it) {
                         switch (it2->m_token) {
                         case T_VOID: case T_CHAR: case T_SHORT: case T_INT:
-                        case T_INT32: case T_INT64: case T_LONG:
+                        case T_INT32: case T_INT64: case T_INT128: case T_LONG:
                         case T_FLOAT: case T_DOUBLE:
                         case T_SIGNED: case T_UNSIGNED: case T_BOOL:
                         case T_TYPEDEF_NAME: case T_TAGNAME:

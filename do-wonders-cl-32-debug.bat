@@ -1,15 +1,15 @@
 @echo off
 
-set REDIRECTOR=tools\redirector\Release\redirector.exe
+set REDIRECTOR=tools\redirector\Debug\redirector.exe
 if not exist %REDIRECTOR% goto label_no_redirector
 
-set MCPP=tools\mcpp-2.7.2-hacked\Release\mcpp.exe
+set MCPP=tools\mcpp-2.7.2-hacked\Debug\mcpp.exe
 if not exist %MCPP% goto label_no_mcpp
 
-set CPARSER=tools\cparser\Release\cparser.exe
+set CPARSER=tools\cparser\Debug\cparser.exe
 if not exist %CPARSER% goto label_no_cparser
 
-set DLLEXPDUMPER=tools\dllexpdumper\Release\dllexpdumper.exe
+set DLLEXPDUMPER=tools\dllexpdumper\Debug\dllexpdumper.exe
 if not exist %DLLEXPDUMPER% goto label_no_dllexpdumper
 
 %DLLEXPDUMPER% -e dll-info-32.dat
@@ -192,32 +192,32 @@ type tmp.log >>dll-info-32.log
 del tmp.log
 
 cd Wonders98
-call do-cl-32.bat
+call do-cl-32-debug.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd WondersMe
-call do-cl-32.bat
+call do-cl-32-debug.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd Wonders2000
-call do-cl-32.bat
+call do-cl-32-debug.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd WondersXP
-call do-cl-32.bat
+call do-cl-32-debug.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd WondersVista
-call do-cl-32.bat
+call do-cl-32-debug.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd Wonders7
-call do-cl-32.bat
+call do-cl-32-debug.bat
 if ERRORLEVEL 1 goto error
 cd ..
 

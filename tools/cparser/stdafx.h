@@ -3,6 +3,9 @@
 #endif
 
 #define _CRT_SECURE_NO_WARNINGS
+#define _CRT_NON_CONFORMING_SWPRINTFS
+#undef __STRICT_ANSI__
+#define __NO_INLINE__   // https://github.com/g-truc/glm/issues/300
 
 #include <cstdlib>          // standard library
 #include <cstdio>           // standard I/O

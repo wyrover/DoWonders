@@ -7,19 +7,19 @@ const char * const cr_logo =
     "///////////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser sample 0.1.8 (64-bit) for gcc     //\n"
+    "// CParser sample 0.1.9 (64-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.1.8 (64-bit) for clang    //\n"
+    "// CParser sample 0.1.9 (64-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.1.8 (64-bit) for cl      //\n"
+    "// CParser sample 0.1.9 (64-bit) for cl      //\n"
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser sample 0.1.8 (32-bit) for gcc     //\n"
+    "// CParser sample 0.1.9 (32-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.1.8 (32-bit) for clang    //\n"
+    "// CParser sample 0.1.9 (32-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.1.8 (32-bit) for cl      //\n"
+    "// CParser sample 0.1.9 (32-bit) for cl      //\n"
 # endif
 #endif  // !64-bit
     "// public domain software                    //\n"
@@ -599,6 +599,8 @@ CR_TypeID CrAnalysePointers(CR_NameScope& namescope, Pointers *pointers,
     assert(pointers);
     for (auto& ac : *pointers) {
         assert(ac);
+		if (tid == cr_invalid_id)
+			return 0;
         tid = namescope.AddPtrType(tid, ac->m_flags, location);
     }
     return tid;
@@ -815,8 +817,10 @@ void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl)
         CR_TypeID tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
         switch (decl->m_decl_type) {
         case Decl::TYPEDEF:
-            CrAnalyseTypedefDeclorList(namescope, tid, decl->m_declor_list.get(),
-                                       decl->location());
+            if (decl->m_declor_list.get()) {
+                CrAnalyseTypedefDeclorList(namescope, tid,
+                    decl->m_declor_list.get(), decl->location());
+            }
             break;
 
         case Decl::DECLORLIST:
@@ -1373,7 +1377,10 @@ int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu)
                 CR_TypeID tid = CrAnalyseDeclSpecs(namescope, ds.get());
                 if (decl->m_decl_type == Decl::TYPEDEF) {
                     fflush(stderr);
-                    CrAnalyseTypedefDeclorList(namescope, tid, dl.get(), decl->location());
+                    if (dl.get()) {
+                        CrAnalyseTypedefDeclorList(namescope, tid, dl.get(),
+                                                   decl->location());
+                    }
                 } else {
                     fflush(stderr);
                     CrAnalyseDeclorList(namescope, tid, dl.get());

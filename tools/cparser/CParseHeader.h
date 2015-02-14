@@ -38,8 +38,28 @@ namespace cparser
             if (parser.post(it->m_token, make_shared<TokenValue >(*it))) {
                 if (parser.error()) {
                     ps.location() = it->location();
-                    ps.message(std::string("ERROR: syntax error near ") +
-                        scanner.token_to_string(*it));
+                    ps.message("ERROR: syntax error near " + 
+                               scanner.token_to_string(*it));
+
+                    // show around tokens
+                    std::string around_tokens;
+                    int count = 50;
+                    for (int i = 0; i < count / 2; ++i) {
+                        if (infos.begin() != it)
+                            --it;
+                        else
+                            break;
+                    }
+                    for (int i = 0; i < count; ++i) {
+                        if (infos.end() != it) {
+                            around_tokens += scanner.token_to_string(*it);
+                            around_tokens += " ";
+                            ++it;
+                        }
+                        else
+                            break;
+                    }
+                    ps.message("around_tokens: " + around_tokens);
                     return false;
                 }
                 break;

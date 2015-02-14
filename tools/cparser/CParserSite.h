@@ -189,6 +189,20 @@ namespace cparser
             return shared_ptr<Decl>(decl);
         }
 
+        shared_ptr<Decl> DoDecl7(
+            shared_ptr<TokenValue>& def,
+            shared_ptr<DeclSpecs>& ds)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoDecl1\n");
+            #endif
+            Decl *decl = new Decl;
+            decl->location() = def->location();
+            decl->m_decl_type = Decl::TYPEDEF;
+            decl->m_decl_specs = ds;
+            return shared_ptr<Decl>(decl);
+        }
+
         shared_ptr<Decl> DoDecl2(
             shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
         {
@@ -498,6 +512,15 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_LONGLONG;
+            return shared_ptr<TypeSpec>(ts);
+        }
+
+        shared_ptr<TypeSpec> DoTypeSpec22() {
+            #ifdef DEEPDEBUG
+                std::printf("DoTypeSpec22\n");
+            #endif
+            TypeSpec *ts = new TypeSpec;
+            ts->m_flag = TF_INT128;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -3201,8 +3224,7 @@ namespace cparser
         void add_error()         { m_num_errors++; }
         void add_warning()       { m_num_warnings++; }
 
-        void clear_errors()
-        {
+        void clear_errors() {
             m_num_errors = m_num_warnings = 0;
         }
 

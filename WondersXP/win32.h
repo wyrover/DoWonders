@@ -42,10 +42,9 @@
 /* process debug helper */
 #include <tlhelp32.h>
 #include <psapi.h>
-#include <dbghelp.h>
+#include <imagehlp.h>
 
 /* graphics */
-#include <gdiplus.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 
@@ -89,8 +88,11 @@
 #include <winspool.h>
 #include <winscard.h>
 #include <wininet.h>
-#include <winhttp.h>
 #include <wincred.h>
+
+#include <nspapi.h>
+#include <wsdapi.h>
+#include <winhttp.h>
 
 /* more misc. */
 #include <lmrepl.h>
@@ -101,7 +103,7 @@
 #include <dwmapi.h>
 #include <errorrep.h>
 #include <cfgmgr32.h>
-#include <hidpi.h>
+#include <hidsdi.h>
 #include <msdrm.h>
 #include <propsys.h>
 #define SECURITY_WIN32

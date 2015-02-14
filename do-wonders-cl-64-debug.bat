@@ -1,15 +1,15 @@
 @echo off
 
-set REDIRECTOR=tools\redirector\Release\redirector.exe
+set REDIRECTOR=tools\redirector\Debug\redirector.exe
 if not exist %REDIRECTOR% goto label_no_redirector
 
-set MCPP=tools\mcpp-2.7.2-hacked\Release\mcpp.exe
+set MCPP=tools\mcpp-2.7.2-hacked\Debug\mcpp.exe
 if not exist %MCPP% goto label_no_mcpp
 
-set CPARSER=tools\cparser\x64\Release\cparser64.exe
+set CPARSER=tools\cparser\x64\Debug\cparser64.exe
 if not exist %CPARSER% goto label_no_cparser64
 
-set DLLEXPDUMPER=tools\dllexpdumper\x64\Release\dllexpdumper64.exe
+set DLLEXPDUMPER=tools\dllexpdumper\x64\Debug\dllexpdumper64.exe
 if not exist %DLLEXPDUMPER% goto label_no_dllexpdumper64
 
 %REDIRECTOR% nul tmp.log tmp.log %DLLEXPDUMPER% -a dll-info-64.dat advapi32.dll
@@ -189,17 +189,17 @@ type tmp.log >>dll-info-64.log
 del tmp.log
 
 cd WondersXP
-call do-cl-64.bat
+call do-cl-64-debug.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd WondersVista
-call do-cl-64.bat
+call do-cl-64-debug.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd Wonders7
-call do-cl-64.bat
+call do-cl-64-debug.bat
 if ERRORLEVEL 1 goto error
 cd ..
 

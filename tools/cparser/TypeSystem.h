@@ -11,8 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypeFlags
 
-enum
-{
+enum {
     TF_VOID         = 0x00000001,
     TF_CHAR         = 0x00000002,
     TF_SHORT        = 0x00000004,
@@ -44,7 +43,8 @@ enum
     TF_THREADLOCAL  = 0x08000000,
     TF_INLINE       = 0x10000000,
     TF_ALIAS        = 0x20000000,
-    TF_ENUMITEM     = 0x40000000
+    TF_ENUMITEM     = 0x40000000,
+    TF_INT128       = 0x80000000
 };
 typedef unsigned long CR_TypeFlags;
 
@@ -59,15 +59,18 @@ inline CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags) {
             flags &= ~TF_INT;
         else if (flags & TF_LONGLONG)
             flags &= ~TF_INT;
+        else if (flags & TF_INT128)
+            flags &= ~TF_INT;
     }
     if ((flags & TF_UNSIGNED) &&
-        !(flags & (TF_CHAR | TF_SHORT | TF_LONG | TF_LONGLONG | TF_INT)))
+        !(flags & (TF_CHAR | TF_SHORT | TF_LONG | TF_LONGLONG |
+                   TF_INT128 | TF_INT)))
     {
         flags |= TF_INT;
     }
     if (flags == 0)
         flags = TF_INT;
-    return flags & ~(TF_EXTERN | TF_STATIC);
+    return flags & ~(TF_EXTERN | TF_STATIC | TF_INLINE);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -352,6 +355,7 @@ public:
         AddType("long", TF_LONG, 4);
         AddType("__int64", TF_LONGLONG, 8);
         AddType("long long", TF_LONGLONG, 8);
+        AddType("__int128", TF_INT128, 16);
         AddType("int", TF_INT, 4);
 
         AddType("unsigned char", TF_UNSIGNED | TF_CHAR, 1);
@@ -359,6 +363,7 @@ public:
         AddType("unsigned long", TF_UNSIGNED | TF_LONG, 4);
         AddType("unsigned __int64", TF_UNSIGNED | TF_LONGLONG, 8);
         AddType("unsigned long long", TF_UNSIGNED | TF_LONGLONG, 8);
+        AddType("unsigned __int128", TF_UNSIGNED | TF_INT128, 16);
         AddType("unsigned int", TF_UNSIGNED | TF_INT, 4);
 
         AddType("float", TF_FLOAT, 4);
@@ -371,7 +376,9 @@ public:
         AddType("xsigned char", TF_XSIGNED | TF_CHAR, 1);
         AddType("xsigned short", TF_XSIGNED | TF_SHORT, 2);
         AddType("xsigned long", TF_XSIGNED | TF_LONG, 4);
+        AddType("xsigned __int64", TF_XSIGNED | TF_LONGLONG, 8);
         AddType("xsigned long long", TF_XSIGNED | TF_LONGLONG, 8);
+        AddType("xsigned __int128", TF_XSIGNED | TF_LONGLONG, 16);
         AddType("xsigned int", TF_XSIGNED | TF_INT, 4);
         AddType("enumitem", TF_ENUMITEM, 4);
     }
