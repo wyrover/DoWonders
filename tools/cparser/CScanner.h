@@ -7,8 +7,7 @@ namespace cparser
     // Scanner<Iterator, ParserSite>
     //
     template <class Iterator, class ParserSite>
-    class Scanner
-    {
+    class Scanner {
     public:
         typedef ParserSite                  parser_site_type;
         typedef Iterator                    iterator_type;
@@ -17,18 +16,15 @@ namespace cparser
 
     public:
         Scanner(parser_site_type& parser_site, bool is_64bit) :
-            m_is_64bit(is_64bit),
-            m_parser_site(parser_site),
-            m_head_of_line(true),
-            m_index(0)
-        {
-        }
+            m_is_64bit(is_64bit), m_parser_site(parser_site),
+            m_head_of_line(true), m_index(0) { }
 
         void scan(std::vector<info_type>& infos, Iterator begin, Iterator end) {
             m_begin = begin;
             m_current = begin;
             m_end = end;
 
+            // get tokens
             Token token;
             info_type info;
             do {
@@ -37,30 +33,32 @@ namespace cparser
                 infos.push_back(info);
             } while (token != cparser::eof);
 
-            rescan1(infos);
-            rescan2(infos.begin(), infos.end());
-            rescan3(infos);
-            rescan4(infos.begin(), infos.end());
-            m_type_names.clear();
+            // token resynthesization
+            resynth1(infos);
+            resynth2(infos.begin(), infos.end());
+            resynth3(infos);
+            resynth4(infos.begin(), infos.end());
+
+            m_type_names.clear();   // no use
         }
 
         int get_pack() const {
-            if (!m_packs.empty())
+            if (!m_packs.empty()) {
                 return m_packs.back();
-            else
+            } else {
                 return (m_is_64bit ? 8 : 4);
+            }
         }
 
         template <class TokenInfoIt>
         void show_tokens(TokenInfoIt begin, TokenInfoIt end) {
             for (TokenInfoIt it = begin; it != end; ++it) {
-                printf("%s ", token_to_string(*it).c_str());
+                std::printf("%s ", token_to_string(*it).c_str());
             }
         }
 
         std::string token_to_string(const info_type& info) {
             std::string str = token_label(info.m_token);
-
             switch (info.m_token) {
             case T_IDENTIFIER:
             case T_TYPEDEF_NAME:
@@ -74,11 +72,10 @@ namespace cparser
             default:
                 break;
             }
-
             return str;
         }
 
-        Token get_token(TokenValue& info) {
+        Token get_token(CP_TokenInfo& info) {
             using namespace std;
             using namespace cparser;
             char c, d, e;
@@ -223,14 +220,14 @@ namespace cparser
                                 c = nonescaped_string_guts(file);   // open
                                 #if 1
                                     int lineno = std::atoi(str2.c_str());
-                                    location().set(file.c_str(), lineno);
+                                    location().set(file.c_str(), lineno - 1);
                                     //std::printf("1: %s\n", location().to_string().c_str());
                                 #endif
                             } else {
                                 // #line lineno
                                 #if 1
                                     int lineno = std::atoi(str2.c_str());
-                                    location().m_line = lineno;
+                                    location().m_line = lineno - 1;
                                     //std::printf("2: %s\n", location().to_string().c_str());
                                 #endif
                             }   // open
@@ -1116,10 +1113,10 @@ namespace cparser
         void linker(const std::string str) { }
 
         //
-        // rescan
+        // resynth
         //
         template <class TokenInfoContainer>
-        void rescan1(TokenInfoContainer& c) {
+        void resynth1(TokenInfoContainer& c) {
             TokenInfoContainer newc;
             typename TokenInfoContainer::iterator it, it2;
             const typename TokenInfoContainer::iterator end = c.end();
@@ -1172,13 +1169,13 @@ namespace cparser
         }
 
         template <class TokenInfoIt>
-        void rescan2(TokenInfoIt begin, TokenInfoIt end) {
+        void resynth2(TokenInfoIt begin, TokenInfoIt end) {
             m_type_names.clear();
             #ifdef __GNUC__
-                m_type_names.insert("__builtin_va_list");
+                m_type_names.insert("__builtin_va_list");   // fixup
             #else
                 m_type_names.insert("va_list");
-                m_type_names.insert("SOCKADDR_STORAGE");
+                m_type_names.insert("SOCKADDR_STORAGE");    // fixup
             #endif
 
             for (TokenInfoIt it = begin; it != end; ++it) {
@@ -1190,6 +1187,7 @@ namespace cparser
                     if (it->m_token == T_IDENTIFIER) {
                         it->set_token(T_TAGNAME);
                         if ((it + 1)->m_token == T_SEMICOLON) {
+                            // struct tag_name; fixup
                             m_type_names.insert(it->m_text);
                         }
                     }
@@ -1198,7 +1196,7 @@ namespace cparser
 
             for (TokenInfoIt it = begin; it != end; ++it) {
                 if (it->m_token == T_TYPEDEF) {
-                    it = rescan_typedef(++it, end);
+                    it = resynth_typedef(++it, end);
                 } else if (it->m_token == T_IDENTIFIER) {
                     if (m_type_names.count(it->m_text)) {
                         it->set_token(T_TYPEDEF_NAME);
@@ -1208,7 +1206,7 @@ namespace cparser
         }
 
         template <class TokenInfoIt>
-        TokenInfoIt rescan_typedef(TokenInfoIt begin, TokenInfoIt end) {
+        TokenInfoIt resynth_typedef(TokenInfoIt begin, TokenInfoIt end) {
             int paren_nest = 0, brace_nest = 0, bracket_nest = 0;
             TokenInfoIt it;
             for (it = begin; it != end; ++it) {
@@ -1228,7 +1226,7 @@ namespace cparser
                     paren_nest--;
                     ++it;
                     if (it->m_token == T_L_PAREN) {
-                        it = rescan_parameter_list(++it, end);
+                        it = resynth_parameter_list(++it, end);
                     } else
                         --it;
                 } else if (it->m_token == T_IDENTIFIER) {
@@ -1250,7 +1248,7 @@ namespace cparser
 
                             ++it;
                             if (it->m_token == T_L_PAREN) {
-                                it = rescan_parameter_list(++it, end);
+                                it = resynth_parameter_list(++it, end);
                             } else
                                 --it;
                         }
@@ -1263,7 +1261,7 @@ namespace cparser
         }
 
         template <class TokenInfoIt>
-        TokenInfoIt rescan_parameter_list(TokenInfoIt begin, TokenInfoIt end) {
+        TokenInfoIt resynth_parameter_list(TokenInfoIt begin, TokenInfoIt end) {
             int paren_nest = 1;
             bool fresh = true;
             TokenInfoIt it;
@@ -1280,7 +1278,7 @@ namespace cparser
 
                     ++it;
                     if (it->m_token == T_L_PAREN) {
-                        it = rescan_parameter_list(++it, end);
+                        it = resynth_parameter_list(++it, end);
                     } else
                         --it;
                 } else if (it->m_token == T_IDENTIFIER) {
@@ -1346,7 +1344,7 @@ namespace cparser
         }
 
         template <class TokenInfoContainer>
-        void rescan3(TokenInfoContainer& c) {
+        void resynth3(TokenInfoContainer& c) {
             TokenInfoContainer newc;
             typename TokenInfoContainer::iterator it, it2;
             const typename TokenInfoContainer::iterator end = c.end();
@@ -1426,7 +1424,7 @@ namespace cparser
         }
 
         template <class TokenInfoIt>
-        void rescan4(TokenInfoIt begin, TokenInfoIt end) {
+        void resynth4(TokenInfoIt begin, TokenInfoIt end) {
             TokenInfoIt it, paren_it, it2;
             int paren_nest = 0;
             for (it = begin; it != end; ++it) {

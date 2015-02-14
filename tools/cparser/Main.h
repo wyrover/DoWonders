@@ -90,7 +90,7 @@ public:
         if (i != j)
             this->resize(j);
     }
-};
+}; // class CR_DeqSet<ITEM_T>
 
 namespace std
 {

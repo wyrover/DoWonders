@@ -191,18 +191,14 @@ struct CR_LogStruct
     size_t                  m_pack;
 
     CR_LogStruct(bool struct_or_union = true) :
-        m_struct_or_union(struct_or_union), m_pack(1)
-    {
-    }
+        m_struct_or_union(struct_or_union), m_pack(1) { }
 
     CR_LogStruct(const CR_LogStruct& ls) :
         m_struct_or_union(ls.m_struct_or_union),
         m_type_list(ls.m_type_list),
         m_name_list(ls.m_name_list),
         m_bitfield(ls.m_bitfield),
-        m_pack(ls.m_pack)
-    {
-    }
+        m_pack(ls.m_pack) { }
 
     void operator=(const CR_LogStruct& ls) {
         m_struct_or_union = ls.m_struct_or_union;
@@ -246,9 +242,7 @@ struct CR_LogEnum
 
     CR_LogEnum(const CR_LogEnum& le) :
         m_mNameToValue(le.m_mNameToValue),
-        m_mValueToName(le.m_mValueToName)
-    {
-    }
+        m_mValueToName(le.m_mValueToName) { }
 
     void operator=(const CR_LogEnum& le) {
         m_mNameToValue = le.m_mNameToValue;
@@ -320,9 +314,7 @@ public:
         m_funcs(ns.m_funcs),
         m_structs(ns.m_structs),
         m_enums(ns.m_enums),
-        m_vars(ns.m_vars)
-    {
-    }
+        m_vars(ns.m_vars) { }
 
     CR_NameScope& operator=(const CR_NameScope& ns) {
         m_is_64bit = ns.m_is_64bit;
@@ -778,7 +770,7 @@ public:
                 str += StringOfType(s.m_type_list[i], s.m_name_list[i], false);
                 if (s.m_bitfield[i]) {
                     char buf[64];
-                    sprintf(buf, " : %u", static_cast<int>(s.m_bitfield[i]));
+                    std::sprintf(buf, " : %u", static_cast<int>(s.m_bitfield[i]));
                     str += buf;
                 }
                 str += "; ";
@@ -883,7 +875,7 @@ public:
                 if (type.m_flags & TF_CONST) {
                     if (type2.m_count) {
                         char buf[64];
-                        sprintf(buf, "[%d]", static_cast<int>(type2.m_count));
+                        std::sprintf(buf, "[%d]", static_cast<int>(type2.m_count));
                         return StringOfType(tid2, "(* const " + name + buf + ")", false);
                     } else {
                         return StringOfType(tid2, "(* const " + name + "[])", false);
@@ -891,7 +883,7 @@ public:
                 } else {
                     if (type2.m_count) {
                         char buf[64];
-                        sprintf(buf, "[%d]", static_cast<int>(type2.m_count));
+                        std::sprintf(buf, "[%d]", static_cast<int>(type2.m_count));
                         return StringOfType(tid2, "(*" + name + buf + ")", false);
                     } else {
                         return StringOfType(tid2, "(*" + name + "[])", false);

@@ -65,8 +65,7 @@ namespace cparser
     //
     // Node
     //
-    struct Node
-    {
+    struct Node {
         Node() { }
         Node(const Node& n) : m_loc(n.m_loc) { }
         virtual ~Node() { }
@@ -82,8 +81,7 @@ namespace cparser
         CR_Location  m_loc;
     };
 
-    struct Declor : Node
-    {
+    struct Declor : Node {
         Declor() : m_flags(0) { }
         CR_TypeFlags            m_flags;
         enum {
@@ -97,12 +95,10 @@ namespace cparser
         shared_ptr<Pointers>    m_pointers;     // can be NULL
     };
 
-    struct DeclorList : Node, std::vector<shared_ptr<Declor> >
-    {
+    struct DeclorList : Node, std::vector<shared_ptr<Declor>> {
     };
 
-    struct AsmOperand : Node
-    {
+    struct AsmOperand : Node {
         enum {
             STRING, IDENTIFIER, COMMA, COLON, PAREN, BRACKET
         } m_operand_type;
@@ -110,23 +106,19 @@ namespace cparser
         shared_ptr<Expr>            m_expr;
     };
 
-    struct AsmOperands : Node, std::vector<shared_ptr<AsmOperand> >
-    {
+    struct AsmOperands : Node, std::vector<shared_ptr<AsmOperand>> {
     };
 
-    struct AsmSpec : Node
-    {
+    struct AsmSpec : Node {
         shared_ptr<TypeQualList>    m_type_qual_list;
         shared_ptr<AsmOperands>     m_asm_operands;
     };
 
-    struct AsmBlock : Node
-    {
+    struct AsmBlock : Node {
         shared_ptr<AsmOperands> m_asm_operands;
     };
 
-    struct Decl : Node
-    {
+    struct Decl : Node {
         enum {
             FUNCTION, TYPEDEF, DECLORLIST, SINGLE, STATIC_ASSERT,
             ASMSPEC, ASMBLOCK, PARAM
@@ -140,26 +132,21 @@ namespace cparser
         shared_ptr<AsmBlock>            m_asm_block;            // can be NULL
     };
 
-    struct DeclList : Node, std::vector<shared_ptr<Decl> >
-    {
+    struct DeclList : Node, std::vector<shared_ptr<Decl>> {
     };
 
-    struct ExtDecl : Node
-    {
+    struct ExtDecl : Node {
         shared_ptr<Decl> m_decl;    // can be NULL
     };
 
-    struct TransUnit : Node, std::vector<shared_ptr<Decl> >
-    {
+    struct TransUnit : Node, std::vector<shared_ptr<Decl>> {
     };
 
-    struct AtomicTypeSpec : Node
-    {
+    struct AtomicTypeSpec : Node {
         shared_ptr<TypeName> m_type_name;
     };
 
-    struct TypeSpec : Node
-    {
+    struct TypeSpec : Node {
         CR_TypeFlags                m_flag;
         int                         m_pack;
         // struct/union/enum tag name or typedef name
@@ -174,32 +161,27 @@ namespace cparser
         const CR_Location& location() const { return m_loc; }
     };
 
-    struct TypeQual : Node
-    {
+    struct TypeQual : Node {
         CR_TypeFlags                m_flag;
         TypeQual() : m_flag(0) { }
     };
 
-    struct TypeQualList : Node
-    {
+    struct TypeQualList : Node {
         CR_TypeFlags                m_flags;
         TypeQualList() : m_flags(0) { }
     };
 
-    struct StorClsSpec : Node
-    {
+    struct StorClsSpec : Node {
         CR_TypeFlags                m_flag;
         StorClsSpec() : m_flag(0) { }
     };
 
-    struct FuncSpec : Node
-    {
+    struct FuncSpec : Node {
         CR_TypeFlags                m_flag;
         FuncSpec() : m_flag(0) { }
     };
 
-    struct DeclSpecs : Node
-    {
+    struct DeclSpecs : Node {
         enum {
             STORCLSSPEC, FUNCSPEC, TYPESPEC, TYPEQUAL, ALIGNSPEC
         } m_spec_type;
@@ -211,39 +193,31 @@ namespace cparser
         shared_ptr<AlignSpec>   m_align_spec;       // can be NULL
     };
 
-    struct Pointers : Node, std::vector<shared_ptr<AstCom> >
-    {
+    struct Pointers : Node, std::vector<shared_ptr<AstCom>> {
     };
 
-    struct Enumor : Node
-    {
+    struct Enumor : Node {
         CR_String             m_name;
         shared_ptr<CondExpr>    m_const_expr;
     };
 
-    struct EnumorList : Node, std::vector<shared_ptr<Enumor> >
-    {
+    struct EnumorList : Node, std::vector<shared_ptr<Enumor>> {
     };
 
-    struct AstCom : Node
-    {
+    struct AstCom : Node {
         CR_TypeFlags m_flags;
         AstCom() : m_flags(0) { }
     };
 
-    struct ParamList : Node, std::vector<shared_ptr<Decl> >
-    {
+    struct ParamList : Node, std::vector<shared_ptr<Decl>> {
         bool m_ellipsis;
-
         ParamList() : m_ellipsis(false) { }
     };
 
-    struct IdentList : Node, std::vector<CR_String>
-    {
+    struct IdentList : Node, std::vector<CR_String> {
     };
 
-    struct Initer : Node
-    {
+    struct Initer : Node {
         enum {
             SIMPLE, COMPLEX
         } m_initer_type;
@@ -251,22 +225,18 @@ namespace cparser
         shared_ptr<IniterList> m_initer_list;
     };
 
-    struct IniterList : Node, std::vector<shared_ptr<Initer> >
-    {
+    struct IniterList : Node, std::vector<shared_ptr<Initer>> {
     };
 
-    struct TypeName : Node
-    {
+    struct TypeName : Node {
         shared_ptr<DeclSpecs>   m_decl_specs;
         shared_ptr<Declor>      m_declor;   // can be NULL
     };
 
-    struct Expr : Node, std::vector<shared_ptr<AssignExpr> >
-    {
+    struct Expr : Node, std::vector<shared_ptr<AssignExpr>> {
     };
 
-    struct AssignExpr : Node
-    {
+    struct AssignExpr : Node {
         enum {
             COND, SINGLE, MUL, DIV, MOD, ADD, SUB, 
             L_SHIFT, R_SHIFT, AND, XOR, OR
@@ -276,8 +246,7 @@ namespace cparser
         shared_ptr<AssignExpr> m_assign_expr;
     };
 
-    struct CondExpr : Node
-    {
+    struct CondExpr : Node {
         enum {
             SINGLE, QUESTION
         } m_cond_type;
@@ -286,28 +255,22 @@ namespace cparser
         shared_ptr<CondExpr>    m_cond_expr;
     };
 
-    struct LogOrExpr : Node, std::vector<shared_ptr<LogAndExpr> >
-    {
+    struct LogOrExpr : Node, std::vector<shared_ptr<LogAndExpr>> {
     };
 
-    struct LogAndExpr : Node, std::vector<shared_ptr<InclOrExpr> >
-    {
+    struct LogAndExpr : Node, std::vector<shared_ptr<InclOrExpr>> {
     };
 
-    struct InclOrExpr : Node, std::vector<shared_ptr<ExclOrExpr> >
-    {
+    struct InclOrExpr : Node, std::vector<shared_ptr<ExclOrExpr>> {
     };
 
-    struct ExclOrExpr : Node, std::vector<shared_ptr<AndExpr> >
-    {
+    struct ExclOrExpr : Node, std::vector<shared_ptr<AndExpr>> {
     };
 
-    struct AndExpr : Node, std::vector<shared_ptr<EqualExpr> >
-    {
+    struct AndExpr : Node, std::vector<shared_ptr<EqualExpr>> {
     };
 
-    struct EqualExpr : Node
-    {
+    struct EqualExpr : Node {
         enum {
             SINGLE, EQUAL, NE
         } m_equal_type;
@@ -315,8 +278,7 @@ namespace cparser
         shared_ptr<RelExpr>     m_rel_expr;
     };
 
-    struct RelExpr : Node
-    {
+    struct RelExpr : Node {
         enum {
             SINGLE, LT, GT, LE, GE
         } m_rel_type;
@@ -324,8 +286,7 @@ namespace cparser
         shared_ptr<ShiftExpr>   m_shift_expr;
     };
 
-    struct ShiftExpr : Node
-    {
+    struct ShiftExpr : Node {
         enum {
             SINGLE, L_SHIFT, R_SHIFT
         } m_shift_type;
@@ -333,8 +294,7 @@ namespace cparser
         shared_ptr<AddExpr>     m_add_expr;
     };
 
-    struct AddExpr : Node
-    {
+    struct AddExpr : Node {
         enum {
             SINGLE, PLUS, MINUS
         } m_add_type;
@@ -342,8 +302,7 @@ namespace cparser
         shared_ptr<MulExpr>     m_mul_expr;
     };
 
-    struct MulExpr : Node
-    {
+    struct MulExpr : Node {
         enum {
             SINGLE, ASTERISK, SLASH, PERCENT
         } m_mul_type;
@@ -351,8 +310,7 @@ namespace cparser
         shared_ptr<CastExpr>    m_cast_expr;
     };
 
-    struct CastExpr : Node
-    {
+    struct CastExpr : Node {
         enum {
             UNARY, INITERLIST, CAST
         } m_cast_type;
@@ -362,8 +320,7 @@ namespace cparser
         shared_ptr<IniterList>  m_initer_list;
     };
 
-    struct UnaryExpr : Node
-    {
+    struct UnaryExpr : Node {
         enum {
             SINGLE, INC, DEC, AND, ASTERISK, PLUS, MINUS,
             BITWISE_NOT, NOT, SIZEOF1, SIZEOF2, ALIGNOF
@@ -374,8 +331,7 @@ namespace cparser
         shared_ptr<TypeName>    m_type_name;
     };
 
-    struct PostfixExpr : Node
-    {
+    struct PostfixExpr : Node {
         enum {
             SINGLE, ARRAYITEM, FUNCCALL1, FUNCCALL2, DOT,
             ARROW, INC, DEC
@@ -384,8 +340,7 @@ namespace cparser
         shared_ptr<PrimExpr>    m_prim_expr;
     };
 
-    struct PrimExpr : Node
-    {
+    struct PrimExpr : Node {
         enum {
             IDENTIFIER, I_CONSTANT, F_CONSTANT, STRING, PAREN, SELECTION
         } m_prim_type;
@@ -395,14 +350,12 @@ namespace cparser
         CR_TypeFlags           m_flags;
     };
 
-    struct GeneSel : Node
-    {
+    struct GeneSel : Node {
         shared_ptr<AssignExpr>      m_assign_expr;
         shared_ptr<GeneAssocList>   m_gene_assoc_list;
     };
 
-    struct GeneAssoc : Node
-    {
+    struct GeneAssoc : Node {
         enum {
             NONDEFAULT, DEFAULT
         } m_gene_assoc_type;
@@ -410,16 +363,13 @@ namespace cparser
         shared_ptr<AssignExpr>  m_assign_expr;
     };
 
-    struct GeneAssocList : Node, std::vector<shared_ptr<GeneAssoc> >
-    {
+    struct GeneAssocList : Node, std::vector<shared_ptr<GeneAssoc>> {
     };
 
-    struct ArgExprList : Node, std::vector<shared_ptr<AssignExpr> >
-    {
+    struct ArgExprList : Node, std::vector<shared_ptr<AssignExpr>> {
     };
 
-    struct LabeledStmt : Node
-    {
+    struct LabeledStmt : Node {
         enum {
             LABEL, CASE, DEFAULT
         } m_labeled_type;
@@ -428,19 +378,16 @@ namespace cparser
         shared_ptr<Stmt>     m_stmt;
     };
     
-    struct ExprStmt : Node
-    {
+    struct ExprStmt : Node {
         shared_ptr<Expr> m_expr;
     };
     
-    struct CompStmt : Node
-    {
+    struct CompStmt : Node {
         shared_ptr<DeclList> m_decl_list;
         shared_ptr<StmtList> m_stmt_list;
     };
     
-    struct SelStmt : Node
-    {
+    struct SelStmt : Node {
         enum {
             IF_THEN_ELSE, IF_THEN, SWITCH
         } m_sel_type;
@@ -449,8 +396,7 @@ namespace cparser
         shared_ptr<Stmt> m_else;
     };
     
-    struct IterStmt : Node
-    {
+    struct IterStmt : Node {
         enum {
             WHILE, DO_WHILE, FOR
         } m_iter_type;
@@ -460,8 +406,7 @@ namespace cparser
         shared_ptr<Stmt> m_stmt;
     };
     
-    struct JumpStmt : Node
-    {
+    struct JumpStmt : Node {
         enum {
             GOTO, CONTINUE, BREAK, RETURN_VOID, RETURN_EXPR
         } m_jump_type;
@@ -469,8 +414,7 @@ namespace cparser
         shared_ptr<Expr>    m_expr;
     };
     
-    struct Stmt : Node
-    {
+    struct Stmt : Node {
         enum {
             LABELED, EXPR, COMP, SEL, ITER, JUMP
         } m_stmt_type;
@@ -482,12 +426,10 @@ namespace cparser
         shared_ptr<JumpStmt>        m_jump_stmt;
     };
 
-    struct StmtList : Node, std::vector<shared_ptr<Stmt> >
-    {
+    struct StmtList : Node, std::vector<shared_ptr<Stmt>> {
     };
 
-    struct AlignSpec : Node
-    {
+    struct AlignSpec : Node {
         enum {
             TYPENAME, CONSTEXPR
         } m_align_spec_type;
@@ -495,8 +437,7 @@ namespace cparser
         shared_ptr<CondExpr>    m_const_expr;
     };
 
-    struct StaticAssertDecl : Node
-    {
+    struct StaticAssertDecl : Node {
         shared_ptr<CondExpr>    m_const_expr;
         CR_String             m_str;
     };
@@ -505,8 +446,7 @@ namespace cparser
     // TokenInfo<TokenType>
     //
     template <typename TokenType>
-    struct TokenInfo : Node
-    {
+    struct TokenInfo : Node {
         typedef TokenType token_type;
 
         token_type      m_token;
@@ -547,12 +487,12 @@ namespace cparser
         void set_token(token_type token) {
             m_token = token;
         }
-    };
+    }; // struct TokenInfo
 
     //
-    // TokenValue
+    // CP_TokenInfo
     //
-    #define TokenValue TokenInfo<Token>
+    #define CP_TokenInfo TokenInfo<Token>
 } // namespace cparser
 
 #endif  // ndef CPARSER_AST_H_

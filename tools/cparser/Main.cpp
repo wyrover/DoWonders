@@ -7,22 +7,22 @@ const char * const cr_logo =
     "///////////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser sample 0.1.9 (64-bit) for gcc     //\n"
+    "// CParser sample 0.2.0 (64-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.1.9 (64-bit) for clang    //\n"
+    "// CParser sample 0.2.0 (64-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.1.9 (64-bit) for cl      //\n"
+    "// CParser sample 0.2.0 (64-bit) for cl      //\n"
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser sample 0.1.9 (32-bit) for gcc     //\n"
+    "// CParser sample 0.2.0 (32-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.1.9 (32-bit) for clang    //\n"
+    "// CParser sample 0.2.0 (32-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.1.9 (32-bit) for cl      //\n"
+    "// CParser sample 0.2.0 (32-bit) for cl      //\n"
 # endif
 #endif  // !64-bit
-    "// public domain software                    //\n"
+    "// public domain software (PDS)              //\n"
     "// by Katayama Hirofumi MZ (katahiromz)      //\n"
     "// katayama.hirofumi.mz@gmail.com            //\n"
     "///////////////////////////////////////////////\n";
@@ -67,8 +67,7 @@ int CrCalcConstIntAssignExpr(CR_NameScope& namescope, AssignExpr *ae);
 int CrCalcConstIntExpr(CR_NameScope& namescope, Expr *e);
 int CrCalcConstIntCondExpr(CR_NameScope& namescope, CondExpr *ce);
 
-int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe)
-{
+int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     int n;
     switch (pe->m_prim_type) {
     case PrimExpr::IDENTIFIER:
@@ -99,8 +98,7 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe)
     return 0;
 }
 
-int CrCalcConstIntPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe)
-{
+int CrCalcConstIntPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
     int n;
     switch (pe->m_postfix_type) {
     case PostfixExpr::SINGLE:
@@ -141,15 +139,13 @@ int CrCalcConstIntPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe)
     return 0;
 }
 
-int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue)
-{
+int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
     return 0;
 }
 
 CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
 
-size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn)
-{
+size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
     CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
     if (tn->m_declor) {
         switch (tn->m_declor->m_declor_type) {
@@ -174,8 +170,7 @@ size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn)
     return namescope.GetSizeofType(tid);
 }
 
-int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue)
-{
+int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
     int n;
     switch (ue->m_unary_type) {
     case UnaryExpr::SINGLE:
@@ -226,8 +221,7 @@ int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue)
     return 0;
 }
 
-int CrCalcConstIntCastExpr(CR_NameScope& namescope, CastExpr *ce)
-{
+int CrCalcConstIntCastExpr(CR_NameScope& namescope, CastExpr *ce) {
     int result = 0;
     switch (ce->m_cast_type) {
     case CastExpr::UNARY:
@@ -251,8 +245,7 @@ int CrCalcConstIntCastExpr(CR_NameScope& namescope, CastExpr *ce)
     return result;
 }
 
-int CrCalcConstIntMulExpr(CR_NameScope& namescope, MulExpr *me)
-{
+int CrCalcConstIntMulExpr(CR_NameScope& namescope, MulExpr *me) {
     int n1, n2, result = 0;
     switch (me->m_mul_type) {
     case MulExpr::SINGLE:
@@ -283,8 +276,7 @@ int CrCalcConstIntMulExpr(CR_NameScope& namescope, MulExpr *me)
     return result;
 }
 
-int CrCalcConstIntAddExpr(CR_NameScope& namescope, AddExpr *ae)
-{
+int CrCalcConstIntAddExpr(CR_NameScope& namescope, AddExpr *ae) {
     int n1, n2, result = 0;
     switch (ae->m_add_type) {
     case AddExpr::SINGLE:
@@ -309,8 +301,7 @@ int CrCalcConstIntAddExpr(CR_NameScope& namescope, AddExpr *ae)
     return result;
 }
 
-int CrCalcConstIntShiftExpr(CR_NameScope& namescope, ShiftExpr *se)
-{
+int CrCalcConstIntShiftExpr(CR_NameScope& namescope, ShiftExpr *se) {
     int n1, n2, result = 0;
     switch (se->m_shift_type) {
     case ShiftExpr::SINGLE:
@@ -335,8 +326,7 @@ int CrCalcConstIntShiftExpr(CR_NameScope& namescope, ShiftExpr *se)
     return result;
 }
 
-int CrCalcConstIntRelExpr(CR_NameScope& namescope, RelExpr *re)
-{
+int CrCalcConstIntRelExpr(CR_NameScope& namescope, RelExpr *re) {
     int n1, n2, result = 0;
     switch (re->m_rel_type) {
     case RelExpr::SINGLE:
@@ -373,8 +363,7 @@ int CrCalcConstIntRelExpr(CR_NameScope& namescope, RelExpr *re)
     return result;
 }
 
-int CrCalcConstIntEqualExpr(CR_NameScope& namescope, EqualExpr *ee)
-{
+int CrCalcConstIntEqualExpr(CR_NameScope& namescope, EqualExpr *ee) {
     int n1, n2, result = 0;
     switch (ee->m_equal_type) {
     case EqualExpr::SINGLE:
@@ -423,8 +412,7 @@ int CrCalcConstIntInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
     return result;
 }
 
-int CrCalcConstIntLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae)
-{
+int CrCalcConstIntLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae) {
     int result = 1;
     if (lae->size() == 1) {
         result = CrCalcConstIntInclOrExpr(namescope, (*lae)[0].get());
@@ -439,8 +427,7 @@ int CrCalcConstIntLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae)
     return result;
 }
 
-int CrCalcConstIntLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe)
-{
+int CrCalcConstIntLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe) {
     int result = 0;
     if (loe->size() == 1) {
         result = CrCalcConstIntLogAndExpr(namescope, (*loe)[0].get());
@@ -456,8 +443,7 @@ int CrCalcConstIntLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe)
     return result;
 }
 
-int CrCalcConstIntAssignExpr(CR_NameScope& namescope, AssignExpr *ae)
-{
+int CrCalcConstIntAssignExpr(CR_NameScope& namescope, AssignExpr *ae) {
     int n1, n2;
     switch (ae->m_assign_type) {
     case AssignExpr::COND:
@@ -599,8 +585,8 @@ CR_TypeID CrAnalysePointers(CR_NameScope& namescope, Pointers *pointers,
     assert(pointers);
     for (auto& ac : *pointers) {
         assert(ac);
-		if (tid == cr_invalid_id)
-			return 0;
+        if (tid == cr_invalid_id)
+            return 0;
         tid = namescope.AddPtrType(tid, ac->m_flags, location);
     }
     return tid;
@@ -810,8 +796,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
     }
 }
 
-void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl)
-{
+void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl) {
     assert(dl);
     for (auto& decl : *dl) {
         CR_TypeID tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
@@ -1072,15 +1057,13 @@ CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
     return tid;
 }
 
-CR_TypeID CrAnalyseAtomic(CR_NameScope& namescope, AtomicTypeSpec *ats)
-{
+CR_TypeID CrAnalyseAtomic(CR_NameScope& namescope, AtomicTypeSpec *ats) {
     // TODO: TF_ATOMIC
     assert(0);
     return 0;
 }
 
-CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds)
-{
+CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
     CR_TypeID tid;
     CR_TypeFlags flag, flags = 0;
     if (ds == NULL)
@@ -1351,13 +1334,11 @@ int CrInputCSrc(shared_ptr<TransUnit>& tu, int argc, char **args, bool is_64bit)
 ////////////////////////////////////////////////////////////////////////////
 // semantic analysis
 
-int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu)
-{
+int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {
     assert(tu.get());
     for (shared_ptr<Decl>& decl : *tu.get()) {
         switch (decl->m_decl_type) {
-        case Decl::FUNCTION:
-            {
+        case Decl::FUNCTION: {
                 fflush(stderr);
                 shared_ptr<DeclSpecs>& ds = decl->m_decl_specs;
                 CR_TypeID tid = CrAnalyseDeclSpecs(namescope, ds.get());
@@ -1370,8 +1351,7 @@ int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu)
             break;
 
         case Decl::TYPEDEF:
-        case Decl::DECLORLIST:
-            {
+        case Decl::DECLORLIST: {
                 shared_ptr<DeclSpecs>& ds = decl->m_decl_specs;
                 shared_ptr<DeclorList>& dl = decl->m_declor_list;
                 CR_TypeID tid = CrAnalyseDeclSpecs(namescope, ds.get());
@@ -1562,8 +1542,7 @@ void CrDumpSemantic(
 
 ////////////////////////////////////////////////////////////////////////////
 
-void CrShowHelp(void)
-{
+void CrShowHelp(void) {
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
     fprintf(stderr,
         " Usage: cparser64 [options] [input-file.h [compiler_options]]\n");
@@ -1589,8 +1568,7 @@ void CrShowHelp(void)
 ////////////////////////////////////////////////////////////////////////////
 
 extern "C"
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     char **args = argv + 1;
     --argc;
 

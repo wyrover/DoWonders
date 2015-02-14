@@ -4,7 +4,6 @@
 #include <istream>          // for std::ifstream
 #include <fstream>          // for std::ifstream
 #include <iterator>         // for std::istreambuf_iterator
-#include <iostream>         // for std::cerr
 
 #include "CParser.h"        // for cparser::Parser
 #include "CScanner.h"       // for cparser::Scanner
@@ -20,29 +19,29 @@ namespace cparser
         ParserSite ps;
         Scanner<Iterator, ParserSite> scanner(ps, is_64bit);
 
-        std::vector<TokenValue > infos;
+        std::vector<CP_TokenInfo> infos;
         scanner.scan(infos, begin, end);
         #if 0
             scanner.show_tokens(infos.begin(), infos.end());
-            printf("\n--------------\n");
+            std::printf("\n--------------\n");
             fflush(stdout);
         #endif
 
         Parser<shared_ptr<Node>, ParserSite> parser(ps);
-        std::vector<TokenValue >::iterator it, end2 = infos.end();
+        std::vector<CP_TokenInfo>::iterator it, end2 = infos.end();
         for (it = infos.begin(); it != end2; ++it) {
             #if 0
-                printf("%s\n", scanner.token_to_string(*it).c_str());
+                std::printf("%s\n", scanner.token_to_string(*it).c_str());
                 fflush(stdout);
             #endif
-            if (parser.post(it->m_token, make_shared<TokenValue >(*it))) {
+            if (parser.post(it->m_token, make_shared<CP_TokenInfo>(*it))) {
                 if (parser.error()) {
                     ps.location() = it->location();
                     ps.message("ERROR: syntax error near " + 
                                scanner.token_to_string(*it));
 
                     // show around tokens
-                    std::string around_tokens;
+                    std::string around;
                     int count = 50;
                     for (int i = 0; i < count / 2; ++i) {
                         if (infos.begin() != it)
@@ -52,14 +51,14 @@ namespace cparser
                     }
                     for (int i = 0; i < count; ++i) {
                         if (infos.end() != it) {
-                            around_tokens += scanner.token_to_string(*it);
-                            around_tokens += " ";
+                            around += scanner.token_to_string(*it);
+                            around += " ";
                             ++it;
                         }
                         else
                             break;
                     }
-                    ps.message("around_tokens: " + around_tokens);
+                    ps.message("around: " + around);
                     return false;
                 }
                 break;
@@ -68,7 +67,7 @@ namespace cparser
 
         shared_ptr<Node> node;
         if (parser.accept(node)) {
-            fprintf(stderr, "Parser accepted!\n");
+            std::fprintf(stderr, "Parser accepted!\n");
             tu = static_pointer_cast<TransUnit, Node>(node);
             return true;
         }
