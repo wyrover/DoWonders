@@ -74,20 +74,20 @@ namespace cparser
             m_loc = n.m_loc;
         }
 
-              CR_Location& location()       { return m_loc; }
-        const CR_Location& location() const { return m_loc; }
+              CP_Location& location()       { return m_loc; }
+        const CP_Location& location() const { return m_loc; }
 
     protected:
-        CR_Location  m_loc;
+        CP_Location  m_loc;
     };
 
     struct Declor : Node {
         Declor() : m_flags(0) { }
-        CR_TypeFlags            m_flags;
+        CP_TypeFlags            m_flags;
         enum {
             TYPEDEF_TAG, ARRAY, FUNCTION, IDENTIFIER, BITS, POINTERS
         } m_declor_type;
-        CR_String               m_name;
+        CP_String               m_name;
         shared_ptr<Declor>      m_declor;       // can be NULL
         shared_ptr<CondExpr>    m_const_expr;   // can be NULL
         shared_ptr<ParamList>   m_param_list;   // can be NULL
@@ -102,7 +102,7 @@ namespace cparser
         enum {
             STRING, IDENTIFIER, COMMA, COLON, PAREN, BRACKET
         } m_operand_type;
-        CR_String                 m_text;
+        CP_String                 m_text;
         shared_ptr<Expr>            m_expr;
     };
 
@@ -147,37 +147,37 @@ namespace cparser
     };
 
     struct TypeSpec : Node {
-        CR_TypeFlags                m_flag;
+        CP_TypeFlags                m_flag;
         int                         m_pack;
         // struct/union/enum tag name or typedef name
-        CR_String                   m_name;
+        CP_String                   m_name;
         shared_ptr<DeclList>        m_decl_list;    // for struct, union or enum
         shared_ptr<EnumorList>      m_enumor_list;
         shared_ptr<AtomicTypeSpec>  m_atomic_type_spec;
-        CR_Location                 m_loc;
+        CP_Location                 m_loc;
         TypeSpec() : m_flag(0), m_pack(1) { }
 
-              CR_Location& location()       { return m_loc; }
-        const CR_Location& location() const { return m_loc; }
+              CP_Location& location()       { return m_loc; }
+        const CP_Location& location() const { return m_loc; }
     };
 
     struct TypeQual : Node {
-        CR_TypeFlags                m_flag;
+        CP_TypeFlags                m_flag;
         TypeQual() : m_flag(0) { }
     };
 
     struct TypeQualList : Node {
-        CR_TypeFlags                m_flags;
+        CP_TypeFlags                m_flags;
         TypeQualList() : m_flags(0) { }
     };
 
     struct StorClsSpec : Node {
-        CR_TypeFlags                m_flag;
+        CP_TypeFlags                m_flag;
         StorClsSpec() : m_flag(0) { }
     };
 
     struct FuncSpec : Node {
-        CR_TypeFlags                m_flag;
+        CP_TypeFlags                m_flag;
         FuncSpec() : m_flag(0) { }
     };
 
@@ -197,7 +197,7 @@ namespace cparser
     };
 
     struct Enumor : Node {
-        CR_String             m_name;
+        CP_String             m_name;
         shared_ptr<CondExpr>    m_const_expr;
     };
 
@@ -205,7 +205,7 @@ namespace cparser
     };
 
     struct AstCom : Node {
-        CR_TypeFlags m_flags;
+        CP_TypeFlags m_flags;
         AstCom() : m_flags(0) { }
     };
 
@@ -214,7 +214,7 @@ namespace cparser
         ParamList() : m_ellipsis(false) { }
     };
 
-    struct IdentList : Node, std::vector<CR_String> {
+    struct IdentList : Node, std::vector<CP_String> {
     };
 
     struct Initer : Node {
@@ -344,10 +344,10 @@ namespace cparser
         enum {
             IDENTIFIER, I_CONSTANT, F_CONSTANT, STRING, PAREN, SELECTION
         } m_prim_type;
-        CR_String         m_text;
+        CP_String         m_text;
         shared_ptr<Expr>    m_expr;
         shared_ptr<GeneSel> m_gen_sel;
-        CR_TypeFlags           m_flags;
+        CP_TypeFlags           m_flags;
     };
 
     struct GeneSel : Node {
@@ -373,7 +373,7 @@ namespace cparser
         enum {
             LABEL, CASE, DEFAULT
         } m_labeled_type;
-        CR_String m_label;
+        CP_String m_label;
         shared_ptr<CondExpr> m_const_expr;
         shared_ptr<Stmt>     m_stmt;
     };
@@ -410,7 +410,7 @@ namespace cparser
         enum {
             GOTO, CONTINUE, BREAK, RETURN_VOID, RETURN_EXPR
         } m_jump_type;
-        CR_String         m_label;
+        CP_String         m_label;
         shared_ptr<Expr>    m_expr;
     };
     
@@ -439,7 +439,7 @@ namespace cparser
 
     struct StaticAssertDecl : Node {
         shared_ptr<CondExpr>    m_const_expr;
-        CR_String             m_str;
+        CP_String             m_str;
     };
 
     //
@@ -450,9 +450,9 @@ namespace cparser
         typedef TokenType token_type;
 
         token_type      m_token;
-        CR_String       m_text;
+        CP_String       m_text;
         int             m_pack;
-        CR_TypeFlags    m_flags;
+        CP_TypeFlags    m_flags;
         union {
             long long   m_long_long_value;
             int         m_int_value;

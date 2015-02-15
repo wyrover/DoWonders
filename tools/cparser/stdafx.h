@@ -5,7 +5,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_NON_CONFORMING_SWPRINTFS
 #undef __STRICT_ANSI__
-#define __NO_INLINE__   // https://github.com/g-truc/glm/issues/300
+
+#ifndef __NO_INLINE__
+    #define __NO_INLINE__   // https://github.com/g-truc/glm/issues/300
+#endif
 
 #include <cstdlib>          // standard library
 #include <cstdio>           // standard I/O
@@ -26,7 +29,7 @@ using std::dynamic_pointer_cast;
 using std::static_pointer_cast;
 using std::make_shared;
 
-#include "Location.h"       // CR_Location
+#include "Location.h"       // CP_Location
 #include "Main.h"
 #include "TypeSystem.h"
 #include "AST.h"     // for cparser::Node, cparser::TokenInfo

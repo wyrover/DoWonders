@@ -6,12 +6,12 @@
 namespace cparser
 {
     //
-    // ParserSite
+    // Actions
     //
-    struct ParserSite
+    struct Actions
     {
     public:
-        ParserSite() : m_num_errors(0), m_num_warnings(0)
+        Actions() : m_num_errors(0), m_num_warnings(0)
         {
         }
 
@@ -3194,8 +3194,8 @@ namespace cparser
         }
 
     public:
-              CR_Location& location()       { return m_loc; }
-        const CR_Location& location() const { return m_loc; }
+              CP_Location& location()       { return m_loc; }
+        const CP_Location& location() const { return m_loc; }
 
         //
         // errors and warnings
@@ -3238,7 +3238,7 @@ namespace cparser
         }
 
     protected:
-        CR_Location                     m_loc;
+        CP_Location                     m_loc;
         int                             m_num_errors;
         int                             m_num_warnings;
     };

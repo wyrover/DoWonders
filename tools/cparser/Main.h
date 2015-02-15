@@ -2,22 +2,22 @@
 #define MAIN_H_
 
 ////////////////////////////////////////////////////////////////////////////
-// CR_DeqSet<ITEM_T> -- deque and set
+// CP_DeqSet<ITEM_T> -- deque and set
 
 template <typename ITEM_T>
-class CR_DeqSet : public std::deque<ITEM_T>
+class CP_DeqSet : public std::deque<ITEM_T>
 {
 public:
-    CR_DeqSet() { }
+    CP_DeqSet() { }
 
-    CR_DeqSet(const CR_DeqSet<ITEM_T>& vs) : std::deque<ITEM_T>(vs)
+    CP_DeqSet(const CP_DeqSet<ITEM_T>& vs) : std::deque<ITEM_T>(vs)
     { }
 
-    void operator=(const CR_DeqSet<ITEM_T>& vs) {
+    void operator=(const CP_DeqSet<ITEM_T>& vs) {
         this->assign(vs.begin(), vs.end());
     }
 
-    virtual ~CR_DeqSet() { }
+    virtual ~CP_DeqSet() { }
 
     std::size_t insert(const ITEM_T& item) {
         this->push_back(item);
@@ -52,12 +52,12 @@ public:
         return this->size() - 1;
     }
 
-    void AddHead(const CR_DeqSet<ITEM_T>& items) {
+    void AddHead(const CP_DeqSet<ITEM_T>& items) {
         std::deque<ITEM_T>::insert(
             std::deque<ITEM_T>::begin(), items.begin(), items.end());
     }
 
-    void AddTail(const CR_DeqSet<ITEM_T>& items) {
+    void AddTail(const CP_DeqSet<ITEM_T>& items) {
         std::deque<ITEM_T>::insert(
             std::deque<ITEM_T>::end(), items.begin(), items.end());
     }
@@ -90,31 +90,31 @@ public:
         if (i != j)
             this->resize(j);
     }
-}; // class CR_DeqSet<ITEM_T>
+}; // class CP_DeqSet<ITEM_T>
 
 namespace std
 {
     template <typename ITEM_T>
-    inline void swap(CR_DeqSet<ITEM_T>& vs1, CR_DeqSet<ITEM_T>& vs2) {
+    inline void swap(CP_DeqSet<ITEM_T>& vs1, CP_DeqSet<ITEM_T>& vs2) {
         vs1.swap(vs2);
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////
-// CR_String
+// CP_String
 
-typedef std::string CR_String;
-
-////////////////////////////////////////////////////////////////////////////
-// CR_StringSet
-
-typedef CR_DeqSet<CR_String> CR_StringSet;
+typedef std::string CP_String;
 
 ////////////////////////////////////////////////////////////////////////////
-// CR_Map<from, to>, CR_UnorderedMap<from, to>
+// CP_StringSet
 
-#define CR_Map              std::map
-#define CR_UnorderedMap     std::unordered_map
+typedef CP_DeqSet<CP_String> CP_StringSet;
+
+////////////////////////////////////////////////////////////////////////////
+// CP_Map<from, to>, CP_UnorderedMap<from, to>
+
+#define CP_Map              std::map
+#define CP_UnorderedMap     std::unordered_map
 
 ////////////////////////////////////////////////////////////////////////////
 

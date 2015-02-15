@@ -7,19 +7,19 @@ const char * const cr_logo =
     "///////////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser sample 0.2.0 (64-bit) for gcc     //\n"
+    "// CParser sample 0.2.1 (64-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.0 (64-bit) for clang    //\n"
+    "// CParser sample 0.2.1 (64-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.0 (64-bit) for cl      //\n"
+    "// CParser sample 0.2.1 (64-bit) for cl      //\n"
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser sample 0.2.0 (32-bit) for gcc     //\n"
+    "// CParser sample 0.2.1 (32-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.0 (32-bit) for clang    //\n"
+    "// CParser sample 0.2.1 (32-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.0 (32-bit) for cl      //\n"
+    "// CParser sample 0.2.1 (32-bit) for cl      //\n"
 # endif
 #endif  // !64-bit
     "// public domain software (PDS)              //\n"
@@ -34,8 +34,7 @@ using namespace std;
 // temporary file
 static char *cr_tmpfile = NULL;
 
-void CrDeleteTempFileAtExit(void)
-{
+void CpDeleteTempFileAtExit(void) {
     if (cr_tmpfile) {
         std::remove(cr_tmpfile);
         cr_tmpfile = NULL;
@@ -47,27 +46,27 @@ void CrDeleteTempFileAtExit(void)
 using namespace cparser;
 
 ////////////////////////////////////////////////////////////////////////////
-// CrCalcConstInt...Expr functions
+// CpCalcConstInt...Expr functions
 
-int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe);
-int CrCalcConstIntPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe);
-int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue);
-int CrCalcConstIntCastExpr(CR_NameScope& namescope, CastExpr *ce);
-int CrCalcConstIntMulExpr(CR_NameScope& namescope, MulExpr *me);
-int CrCalcConstIntAddExpr(CR_NameScope& namescope, AddExpr *ae);
-int CrCalcConstIntShiftExpr(CR_NameScope& namescope, ShiftExpr *se);
-int CrCalcConstIntRelExpr(CR_NameScope& namescope, RelExpr *re);
-int CrCalcConstIntEqualExpr(CR_NameScope& namescope, EqualExpr *ee);
-int CrCalcConstIntAndExpr(CR_NameScope& namescope, AndExpr *ae);
-int CrCalcConstIntExclOrExpr(CR_NameScope& namescope, ExclOrExpr *eoe);
-int CrCalcConstIntInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe);
-int CrCalcConstIntLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae);
-int CrCalcConstIntLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe);
-int CrCalcConstIntAssignExpr(CR_NameScope& namescope, AssignExpr *ae);
-int CrCalcConstIntExpr(CR_NameScope& namescope, Expr *e);
-int CrCalcConstIntCondExpr(CR_NameScope& namescope, CondExpr *ce);
+int CpCalcConstIntPrimExpr(CP_NameScope& namescope, PrimExpr *pe);
+int CpCalcConstIntPostfixExpr(CP_NameScope& namescope, PostfixExpr *pe);
+int CpCalcConstIntUnaryExpr(CP_NameScope& namescope, UnaryExpr *ue);
+int CpCalcConstIntCastExpr(CP_NameScope& namescope, CastExpr *ce);
+int CpCalcConstIntMulExpr(CP_NameScope& namescope, MulExpr *me);
+int CpCalcConstIntAddExpr(CP_NameScope& namescope, AddExpr *ae);
+int CpCalcConstIntShiftExpr(CP_NameScope& namescope, ShiftExpr *se);
+int CpCalcConstIntRelExpr(CP_NameScope& namescope, RelExpr *re);
+int CpCalcConstIntEqualExpr(CP_NameScope& namescope, EqualExpr *ee);
+int CpCalcConstIntAndExpr(CP_NameScope& namescope, AndExpr *ae);
+int CpCalcConstIntExclOrExpr(CP_NameScope& namescope, ExclOrExpr *eoe);
+int CpCalcConstIntInclOrExpr(CP_NameScope& namescope, InclOrExpr *ioe);
+int CpCalcConstIntLogAndExpr(CP_NameScope& namescope, LogAndExpr *lae);
+int CpCalcConstIntLogOrExpr(CP_NameScope& namescope, LogOrExpr *loe);
+int CpCalcConstIntAssignExpr(CP_NameScope& namescope, AssignExpr *ae);
+int CpCalcConstIntExpr(CP_NameScope& namescope, Expr *e);
+int CpCalcConstIntCondExpr(CP_NameScope& namescope, CondExpr *ce);
 
-int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
+int CpCalcConstIntPrimExpr(CP_NameScope& namescope, PrimExpr *pe) {
     int n;
     switch (pe->m_prim_type) {
     case PrimExpr::IDENTIFIER:
@@ -85,7 +84,7 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
         return 1;
 
     case PrimExpr::PAREN:
-        n = CrCalcConstIntExpr(namescope, pe->m_expr.get());
+        n = CpCalcConstIntExpr(namescope, pe->m_expr.get());
         return n;
 
     case PrimExpr::SELECTION:
@@ -98,11 +97,11 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     return 0;
 }
 
-int CrCalcConstIntPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
+int CpCalcConstIntPostfixExpr(CP_NameScope& namescope, PostfixExpr *pe) {
     int n;
     switch (pe->m_postfix_type) {
     case PostfixExpr::SINGLE:
-        n = CrCalcConstIntPrimExpr(namescope, pe->m_prim_expr.get());
+        n = CpCalcConstIntPrimExpr(namescope, pe->m_prim_expr.get());
         return n;
 
     case PostfixExpr::ARRAYITEM:
@@ -126,11 +125,11 @@ int CrCalcConstIntPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
         return 0;
 
     case PostfixExpr::INC:
-        n = CrCalcConstIntPostfixExpr(namescope, pe->m_postfix_expr.get());
+        n = CpCalcConstIntPostfixExpr(namescope, pe->m_postfix_expr.get());
         return n;
 
     case PostfixExpr::DEC:
-        n = CrCalcConstIntPostfixExpr(namescope, pe->m_postfix_expr.get());
+        n = CpCalcConstIntPostfixExpr(namescope, pe->m_postfix_expr.get());
         return n;
 
     default:
@@ -139,14 +138,14 @@ int CrCalcConstIntPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
     return 0;
 }
 
-int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
+int CpCalcSizeOfUnaryExpr(CP_NameScope& namescope, UnaryExpr *ue) {
     return 0;
 }
 
-CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
+CP_TypeID CpAnalyseDeclSpecs(CP_NameScope& namescope, DeclSpecs *ds);
 
-size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
-    CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
+size_t CpCalcSizeOfTypeName(CP_NameScope& namescope, TypeName *tn) {
+    CP_TypeID tid = CpAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
     if (tn->m_declor) {
         switch (tn->m_declor->m_declor_type) {
         case Declor::POINTERS:
@@ -155,7 +154,7 @@ size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
 
         case Declor::ARRAY:
             {
-                int count = CrCalcConstIntCondExpr(
+                int count = CpCalcConstIntCondExpr(
                     namescope, tn->m_declor->m_const_expr.get());
                 return namescope.GetSizeofType(tid) * count;
             }
@@ -170,19 +169,19 @@ size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
     return namescope.GetSizeofType(tid);
 }
 
-int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
+int CpCalcConstIntUnaryExpr(CP_NameScope& namescope, UnaryExpr *ue) {
     int n;
     switch (ue->m_unary_type) {
     case UnaryExpr::SINGLE:
-        n = CrCalcConstIntPostfixExpr(namescope, ue->m_postfix_expr.get());
+        n = CpCalcConstIntPostfixExpr(namescope, ue->m_postfix_expr.get());
         return n;
 
     case UnaryExpr::INC:
-        n = CrCalcConstIntUnaryExpr(namescope, ue->m_unary_expr.get());
+        n = CpCalcConstIntUnaryExpr(namescope, ue->m_unary_expr.get());
         return ++n;
 
     case UnaryExpr::DEC:
-        n = CrCalcConstIntUnaryExpr(namescope, ue->m_unary_expr.get());
+        n = CpCalcConstIntUnaryExpr(namescope, ue->m_unary_expr.get());
         return --n;
 
     case UnaryExpr::AND:
@@ -192,27 +191,27 @@ int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
         return 0;
 
     case UnaryExpr::PLUS:
-        n = CrCalcConstIntCastExpr(namescope, ue->m_cast_expr.get());
+        n = CpCalcConstIntCastExpr(namescope, ue->m_cast_expr.get());
         return n;
 
     case UnaryExpr::MINUS:
-        n = CrCalcConstIntCastExpr(namescope, ue->m_cast_expr.get());
+        n = CpCalcConstIntCastExpr(namescope, ue->m_cast_expr.get());
         return n;
 
     case UnaryExpr::BITWISE_NOT:
-        n = CrCalcConstIntCastExpr(namescope, ue->m_cast_expr.get());
+        n = CpCalcConstIntCastExpr(namescope, ue->m_cast_expr.get());
         return ~n;
 
     case UnaryExpr::NOT:
-        n = CrCalcConstIntCastExpr(namescope, ue->m_cast_expr.get());
+        n = CpCalcConstIntCastExpr(namescope, ue->m_cast_expr.get());
         return !n;
 
     case UnaryExpr::SIZEOF1:
-        n = static_cast<int>(CrCalcSizeOfUnaryExpr(namescope, ue->m_unary_expr.get()));
+        n = static_cast<int>(CpCalcSizeOfUnaryExpr(namescope, ue->m_unary_expr.get()));
         return n;
 
     case UnaryExpr::SIZEOF2:
-        n = static_cast<int>(CrCalcSizeOfTypeName(namescope, ue->m_type_name.get()));
+        n = static_cast<int>(CpCalcSizeOfTypeName(namescope, ue->m_type_name.get()));
         return n;
 
     default:
@@ -221,11 +220,11 @@ int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
     return 0;
 }
 
-int CrCalcConstIntCastExpr(CR_NameScope& namescope, CastExpr *ce) {
+int CpCalcConstIntCastExpr(CP_NameScope& namescope, CastExpr *ce) {
     int result = 0;
     switch (ce->m_cast_type) {
     case CastExpr::UNARY:
-        result = CrCalcConstIntUnaryExpr(namescope, ce->m_unary_expr.get());
+        result = CpCalcConstIntUnaryExpr(namescope, ce->m_unary_expr.get());
         break;
     
     case CastExpr::INITERLIST:
@@ -236,7 +235,7 @@ int CrCalcConstIntCastExpr(CR_NameScope& namescope, CastExpr *ce) {
 
     case CastExpr::CAST:
         //ce->m_type_name
-        result = CrCalcConstIntCastExpr(namescope, ce->m_cast_expr.get());
+        result = CpCalcConstIntCastExpr(namescope, ce->m_cast_expr.get());
         break;
 
     default:
@@ -245,28 +244,28 @@ int CrCalcConstIntCastExpr(CR_NameScope& namescope, CastExpr *ce) {
     return result;
 }
 
-int CrCalcConstIntMulExpr(CR_NameScope& namescope, MulExpr *me) {
+int CpCalcConstIntMulExpr(CP_NameScope& namescope, MulExpr *me) {
     int n1, n2, result = 0;
     switch (me->m_mul_type) {
     case MulExpr::SINGLE:
-        result = CrCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
+        result = CpCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
         break;
 
     case MulExpr::ASTERISK:
-        n1 = CrCalcConstIntMulExpr(namescope, me->m_mul_expr.get());
-        n2 = CrCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
+        n1 = CpCalcConstIntMulExpr(namescope, me->m_mul_expr.get());
+        n2 = CpCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
         result = (n1 * n2);
         break;
 
     case MulExpr::SLASH:
-        n1 = CrCalcConstIntMulExpr(namescope, me->m_mul_expr.get());
-        n2 = CrCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
+        n1 = CpCalcConstIntMulExpr(namescope, me->m_mul_expr.get());
+        n2 = CpCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
         result = (n1 / n2);
         break;
 
     case MulExpr::PERCENT:
-        n1 = CrCalcConstIntMulExpr(namescope, me->m_mul_expr.get());
-        n2 = CrCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
+        n1 = CpCalcConstIntMulExpr(namescope, me->m_mul_expr.get());
+        n2 = CpCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
         result = (n1 % n2);
         break;
 
@@ -276,22 +275,22 @@ int CrCalcConstIntMulExpr(CR_NameScope& namescope, MulExpr *me) {
     return result;
 }
 
-int CrCalcConstIntAddExpr(CR_NameScope& namescope, AddExpr *ae) {
+int CpCalcConstIntAddExpr(CP_NameScope& namescope, AddExpr *ae) {
     int n1, n2, result = 0;
     switch (ae->m_add_type) {
     case AddExpr::SINGLE:
-        result = CrCalcConstIntMulExpr(namescope, ae->m_mul_expr.get());
+        result = CpCalcConstIntMulExpr(namescope, ae->m_mul_expr.get());
         break;
 
     case AddExpr::PLUS:
-        n1 = CrCalcConstIntAddExpr(namescope, ae->m_add_expr.get());
-        n2 = CrCalcConstIntMulExpr(namescope, ae->m_mul_expr.get());
+        n1 = CpCalcConstIntAddExpr(namescope, ae->m_add_expr.get());
+        n2 = CpCalcConstIntMulExpr(namescope, ae->m_mul_expr.get());
         result = (n1 + n2);
         break;
 
     case AddExpr::MINUS:
-        n1 = CrCalcConstIntAddExpr(namescope, ae->m_add_expr.get());
-        n2 = CrCalcConstIntMulExpr(namescope, ae->m_mul_expr.get());
+        n1 = CpCalcConstIntAddExpr(namescope, ae->m_add_expr.get());
+        n2 = CpCalcConstIntMulExpr(namescope, ae->m_mul_expr.get());
         result = (n1 - n2);
         break;
 
@@ -301,22 +300,22 @@ int CrCalcConstIntAddExpr(CR_NameScope& namescope, AddExpr *ae) {
     return result;
 }
 
-int CrCalcConstIntShiftExpr(CR_NameScope& namescope, ShiftExpr *se) {
+int CpCalcConstIntShiftExpr(CP_NameScope& namescope, ShiftExpr *se) {
     int n1, n2, result = 0;
     switch (se->m_shift_type) {
     case ShiftExpr::SINGLE:
-        result = CrCalcConstIntAddExpr(namescope, se->m_add_expr.get());
+        result = CpCalcConstIntAddExpr(namescope, se->m_add_expr.get());
         break;
 
     case ShiftExpr::L_SHIFT:
-        n1 = CrCalcConstIntShiftExpr(namescope, se->m_shift_expr.get());
-        n2 = CrCalcConstIntAddExpr(namescope, se->m_add_expr.get());
+        n1 = CpCalcConstIntShiftExpr(namescope, se->m_shift_expr.get());
+        n2 = CpCalcConstIntAddExpr(namescope, se->m_add_expr.get());
         result = (n1 << n2);
         break;
 
     case ShiftExpr::R_SHIFT:
-        n1 = CrCalcConstIntShiftExpr(namescope, se->m_shift_expr.get());
-        n2 = CrCalcConstIntAddExpr(namescope, se->m_add_expr.get());
+        n1 = CpCalcConstIntShiftExpr(namescope, se->m_shift_expr.get());
+        n2 = CpCalcConstIntAddExpr(namescope, se->m_add_expr.get());
         result = (n1 >> n2);
         break;
 
@@ -326,34 +325,34 @@ int CrCalcConstIntShiftExpr(CR_NameScope& namescope, ShiftExpr *se) {
     return result;
 }
 
-int CrCalcConstIntRelExpr(CR_NameScope& namescope, RelExpr *re) {
+int CpCalcConstIntRelExpr(CP_NameScope& namescope, RelExpr *re) {
     int n1, n2, result = 0;
     switch (re->m_rel_type) {
     case RelExpr::SINGLE:
-        result = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
+        result = CpCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
         break;
 
     case RelExpr::LT:
-        n1 = CrCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
-        n2 = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
+        n1 = CpCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
+        n2 = CpCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
         result = (n1 < n2);
         break;
 
     case RelExpr::GT:
-        n1 = CrCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
-        n2 = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
+        n1 = CpCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
+        n2 = CpCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
         result = (n1 > n2);
         break;
 
     case RelExpr::LE:
-        n1 = CrCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
-        n2 = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
+        n1 = CpCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
+        n2 = CpCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
         result = (n1 <= n2);
         break;
 
     case RelExpr::GE:
-        n1 = CrCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
-        n2 = CrCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
+        n1 = CpCalcConstIntRelExpr(namescope, re->m_rel_expr.get());
+        n2 = CpCalcConstIntShiftExpr(namescope, re->m_shift_expr.get());
         result = (n1 >= n2);
         break;
 
@@ -363,22 +362,22 @@ int CrCalcConstIntRelExpr(CR_NameScope& namescope, RelExpr *re) {
     return result;
 }
 
-int CrCalcConstIntEqualExpr(CR_NameScope& namescope, EqualExpr *ee) {
+int CpCalcConstIntEqualExpr(CP_NameScope& namescope, EqualExpr *ee) {
     int n1, n2, result = 0;
     switch (ee->m_equal_type) {
     case EqualExpr::SINGLE:
-        result = CrCalcConstIntRelExpr(namescope, ee->m_rel_expr.get());
+        result = CpCalcConstIntRelExpr(namescope, ee->m_rel_expr.get());
         break;
 
     case EqualExpr::EQUAL:
-        n1 = CrCalcConstIntEqualExpr(namescope, ee->m_equal_expr.get());
-        n2 = CrCalcConstIntRelExpr(namescope, ee->m_rel_expr.get());
+        n1 = CpCalcConstIntEqualExpr(namescope, ee->m_equal_expr.get());
+        n2 = CpCalcConstIntRelExpr(namescope, ee->m_rel_expr.get());
         result = (n1 == n2);
         break;
 
     case EqualExpr::NE:
-        n1 = CrCalcConstIntEqualExpr(namescope, ee->m_equal_expr.get());
-        n2 = CrCalcConstIntRelExpr(namescope, ee->m_rel_expr.get());
+        n1 = CpCalcConstIntEqualExpr(namescope, ee->m_equal_expr.get());
+        n2 = CpCalcConstIntRelExpr(namescope, ee->m_rel_expr.get());
         result = (n1 != n2);
         break;
 
@@ -388,37 +387,37 @@ int CrCalcConstIntEqualExpr(CR_NameScope& namescope, EqualExpr *ee) {
     return result;
 }
 
-int CrCalcConstIntAndExpr(CR_NameScope& namescope, AndExpr *ae) {
-    int result = CrCalcConstIntEqualExpr(namescope, (*ae)[0].get());
+int CpCalcConstIntAndExpr(CP_NameScope& namescope, AndExpr *ae) {
+    int result = CpCalcConstIntEqualExpr(namescope, (*ae)[0].get());
     for (std::size_t i = 1; i < ae->size(); ++i) {
-        result &= CrCalcConstIntEqualExpr(namescope, (*ae)[i].get());
+        result &= CpCalcConstIntEqualExpr(namescope, (*ae)[i].get());
     }
     return result;
 }
 
-int CrCalcConstIntExclOrExpr(CR_NameScope& namescope, ExclOrExpr *eoe) {
+int CpCalcConstIntExclOrExpr(CP_NameScope& namescope, ExclOrExpr *eoe) {
     int result = 0;
     for (auto& ae : *eoe) {
-        result ^= CrCalcConstIntAndExpr(namescope, ae.get());
+        result ^= CpCalcConstIntAndExpr(namescope, ae.get());
     }
     return result;
 }
 
-int CrCalcConstIntInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
+int CpCalcConstIntInclOrExpr(CP_NameScope& namescope, InclOrExpr *ioe) {
     int result = 0;
     for (auto& eoe : *ioe) {
-        result |= CrCalcConstIntExclOrExpr(namescope, eoe.get());
+        result |= CpCalcConstIntExclOrExpr(namescope, eoe.get());
     }
     return result;
 }
 
-int CrCalcConstIntLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae) {
+int CpCalcConstIntLogAndExpr(CP_NameScope& namescope, LogAndExpr *lae) {
     int result = 1;
     if (lae->size() == 1) {
-        result = CrCalcConstIntInclOrExpr(namescope, (*lae)[0].get());
+        result = CpCalcConstIntInclOrExpr(namescope, (*lae)[0].get());
     } else {
         for (auto& ioe : *lae) {
-            result = result && CrCalcConstIntInclOrExpr(namescope, ioe.get());
+            result = result && CpCalcConstIntInclOrExpr(namescope, ioe.get());
             if (!result) {
                 break;
             }
@@ -427,13 +426,13 @@ int CrCalcConstIntLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae) {
     return result;
 }
 
-int CrCalcConstIntLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe) {
+int CpCalcConstIntLogOrExpr(CP_NameScope& namescope, LogOrExpr *loe) {
     int result = 0;
     if (loe->size() == 1) {
-        result = CrCalcConstIntLogAndExpr(namescope, (*loe)[0].get());
+        result = CpCalcConstIntLogAndExpr(namescope, (*loe)[0].get());
     } else {
         for (auto& lae : *loe) {
-            result = CrCalcConstIntLogAndExpr(namescope, lae.get());
+            result = CpCalcConstIntLogAndExpr(namescope, lae.get());
             if (result) {
                 result = 1;
                 break;
@@ -443,74 +442,74 @@ int CrCalcConstIntLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe) {
     return result;
 }
 
-int CrCalcConstIntAssignExpr(CR_NameScope& namescope, AssignExpr *ae) {
+int CpCalcConstIntAssignExpr(CP_NameScope& namescope, AssignExpr *ae) {
     int n1, n2;
     switch (ae->m_assign_type) {
     case AssignExpr::COND:
-        n1 = CrCalcConstIntCondExpr(namescope, ae->m_cond_expr.get());
+        n1 = CpCalcConstIntCondExpr(namescope, ae->m_cond_expr.get());
         return n1;
 
     case AssignExpr::SINGLE:
-        n1 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         return n1;
 
     case AssignExpr::MUL:
-        n1 = CrCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
-        n2 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
+        n2 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         n1 *= n2;
         return n1;
 
     case AssignExpr::DIV:
-        n1 = CrCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
-        n2 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
+        n2 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         n1 /= n2;
         return n1;
 
     case AssignExpr::MOD:
-        n1 = CrCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
-        n2 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
+        n2 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         n1 %= n2;
         return n1;
 
     case AssignExpr::ADD:
-        n1 = CrCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
-        n2 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
+        n2 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         n1 += n2;
         return n1;
 
     case AssignExpr::SUB:
-        n1 = CrCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
-        n2 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
+        n2 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         n1 -= n2;
         return n1;
 
     case AssignExpr::L_SHIFT:
-        n1 = CrCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
-        n2 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
+        n2 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         n1 <<= n2;
         return n1;
 
     case AssignExpr::R_SHIFT:
-        n1 = CrCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
-        n2 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
+        n2 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         n1 >>= n2;
         return n1;
 
     case AssignExpr::AND:
-        n1 = CrCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
-        n2 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
+        n2 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         n1 &= n2;
         return n1;
 
     case AssignExpr::XOR:
-        n1 = CrCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
-        n2 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
+        n2 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         n1 ^= n2;
         return n1;
 
     case AssignExpr::OR:
-        n1 = CrCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
-        n2 = CrCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
+        n1 = CpCalcConstIntUnaryExpr(namescope, ae->m_unary_expr.get());
+        n2 = CpCalcConstIntAssignExpr(namescope, ae->m_assign_expr.get());
         n1 |= n2;
         return n1;
 
@@ -520,26 +519,26 @@ int CrCalcConstIntAssignExpr(CR_NameScope& namescope, AssignExpr *ae) {
     return 0;
 }
 
-int CrCalcConstIntExpr(CR_NameScope& namescope, Expr *e) {
+int CpCalcConstIntExpr(CP_NameScope& namescope, Expr *e) {
     int result = 0;
     for (auto& ae : *e) {
-        result = CrCalcConstIntAssignExpr(namescope, ae.get());
+        result = CpCalcConstIntAssignExpr(namescope, ae.get());
     }
     return result;
 }
 
-int CrCalcConstIntCondExpr(CR_NameScope& namescope, CondExpr *ce) {
+int CpCalcConstIntCondExpr(CP_NameScope& namescope, CondExpr *ce) {
     int result = 0;
     switch (ce->m_cond_type) {
     case CondExpr::SINGLE:
-        result = CrCalcConstIntLogOrExpr(namescope, ce->m_log_or_expr.get());
+        result = CpCalcConstIntLogOrExpr(namescope, ce->m_log_or_expr.get());
         break;
 
     case CondExpr::QUESTION:
-        if (CrCalcConstIntLogOrExpr(namescope, ce->m_log_or_expr.get())) {
-            result = CrCalcConstIntExpr(namescope, ce->m_expr.get());
+        if (CpCalcConstIntLogOrExpr(namescope, ce->m_log_or_expr.get())) {
+            result = CpCalcConstIntExpr(namescope, ce->m_expr.get());
         } else {
-            result = CrCalcConstIntCondExpr(namescope, ce->m_cond_expr.get());
+            result = CpCalcConstIntCondExpr(namescope, ce->m_cond_expr.get());
         }
         break;
 
@@ -551,36 +550,36 @@ int CrCalcConstIntCondExpr(CR_NameScope& namescope, CondExpr *ce) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-// CrAnalyse... functions
+// CpAnalyse... functions
 
-CR_TypeID CrAnalysePointer(CR_NameScope& namescope, Pointers *pointers,
-                           CR_TypeID tid);
-void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
-                                DeclorList *dl, const CR_Location& location);
-void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
+CP_TypeID CpAnalysePointer(CP_NameScope& namescope, Pointers *pointers,
+                           CP_TypeID tid);
+void CpAnalyseTypedefDeclorList(CP_NameScope& namescope, CP_TypeID tid,
+                                DeclorList *dl, const CP_Location& location);
+void CpAnalyseDeclorList(CP_NameScope& namescope, CP_TypeID tid,
                          DeclorList *dl);
-void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
-                               DeclorList *dl, CR_LogStruct& ls);
-void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl);
-void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
+void CpAnalyseStructDeclorList(CP_NameScope& namescope, CP_TypeID tid,
+                               DeclorList *dl, CP_LogStruct& ls);
+void CpAnalyseDeclList(CP_NameScope& namescope, DeclList *dl);
+void CpAnalyseParamList(CP_NameScope& namescope, CP_LogFunc& func,
                         ParamList *pl);
-void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
+void CpAnalyseFunc(CP_NameScope& namescope, CP_TypeID return_type,
                    Declor *declor, DeclList *decl_list);
-CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
-                                  const CR_String& name, DeclList *dl,
-                                  int pack, const CR_Location& location);
-CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
-                                 const CR_String& name, DeclList *dl,
-                                 const CR_Location& location);
-CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
-                              const CR_String& name, EnumorList *el);
-CR_TypeID CrAnalyseAtomic(CR_NameScope& namescope, AtomicTypeSpec *ats);
-CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
+CP_TypeID CpAnalyseStructDeclList(CP_NameScope& namescope,
+                                  const CP_String& name, DeclList *dl,
+                                  int pack, const CP_Location& location);
+CP_TypeID CpAnalyseUnionDeclList(CP_NameScope& namescope,
+                                 const CP_String& name, DeclList *dl,
+                                 const CP_Location& location);
+CP_TypeID CpAnalyseEnumorList(CP_NameScope& namescope,
+                              const CP_String& name, EnumorList *el);
+CP_TypeID CpAnalyseAtomic(CP_NameScope& namescope, AtomicTypeSpec *ats);
+CP_TypeID CpAnalyseDeclSpecs(CP_NameScope& namescope, DeclSpecs *ds);
 
 ////////////////////////////////////////////////////////////////////////////
 
-CR_TypeID CrAnalysePointers(CR_NameScope& namescope, Pointers *pointers,
-                            CR_TypeID tid, const CR_Location& location)
+CP_TypeID CpAnalysePointers(CP_NameScope& namescope, Pointers *pointers,
+                            CP_TypeID tid, const CP_Location& location)
 {
     assert(pointers);
     for (auto& ac : *pointers) {
@@ -592,17 +591,17 @@ CR_TypeID CrAnalysePointers(CR_NameScope& namescope, Pointers *pointers,
     return tid;
 }
 
-void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
-                                DeclorList *dl, const CR_Location& location)
+void CpAnalyseTypedefDeclorList(CP_NameScope& namescope, CP_TypeID tid,
+                                DeclorList *dl, const CP_Location& location)
 {
     assert(dl);
     for (auto& declor : *dl) {
-        CR_TypeID tid2 = tid;
+        CP_TypeID tid2 = tid;
 
         int value;
         Declor *d = declor.get();
         while (d) {
-            CR_String name;
+            CP_String name;
             switch (d->m_declor_type) {
             case Declor::TYPEDEF_TAG:
                 assert(!d->m_name.empty());
@@ -623,13 +622,13 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     auto ac = (*pointers)[0];
                     namescope.AddTypeFlags(tid2, ac->m_flags);
                 }
-                tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, location);
+                tid2 = CpAnalysePointers(namescope, d->m_pointers.get(), tid2, location);
                 d = d->m_declor.get();
                 continue;
 
             case Declor::ARRAY:
                 if (d->m_const_expr)
-                    value = CrCalcConstIntCondExpr(namescope, d->m_const_expr.get());
+                    value = CpCalcConstIntCondExpr(namescope, d->m_const_expr.get());
                 else
                     value = 0;
                 tid2 = namescope.AddArrayType(tid2, value, location);
@@ -638,10 +637,10 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
 
             case Declor::FUNCTION:
                 {
-                    CR_LogFunc func;
+                    CP_LogFunc func;
                     func.m_return_type = tid2;
                     if (d->m_param_list) {
-                        CrAnalyseParamList(namescope, func, d->m_param_list.get());
+                        CpAnalyseParamList(namescope, func, d->m_param_list.get());
                     }
                     tid2 = namescope.AddFuncType(func, d->location());
                     d = d->m_declor.get();
@@ -663,12 +662,12 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
     }
 }
 
-void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
+void CpAnalyseDeclorList(CP_NameScope& namescope, CP_TypeID tid,
                          DeclorList *dl)
 {
     assert(dl);
     for (auto& declor : *dl) {
-        CR_TypeID tid2 = tid;
+        CP_TypeID tid2 = tid;
 
         int value;
         Declor *d = declor.get();
@@ -694,13 +693,13 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     auto ac = (*pointers)[0];
                     namescope.AddTypeFlags(tid2, ac->m_flags);
                 }
-                tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, d->location());
+                tid2 = CpAnalysePointers(namescope, d->m_pointers.get(), tid2, d->location());
                 d = d->m_declor.get();
                 break;
 
             case Declor::ARRAY:
                 if (d->m_const_expr)
-                    value = CrCalcConstIntCondExpr(namescope, d->m_const_expr.get());
+                    value = CpCalcConstIntCondExpr(namescope, d->m_const_expr.get());
                 else
                     value = 0;
                 tid2 = namescope.AddArrayType(tid2, value, d->location());
@@ -709,10 +708,10 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
 
             case Declor::FUNCTION:
                 {
-                    CR_LogFunc lf;
+                    CP_LogFunc lf;
                     lf.m_return_type = tid2;
                     if (d->m_param_list) {
-                        CrAnalyseParamList(namescope, lf, d->m_param_list.get());
+                        CpAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
                     tid2 = namescope.AddFuncType(lf, d->location());
                     d = d->m_declor.get();
@@ -727,15 +726,15 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
     }
 }
 
-void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
-                               DeclorList *dl, CR_LogStruct& ls)
+void CpAnalyseStructDeclorList(CP_NameScope& namescope, CP_TypeID tid,
+                               DeclorList *dl, CP_LogStruct& ls)
 {
     assert(dl);
     for (auto& declor : *dl) {
-        CR_TypeID tid2 = tid;
+        CP_TypeID tid2 = tid;
 
         int value, bits = 0;
-        CR_String name;
+        CP_String name;
         Declor *d = declor.get();
         while (d) {
             switch (d->m_declor_type) {
@@ -752,14 +751,14 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     auto ac = (*pointers)[0];
                     namescope.AddTypeFlags(tid2, ac->m_flags);
                 }
-                tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2,
+                tid2 = CpAnalysePointers(namescope, d->m_pointers.get(), tid2,
                                          d->location());
                 d = d->m_declor.get();
                 continue;
 
             case Declor::ARRAY:
                 if (d->m_const_expr)
-                    value = CrCalcConstIntCondExpr(namescope, d->m_const_expr.get());
+                    value = CpCalcConstIntCondExpr(namescope, d->m_const_expr.get());
                 else
                     value = 0;
                 tid2 = namescope.AddArrayType(tid2, value, d->location());
@@ -768,9 +767,9 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
 
             case Declor::FUNCTION:
                 {
-                    CR_LogFunc lf;
+                    CP_LogFunc lf;
                     if (d->m_param_list) {
-                        CrAnalyseParamList(namescope, lf, d->m_param_list.get());
+                        CpAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
                     tid2 = namescope.AddFuncType(lf, d->location());
                     d = d->m_declor.get();
@@ -780,7 +779,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
             case Declor::BITS:
                 assert(ls.m_struct_or_union);   // must be struct
                 assert(d->m_const_expr);
-                bits = CrCalcConstIntCondExpr(namescope, d->m_const_expr.get());
+                bits = CpCalcConstIntCondExpr(namescope, d->m_const_expr.get());
                 d = d->m_declor.get();
                 continue;
 
@@ -796,27 +795,27 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
     }
 }
 
-void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl) {
+void CpAnalyseDeclList(CP_NameScope& namescope, DeclList *dl) {
     assert(dl);
     for (auto& decl : *dl) {
-        CR_TypeID tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
+        CP_TypeID tid = CpAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
         switch (decl->m_decl_type) {
         case Decl::TYPEDEF:
             if (decl->m_declor_list.get()) {
-                CrAnalyseTypedefDeclorList(namescope, tid,
+                CpAnalyseTypedefDeclorList(namescope, tid,
                     decl->m_declor_list.get(), decl->location());
             }
             break;
 
         case Decl::DECLORLIST:
-            CrAnalyseDeclorList(namescope, tid, decl->m_declor_list.get());
+            CpAnalyseDeclorList(namescope, tid, decl->m_declor_list.get());
             break;
 
         case Decl::STATIC_ASSERT:
             {
                 shared_ptr<CondExpr> const_expr =
                     decl->m_static_assert_decl->m_const_expr;
-                if (CrCalcConstIntCondExpr(namescope, const_expr.get()) == 0)
+                if (CpCalcConstIntCondExpr(namescope, const_expr.get()) == 0)
                 {
                     assert(0);
                 }
@@ -829,7 +828,7 @@ void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl) {
     }
 }
 
-void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
+void CpAnalyseParamList(CP_NameScope& namescope, CP_LogFunc& func,
                         ParamList *pl)
 {
     assert(pl);
@@ -844,16 +843,16 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
             d = (*dl)[0].get();
         else
             d = NULL;
-        CR_TypeID tid;
-        tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
+        CP_TypeID tid;
+        tid = CpAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
 
         #ifdef DEEPDEBUG
             printf("ParamList##%s\n", namescope.StringOfType(tid, "").data());
         #endif
 
-        CR_TypeID tid2 = tid;
+        CP_TypeID tid2 = tid;
         int value;
-        CR_String name;
+        CP_String name;
         while (d) {
             switch (d->m_declor_type) {
             case Declor::IDENTIFIER:
@@ -867,14 +866,14 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
                     auto ac = (*pointers)[0];
                     namescope.AddTypeFlags(tid2, ac->m_flags);
                 }
-                tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2,
+                tid2 = CpAnalysePointers(namescope, d->m_pointers.get(), tid2,
                                          d->location());
                 d = d->m_declor.get();
                 continue;
 
             case Declor::ARRAY:
                 if (d->m_const_expr)
-                    value = CrCalcConstIntCondExpr(namescope, d->m_const_expr.get());
+                    value = CpCalcConstIntCondExpr(namescope, d->m_const_expr.get());
                 else
                     value = 0;
                 tid2 = namescope.AddArrayType(tid2, value, d->location());
@@ -883,10 +882,10 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
 
             case Declor::FUNCTION:
                 {
-                    CR_LogFunc lf;
+                    CP_LogFunc lf;
                     lf.m_return_type = tid2;
                     if (d->m_param_list) {
-                        CrAnalyseParamList(namescope, lf, d->m_param_list.get());
+                        CpAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
                     tid2 = namescope.AddFuncType(lf, d->location());
                     d = d->m_declor.get();
@@ -908,18 +907,18 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
     }
 }
 
-void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
+void CpAnalyseFunc(CP_NameScope& namescope, CP_TypeID return_type,
                    Declor *declor, DeclList *decl_list)
 {
-    CR_LogFunc func;
+    CP_LogFunc func;
     assert(declor);
 
     if (declor->m_declor_type == Declor::FUNCTION) {
         if (!declor->m_name.empty()) {
             if (decl_list) {
-                CrAnalyseDeclList(namescope, decl_list);
+                CpAnalyseDeclList(namescope, decl_list);
                 if (declor->m_param_list) {
-                    CrAnalyseParamList(namescope, func, declor->m_param_list.get());
+                    CpAnalyseParamList(namescope, func, declor->m_param_list.get());
                     namescope.AddFuncType(func, declor->location());
                 } else {
                     assert(0);
@@ -927,7 +926,7 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
             } else {
                 assert(declor->m_param_list);
                 if (declor->m_param_list) {
-                    CrAnalyseParamList(namescope, func, declor->m_param_list.get());
+                    CpAnalyseParamList(namescope, func, declor->m_param_list.get());
                     namescope.AddFuncType(func, declor->location());
                 }
             }
@@ -935,25 +934,25 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
     }
 }
 
-CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
-                                  const CR_String& name, DeclList *dl, int pack,
-                                  const CR_Location& location)
+CP_TypeID CpAnalyseStructDeclList(CP_NameScope& namescope,
+                                  const CP_String& name, DeclList *dl, int pack,
+                                  const CP_Location& location)
 {
-    CR_LogStruct ls(true);  // struct
+    CP_LogStruct ls(true);  // struct
     ls.m_pack = pack;
     assert(pack >= 1);
 
-    CR_TypeID tid;
+    CP_TypeID tid;
     assert(dl);
     for (auto& decl : *dl) {
         switch (decl->m_decl_type) {
         case Decl::DECLORLIST:
-            tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
-            CrAnalyseStructDeclorList(namescope, tid, decl->m_declor_list.get(), ls);
+            tid = CpAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
+            CpAnalyseStructDeclorList(namescope, tid, decl->m_declor_list.get(), ls);
             break;
 
         case Decl::SINGLE:
-            tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
+            tid = CpAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
             if (tid != cr_invalid_id) {
                 ls.m_type_list.push_back(tid);
                 ls.m_name_list.push_back("");
@@ -965,7 +964,7 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
             {
                 shared_ptr<CondExpr> const_expr =
                     decl->m_static_assert_decl->m_const_expr;
-                if (CrCalcConstIntCondExpr(namescope, const_expr.get()) == 0) {
+                if (CpCalcConstIntCondExpr(namescope, const_expr.get()) == 0) {
                     assert(0);
                 }
             }
@@ -980,25 +979,25 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
     return namescope.AddStructType(name, ls, location);
 }
 
-CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
-                                 const CR_String& name, DeclList *dl,
-                                 const CR_Location& location)
+CP_TypeID CpAnalyseUnionDeclList(CP_NameScope& namescope,
+                                 const CP_String& name, DeclList *dl,
+                                 const CP_Location& location)
 {
-    CR_LogStruct ls(false);     // union
+    CP_LogStruct ls(false);     // union
     ls.m_pack = 1;
     assert(dl);
 
-    CR_TypeID tid;
+    CP_TypeID tid;
     assert(dl);
     for (auto& decl : *dl) {
         switch (decl->m_decl_type) {
         case Decl::DECLORLIST:
-            tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
-            CrAnalyseStructDeclorList(namescope, tid, decl->m_declor_list.get(), ls);
+            tid = CpAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
+            CpAnalyseStructDeclorList(namescope, tid, decl->m_declor_list.get(), ls);
             break;
 
         case Decl::SINGLE:
-            tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
+            tid = CpAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
             if (tid != cr_invalid_id) {
                 ls.m_type_list.push_back(tid);
                 ls.m_name_list.push_back("");
@@ -1010,7 +1009,7 @@ CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
             {
                 shared_ptr<CondExpr> const_expr =
                     decl->m_static_assert_decl->m_const_expr;
-                if (CrCalcConstIntCondExpr(namescope, const_expr.get()) == 0) {
+                if (CpCalcConstIntCondExpr(namescope, const_expr.get()) == 0) {
                     assert(0);
                 }
             }
@@ -1025,52 +1024,52 @@ CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
     return namescope.AddUnionType(name, ls, location);
 }
 
-CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
-                              const CR_String& name, EnumorList *el,
-                              const CR_Location& location)
+CP_TypeID CpAnalyseEnumorList(CP_NameScope& namescope,
+                              const CP_String& name, EnumorList *el,
+                              const CP_Location& location)
 {
-    CR_LogEnum le;
+    CP_LogEnum le;
 
     int value, next_value = 0;
     assert(el);
-    CR_TypeID tid_enumitem = namescope.TypeIDFromName("enumitem");
-    CR_IDSet vids;
+    CP_TypeID tid_enumitem = namescope.TypeIDFromName("enumitem");
+    CP_IDSet vids;
     for (auto& e : *el) {
         if (e->m_const_expr)
-            value = CrCalcConstIntCondExpr(namescope, e->m_const_expr.get());
+            value = CpCalcConstIntCondExpr(namescope, e->m_const_expr.get());
         else
             value = next_value;
 
         le.MapNameToValue()[e->m_name.data()] = value;
         le.MapValueToName()[value] = e->m_name.data();
-        CR_VarID vid = namescope.AddVar(e->m_name, tid_enumitem, location);
+        CP_VarID vid = namescope.AddVar(e->m_name, tid_enumitem, location);
         namescope.LogVar(vid).m_has_value = true;
         namescope.LogVar(vid).m_int_value = value;
         vids.push_back(vid);
         next_value = value + 1;
     }
 
-    CR_TypeID tid = namescope.AddEnumType(name, le, location);
+    CP_TypeID tid = namescope.AddEnumType(name, le, location);
     for (const auto& vid : vids) {
         namescope.LogVar(vid).m_enum_type_id = tid;
     }
     return tid;
 }
 
-CR_TypeID CrAnalyseAtomic(CR_NameScope& namescope, AtomicTypeSpec *ats) {
+CP_TypeID CpAnalyseAtomic(CP_NameScope& namescope, AtomicTypeSpec *ats) {
     // TODO: TF_ATOMIC
     assert(0);
     return 0;
 }
 
-CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
-    CR_TypeID tid;
-    CR_TypeFlags flag, flags = 0;
+CP_TypeID CpAnalyseDeclSpecs(CP_NameScope& namescope, DeclSpecs *ds) {
+    CP_TypeID tid;
+    CP_TypeFlags flag, flags = 0;
     if (ds == NULL)
         return namescope.TypeIDFromName("int");
 
     while (ds) {
-        CR_String name;
+        CP_String name;
         switch (ds->m_spec_type) {
         case DeclSpecs::STORCLSSPEC:
             flag = ds->m_stor_cls_spec->m_flag;
@@ -1110,11 +1109,11 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                     TypeSpec *ts = ds->m_type_spec.get();
                     name = ts->m_name;
                     if (ts->m_decl_list) {
-                        tid = CrAnalyseStructDeclList(
+                        tid = CpAnalyseStructDeclList(
                             namescope, name, ts->m_decl_list.get(), ts->m_pack,
                             ts->location());
                     } else {
-                        CR_LogStruct ls;
+                        CP_LogStruct ls;
                         ls.m_struct_or_union = true;
                         tid = namescope.AddStructType(name, ls, ts->location());
                     }
@@ -1130,11 +1129,11 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                     TypeSpec *ts = ds->m_type_spec.get();
                     name = ts->m_name;
                     if (ts->m_decl_list) {
-                        tid = CrAnalyseUnionDeclList(
+                        tid = CpAnalyseUnionDeclList(
                             namescope, name, ts->m_decl_list.get(),
                             ts->location());
                     } else {
-                        CR_LogStruct ls;
+                        CP_LogStruct ls;
                         ls.m_struct_or_union = false;
                         tid = namescope.AddStructType(name, ls, ts->location());
                     }
@@ -1148,11 +1147,11 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
             case TF_ENUM:
                 name = ds->m_type_spec->m_name;
                 if (ds->m_type_spec->m_enumor_list) {
-                    tid = CrAnalyseEnumorList(
+                    tid = CpAnalyseEnumorList(
                         namescope, name, ds->m_type_spec->m_enumor_list.get(),
                         ds->m_type_spec->location());
                 } else {
-                    CR_LogEnum le;
+                    CP_LogEnum le;
                     tid = namescope.AddEnumType(
                         name, le, ds->m_type_spec->location());
                 }
@@ -1163,7 +1162,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 return tid;
 
             case TF_ATOMIC:
-                return CrAnalyseAtomic(namescope,
+                return CpAnalyseAtomic(namescope,
                     ds->m_type_spec.get()->m_atomic_type_spec.get());
 
             default:
@@ -1198,7 +1197,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
         break;
     }
 
-    flags = CrNormalizeTypeFlags(flags);
+    flags = CpNormalizeTypeFlags(flags);
     tid = namescope.TypeIDFromFlags(flags & ~TF_CONST);
     assert(tid != cr_invalid_id);
     if (flags & TF_CONST) {
@@ -1210,7 +1209,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
 
 ////////////////////////////////////////////////////////////////////////////
 
-enum CR_ExitCode {
+enum CP_ExitCode {
     cr_exit_ok                = 0,
     cr_exit_parse_error       = 1,
     cr_exit_cpp_error         = 2,
@@ -1222,40 +1221,67 @@ enum CR_ExitCode {
     cr_exit_cannot_open_input = 8
 };
 
-// do input
-int CrInputCSrc(shared_ptr<TransUnit>& tu, int argc, char **args, bool is_64bit)
+static
+void CpReplaceString(
+    std::string& str, const std::string& from, const std::string& to)
 {
-    char *pchDotExt = strrchr(args[0], '.');
+    size_t i = 0;
+    for (;;)
+    {
+        i = str.find(from, i);
+        if (i == std::string::npos)
+            break;
+
+        str.replace(i, from.size(), to);
+        i += to.size();
+    }
+}
+
+std::string CpConvertCmdLineParam(const std::string& str) {
+    std::string result = str;
+    CpReplaceString(result, "\"", "\"\"");
+    if (result.find_first_of("\" \t\f\v") != std::string::npos) {
+        result = "\"" + str + "\"";
+    }
+    return result;
+}
+
+// do input
+int CpInputCSrc(
+    shared_ptr<TransUnit>& tu,
+    int i, int argc, char **argv, bool is_64bit)
+{
+    char *pchDotExt = strrchr(argv[i], '.');
     // if file extension is ".i",
     if (strcmp(pchDotExt, ".i") == 0) {
         // directly parse
-        if (!cparser::parse_file(tu, args[0], is_64bit)) {
-            fprintf(stderr, "ERROR: Failed to parse file '%s'\n", args[0]);
+        if (!cparser::parse_file(tu, argv[i], is_64bit)) {
+            fprintf(stderr, "ERROR: Failed to parse file '%s'\n", argv[i]);
             return cr_exit_parse_error;   // failure
         }
     } else if (strcmp(pchDotExt, ".h") == 0 ||
                strcmp(pchDotExt, ".c") == 0)
     {
         // if file extension is ".h",
-        static char filename[] = "cparser~.tmp";
+        static char filename[MAX_PATH];
+        ::GetTempFileNameA(".", "cpa", 0, filename);
         cr_tmpfile = filename;
-        atexit(CrDeleteTempFileAtExit);
+        atexit(CpDeleteTempFileAtExit);
 
         // build command line
         #ifdef __GNUC__
-            CR_String cmdline("gcc -E");
+            CP_String cmdline("gcc -E");
         #elif defined(__clang__)
-            CR_String cmdline("clang -E");
+            CP_String cmdline("clang -E");
         #elif defined(_MSC_VER)
-            CR_String cmdline("cl /nologo /E");
+            CP_String cmdline("cl /nologo /E");
         #else
             #error You lose.
         #endif
 
-        for (int i = 0; i < argc; i++) {
-            cmdline += " \"";
-            cmdline += args[i];
-            cmdline += "\"";
+        for (; i < argc; i++) {
+            cmdline += " ";
+            cmdline += CpConvertCmdLineParam(argv[i]);
         }
 
         MProcessMaker pmaker;
@@ -1310,10 +1336,9 @@ int CrInputCSrc(shared_ptr<TransUnit>& tu, int argc, char **args, bool is_64bit)
             }
 
             if (bOK) {
-                if (!cparser::parse_file(tu, cr_tmpfile, is_64bit))
-                {
+                if (!cparser::parse_file(tu, cr_tmpfile, is_64bit)) {
                     fprintf(stderr, "ERROR: Failed to parse file '%s'\n",
-                            args[0]);
+                            argv[i]);
                     return cr_exit_parse_error;   // failure
                 }
             } else {
@@ -1334,18 +1359,18 @@ int CrInputCSrc(shared_ptr<TransUnit>& tu, int argc, char **args, bool is_64bit)
 ////////////////////////////////////////////////////////////////////////////
 // semantic analysis
 
-int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {
+int CpSemanticAnalysis(CP_NameScope& namescope, shared_ptr<TransUnit>& tu) {
     assert(tu.get());
     for (shared_ptr<Decl>& decl : *tu.get()) {
         switch (decl->m_decl_type) {
         case Decl::FUNCTION: {
                 fflush(stderr);
                 shared_ptr<DeclSpecs>& ds = decl->m_decl_specs;
-                CR_TypeID tid = CrAnalyseDeclSpecs(namescope, ds.get());
+                CP_TypeID tid = CpAnalyseDeclSpecs(namescope, ds.get());
                 shared_ptr<DeclorList>& dl = decl->m_declor_list;
                 assert(dl.get());
                 auto& declor = (*dl.get())[0];
-                CrAnalyseFunc(namescope, tid, declor.get(),
+                CpAnalyseFunc(namescope, tid, declor.get(),
                               decl->m_decl_list.get());
             }
             break;
@@ -1354,16 +1379,16 @@ int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {
         case Decl::DECLORLIST: {
                 shared_ptr<DeclSpecs>& ds = decl->m_decl_specs;
                 shared_ptr<DeclorList>& dl = decl->m_declor_list;
-                CR_TypeID tid = CrAnalyseDeclSpecs(namescope, ds.get());
+                CP_TypeID tid = CpAnalyseDeclSpecs(namescope, ds.get());
                 if (decl->m_decl_type == Decl::TYPEDEF) {
                     fflush(stderr);
                     if (dl.get()) {
-                        CrAnalyseTypedefDeclorList(namescope, tid, dl.get(),
+                        CpAnalyseTypedefDeclorList(namescope, tid, dl.get(),
                                                    decl->location());
                     }
                 } else {
                     fflush(stderr);
-                    CrAnalyseDeclorList(namescope, tid, dl.get());
+                    CpAnalyseDeclorList(namescope, tid, dl.get());
                 }
             }
             break;
@@ -1378,20 +1403,20 @@ int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {
 
 ////////////////////////////////////////////////////////////////////////////
 
-void CrDumpSemantic(
-    CR_NameScope& namescope,
-    const CR_String& strPrefix,
-    const CR_String& strSuffix)
+void CpDumpSemantic(
+    CP_NameScope& namescope,
+    const CP_String& strPrefix,
+    const CP_String& strSuffix)
 {
     FILE *fp;
 
     fp = fopen((strPrefix + "types" + strSuffix).data(), "w");
     if (fp) {
         fprintf(fp, "(type_id)\t(name)\t(flags)\t(sub_id)\t(count)\t(size)\t(file)\t(line)\t(definition)\n");
-        for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
+        for (CP_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& name = namescope.MapTypeIDToName()[tid];
             const auto& type = namescope.LogType(tid);
-            if (namescope.IsCrExtendedType(tid)) {
+            if (namescope.IsExtendedType(tid)) {
                 size_t size = namescope.GetSizeofType(tid);
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(cr_extended)\t0\t(cr_extended)\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
@@ -1433,7 +1458,7 @@ void CrDumpSemantic(
     fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
     if (fp) {
         fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(count)\t(pack)\t(file)\t(line)\t(definition)\t(item_1_type_id)\t(item_1_name)\t(item_1_bits)\t(item_2_type_id)\t...\n");
-        for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
+        for (CP_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& type = namescope.LogType(tid);
             if (!(type.m_flags & (TF_STRUCT | TF_UNION))) {
                 continue;
@@ -1472,7 +1497,7 @@ void CrDumpSemantic(
     fp = fopen((strPrefix + "enums" + strSuffix).data(), "w");
     if (fp) {
         fprintf(fp, "(type_id)\t(name)\t(num_items)\t(file)\t(line)\t(item_name_1)\t(item_value_1)\t(item_name_2)\t...\n");
-        for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
+        for (CP_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& type = namescope.LogType(tid);
             if (type.m_flags & TF_ENUM) {
                 const auto& name = namescope.MapTypeIDToName()[tid];
@@ -1496,7 +1521,7 @@ void CrDumpSemantic(
     if (fp) {
         fprintf(fp, "(name)\t(enum_type_id)\t(value)\t(enum_name)\t(file)\t(line)\n");
         const auto& vars = namescope.Vars();
-        for (CR_VarID i = 0; i < vars.size(); ++i) {
+        for (CP_VarID i = 0; i < vars.size(); ++i) {
             const auto& var = vars[i];
             const auto& type = namescope.LogType(var.m_type_id);
             if (var.m_has_value && (type.m_flags & TF_ENUMITEM)) {
@@ -1515,18 +1540,19 @@ void CrDumpSemantic(
     if (fp) {
         fprintf(fp, "(type_id)\t(name)\t(param_count)\t(file)\t(line)\t(definition)\t(retval_type)\t(param_1_typeid)\t(param_1_name)\t(param_2_typeid)\t...\n");
         auto& vars = namescope.Vars();
-        for (CR_VarID i = 0; i < vars.size(); ++i) {
-            auto& var = vars[i];
-            if (namescope.IsFuncType(var.m_type_id)) {
-                auto& name = namescope.MapVarIDToName()[i];
-                const auto& type = namescope.LogType(var.m_type_id);
+        for (CP_VarID i = 0; i < vars.size(); ++i) {
+            const auto& var = vars[i];
+            CP_TypeID tid = namescope.ResolveAlias(var.m_type_id);
+            if (namescope.IsFuncType(tid)) {
+                const auto& name = namescope.MapVarIDToName()[i];
+                const auto& type = namescope.LogType(tid);
                 const auto& lf = namescope.LogFunc(type.m_id);
                 const auto& location = var.location();
                 fprintf(fp, "%d\t%s\t%d\t%s\t%d\t%s;\t%d",
-                    static_cast<int>(var.m_type_id), name.data(), 
+                    static_cast<int>(tid), name.data(), 
                     static_cast<int>(lf.m_type_list.size()),
                     location.m_file.data(), location.m_line,
-                    namescope.StringOfType(var.m_type_id, name).data(),
+                    namescope.StringOfType(tid, name).data(),
                     static_cast<int>(lf.m_return_type));
                 for (size_t j = 0; j < lf.m_type_list.size(); j++) {
                     fprintf(fp, "\t%d\t%s",
@@ -1542,7 +1568,7 @@ void CrDumpSemantic(
 
 ////////////////////////////////////////////////////////////////////////////
 
-void CrShowHelp(void) {
+void CpShowHelp(void) {
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
     fprintf(stderr,
         " Usage: cparser64 [options] [input-file.h [compiler_options]]\n");
@@ -1569,8 +1595,7 @@ void CrShowHelp(void) {
 
 extern "C"
 int main(int argc, char **argv) {
-    char **args = argv + 1;
-    --argc;
+    int i;
 
     #if 0
         printf("Press [Enter] key.");
@@ -1586,42 +1611,41 @@ int main(int argc, char **argv) {
     bool show_help = false;
     bool show_version = false;
     bool no_logo = false;
-    CR_String strPrefix, strSuffix = ".dat";
-    for (; argc > 0; --argc, ++args) {
-        if (::lstrcmpiA(args[0], "/?") == 0 ||
-            ::lstrcmpiA(args[0], "--help") == 0)
+    CP_String strPrefix, strSuffix = ".dat";
+    for (i = 1; i < argc; ++i) {
+        if (::lstrcmpiA(argv[i], "/?") == 0 ||
+            ::lstrcmpiA(argv[i], "--help") == 0)
         {
             show_help = true;
-        }
-        else if (::lstrcmpiA(args[0], "/nologo") == 0 ||
-                 ::lstrcmpiA(args[0], "--nologo") == 0)
+        } else if (::lstrcmpiA(argv[i], "/nologo") == 0 ||
+                   ::lstrcmpiA(argv[i], "--nologo") == 0)
         {
             no_logo = true;
-        } else if (::lstrcmpiA(args[0], "--version") == 0 ||
-                   ::lstrcmpiA(args[0], "/version") == 0)
+        } else if (::lstrcmpiA(argv[i], "--version") == 0 ||
+                   ::lstrcmpiA(argv[i], "/version") == 0)
         {
             show_version = true;
-        } else if (::lstrcmpiA(args[0], "-32") == 0) {
+        } else if (::lstrcmpiA(argv[i], "-32") == 0) {
             is_64bit = false;
-        } else if (::lstrcmpiA(args[0], "-64") == 0) {
+        } else if (::lstrcmpiA(argv[i], "-64") == 0) {
             is_64bit = true;
-        } else if (::lstrcmpiA(args[0], "--prefix") == 0 ||
-                   ::lstrcmpiA(args[0], "-p") == 0)
+        } else if (::lstrcmpiA(argv[i], "--prefix") == 0 ||
+                   ::lstrcmpiA(argv[i], "-p") == 0)
         {
-            --argc, ++args;
-            strPrefix = args[0];
-        } else if (::lstrcmpiA(args[0], "--suffix") == 0 ||
-                   ::lstrcmpiA(args[0], "-s") == 0)
+            ++i;
+            strPrefix = argv[i];
+        } else if (::lstrcmpiA(argv[i], "--suffix") == 0 ||
+                   ::lstrcmpiA(argv[i], "-s") == 0)
         {
-            --argc, ++args;
-            strSuffix = args[0];
+            ++i;
+            strSuffix = argv[i];
         } else {
-            if (::GetFileAttributesA(args[0]) == 0xFFFFFFFF) {
-                if (args[0][0] == '-' || args[0][0] == '/') {
-                    fprintf(stderr, "ERROR: Invalid option '%s'.\n", args[0]);
+            if (::GetFileAttributesA(argv[i]) == 0xFFFFFFFF) {
+                if (argv[i][0] == '-' || argv[i][0] == '/') {
+                    fprintf(stderr, "ERROR: Invalid option '%s'.\n", argv[i]);
                     return cr_exit_invalid_option;
                 } else {
-                    fprintf(stderr, "ERROR: File '%s' doesn't exist.\n", args[0]);
+                    fprintf(stderr, "ERROR: File '%s' doesn't exist.\n", argv[i]);
                     return cr_exit_cannot_open_input;
                 }
             }
@@ -1638,16 +1662,18 @@ int main(int argc, char **argv) {
         puts(cr_logo);
 
     if (show_help) {
-        CrShowHelp();
+        CpShowHelp();
         return cr_exit_ok;
     }
 
     fprintf(stderr, "Parsing...\n");
     shared_ptr<TransUnit> tu;
-    if (argc >= 1) {
-        // args[0] == input-file
-        // ...compiler_options...
-        int result = CrInputCSrc(tu, argc, args, is_64bit);
+    if (i < argc) {
+        // argv[i] == input-file
+        // argv[i + 1] == compiler option #1
+        // argv[i + 2] == compiler option #2
+        // argv[i + 3] == ...
+        int result = CpInputCSrc(tu, i, argc, argv, is_64bit);
         if (result)
             return result;
     } else {
@@ -1658,23 +1684,23 @@ int main(int argc, char **argv) {
     if (tu) {
         fprintf(stderr, "Semantic analysis...\n");
         if (is_64bit) {
-            CR_NameScope namescope(true);
+            CP_NameScope namescope(true);
 
-            int result = CrSemanticAnalysis(namescope, tu);
+            int result = CpSemanticAnalysis(namescope, tu);
             if (result)
                 return result;
 
             tu = shared_ptr<TransUnit>();
-            CrDumpSemantic(namescope, strPrefix, strSuffix);
+            CpDumpSemantic(namescope, strPrefix, strSuffix);
         } else {
-            CR_NameScope namescope(false);
+            CP_NameScope namescope(false);
 
-            int result = CrSemanticAnalysis(namescope, tu);
+            int result = CpSemanticAnalysis(namescope, tu);
             if (result)
                 return result;
 
             tu = shared_ptr<TransUnit>();
-            CrDumpSemantic(namescope, strPrefix, strSuffix);
+            CpDumpSemantic(namescope, strPrefix, strSuffix);
         }
     }
 

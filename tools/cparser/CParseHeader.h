@@ -7,7 +7,7 @@
 
 #include "CParser.h"        // for cparser::Parser
 #include "CScanner.h"       // for cparser::Scanner
-#include "CParserSite.h"    // for cparser::ParserSite
+#include "CActions.h"    // for cparser::Actions
 
 namespace cparser
 {
@@ -16,8 +16,8 @@ namespace cparser
                bool is_64bit = false)
     {
         using namespace cparser;
-        ParserSite ps;
-        Scanner<Iterator, ParserSite> scanner(ps, is_64bit);
+        Actions as;
+        Scanner<Iterator, Actions> scanner(as, is_64bit);
 
         std::vector<CP_TokenInfo> infos;
         scanner.scan(infos, begin, end);
@@ -27,7 +27,7 @@ namespace cparser
             fflush(stdout);
         #endif
 
-        Parser<shared_ptr<Node>, ParserSite> parser(ps);
+        Parser<shared_ptr<Node>, Actions> parser(as);
         std::vector<CP_TokenInfo>::iterator it, end2 = infos.end();
         for (it = infos.begin(); it != end2; ++it) {
             #if 0
@@ -36,8 +36,8 @@ namespace cparser
             #endif
             if (parser.post(it->m_token, make_shared<CP_TokenInfo>(*it))) {
                 if (parser.error()) {
-                    ps.location() = it->location();
-                    ps.message("ERROR: syntax error near " + 
+                    as.location() = it->location();
+                    as.message("ERROR: syntax error near " + 
                                scanner.token_to_string(*it));
 
                     // show around tokens
@@ -58,7 +58,7 @@ namespace cparser
                         else
                             break;
                     }
-                    ps.message("around: " + around);
+                    as.message("around: " + around);
                     return false;
                 }
                 break;

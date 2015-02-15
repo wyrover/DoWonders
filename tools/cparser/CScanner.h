@@ -4,19 +4,19 @@
 namespace cparser
 {
     //
-    // Scanner<Iterator, ParserSite>
+    // Scanner<Iterator, Actions>
     //
-    template <class Iterator, class ParserSite>
+    template <class Iterator, class Actions>
     class Scanner {
     public:
-        typedef ParserSite                  parser_site_type;
+        typedef Actions                     actions_type;
         typedef Iterator                    iterator_type;
         typedef TokenInfo<cparser::Token>   info_type;
         typedef shared_ptr<info_type>       shared_info_type;
 
     public:
-        Scanner(parser_site_type& parser_site, bool is_64bit) :
-            m_is_64bit(is_64bit), m_parser_site(parser_site),
+        Scanner(actions_type& actions, bool is_64bit) :
+            m_is_64bit(is_64bit), m_actions(actions),
             m_head_of_line(true), m_index(0) { }
 
         void scan(std::vector<info_type>& infos, Iterator begin, Iterator end) {
@@ -783,7 +783,7 @@ namespace cparser
                 }
 
                 // open
-                m_parser_site.unexpected_character(c);
+                m_actions.unexpected_character(c);
                 break;
             }
             return eof;
@@ -970,7 +970,7 @@ namespace cparser
                     if (escape_sequence(c)) {
                         s += c;
                     } else {
-                        m_parser_site.unsupported_escape_sequence();
+                        m_actions.unsupported_escape_sequence();
                     }
                 } else if (c == '\"') {
                     c = getch(); // open
@@ -979,7 +979,7 @@ namespace cparser
                 else if (c != EOF)
                     s += c;
                 else {
-                    m_parser_site.unexpected_eof();
+                    m_actions.unexpected_eof();
                     break;  // open
                 }
             } while (c != EOF);
@@ -1005,7 +1005,7 @@ namespace cparser
                 } else if (c != EOF) {
                     s += c;
                 } else {
-                    m_parser_site.unexpected_eof();
+                    m_actions.unexpected_eof();
                     break;  // open
                 }
             } while (c != EOF);
@@ -1019,20 +1019,20 @@ namespace cparser
             do {
                 if (c == '\\') {
                     if (!escape_sequence(ch)) {
-                        m_parser_site.unsupported_escape_sequence();
+                        m_actions.unsupported_escape_sequence();
                     }
                 } else if (c != EOF) {
                     ch = c;
                     c = getch();
                 } else {
-                    m_parser_site.unexpected_eof();
+                    m_actions.unexpected_eof();
                     return c;
                 }
 
                 c = getch(); // open
 
                 if (c != '\'')
-                    m_parser_site.not_supported_yet("multicharacter character literal");
+                    m_actions.not_supported_yet("multicharacter character literal");
             } while (c != '\'');
 
             return c;
@@ -1464,7 +1464,7 @@ namespace cparser
 
     protected:
         bool                    m_is_64bit;
-        parser_site_type&       m_parser_site;
+        actions_type&           m_actions;
         bool                    m_head_of_line;
         std::size_t             m_index;
         std::vector<char>       m_buff;
@@ -1475,23 +1475,23 @@ namespace cparser
         iterator_type           m_current;
         iterator_type           m_end;
 
-        CR_Location& location() {
-            return m_parser_site.location();
+        CP_Location& location() {
+            return m_actions.location();
         }
 
-        const CR_Location& location() const {
-            return m_parser_site.location();
+        const CP_Location& location() const {
+            return m_actions.location();
         }
 
         void message(const std::string& str) {
-            m_parser_site.message(str);
+            m_actions.message(str);
         }
 
     private:
         // NOTE: Scanner is not copyable.
-        Scanner(const Scanner<Iterator, ParserSite>&);
-        Scanner& operator=(const Scanner<Iterator, ParserSite>&);
-    }; // class Scanner<Iterator, ParserSite>
+        Scanner(const Scanner<Iterator, Actions>&);
+        Scanner& operator=(const Scanner<Iterator, Actions>&);
+    }; // class Scanner<Iterator, Actions>
 } // namespace cparser
 
 #endif  // ndef CSCANNER_H_
