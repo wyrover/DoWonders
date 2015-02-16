@@ -1,0 +1,31 @@
+# Makefile.g++64 --- Makefile for 64-bit GNU C++
+# Usage: make -f Makefile.g++64
+
+DOTOBJ = .o
+DOTEXE = .exe
+
+CXX = g++
+
+DEFS = -static -m64 -DJAPAN -ansi -std=c++11
+DEFS2 = 
+
+#OPTIONS = -O9 -Ofast -DNDEBUG $(DEFS) $(DEFS2) -Wall -pedantic
+OPTIONS = -O0 -g -ggdb -D_DEBUG $(DEFS) $(DEFS2) -Wall -pedantic
+
+CXXFLAGS = 
+
+OBJS = \
+	won32_sanitizer64$(DOTOBJ) \
+
+LIBS = -lcomdlg32 -limagehlp
+
+all: won32_sanitizer64$(DOTEXE)
+
+won32_sanitizer64$(DOTEXE): $(OBJS)
+	$(CXX) -o won32_sanitizer64$(DOTEXE) $(CXXFLAGS) $(OPTIONS) $(OBJS) $(LIBS)
+
+won32_sanitizer64$(DOTOBJ): won32_sanitizer.cpp
+	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o won32_sanitizer64$(DOTOBJ) won32_sanitizer.cpp
+
+clean:
+	rm -f *$(DOTOBJ)

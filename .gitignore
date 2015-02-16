@@ -44,3 +44,12 @@ tools/dllexpdumper/x64
 !tools/dllexpdumper/Release/redirector.exe
 !tools/dllexpdumper/x64/Debug/redirector64.exe
 !tools/dllexpdumper/x64/Release/redirector64.exe
+tools/won32_sanitizer/Debug
+tools/won32_sanitizer/Release
+tools/won32_sanitizer/x64
+!tools/won32_sanitizer/Debug/redirector.exe
+!tools/won32_sanitizer/Release/redirector.exe
+!tools/won32_sanitizer/x64/Debug/redirector64.exe
+!tools/won32_sanitizer/x64/Release/redirector64.exe
+Wonders*/sanitize-*.cpp
+Wonders*/sanitize-*.exe

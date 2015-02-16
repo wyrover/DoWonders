@@ -7,6 +7,7 @@ MAKE = make
 MCPP = tools/mcpp-2.7.2-hacked/src/mcpp$(DOTEXE)
 CPARSER = tools/cparser/cparser$(DOTEXE)
 DLLEXPDUMPER = tools/dllexpdumper/dllexpdumper$(DOTEXE)
+WON32_SANITIZE = tools/won32_sanitizer/won32_sanitizer$(DOTEXE)
 
 SUBDIRS = \
 	Wonders98 \
@@ -16,7 +17,7 @@ SUBDIRS = \
 	WondersVista \
 	Wonders7 \
 
-all: macros types dllexp
+all: macros types dllexp sanitize
 
 $(MCPP):
 	cd tools/mcpp-2.7.2-hacked && $(MAKE)
@@ -24,6 +25,8 @@ $(CPARSER):
 	cd tools/cparser && $(MAKE) -f Makefile.g++32
 $(DLLEXPDUMPER):
 	cd tools/dllexpdumper && $(MAKE) -f Makefile.g++32
+$(WON32_SANITIZE):
+	cd tools/won32_sanitizer && $(MAKE) -f Makefile.g++32
 
 macros: $(MCPP)
 	@for subdir in $(SUBDIRS); do \
@@ -33,6 +36,11 @@ macros: $(MCPP)
 types: $(CPARSER)
 	@for subdir in $(SUBDIRS); do \
 		(cd $$subdir && $(MAKE) -f Makefile.g++32 types); \
+	done
+
+sanitize: $(WON32_SANITIZE)
+	@for subdir in $(SUBDIRS); do \
+		(cd $$subdir && $(MAKE) -f Makefile.g++32 sanitize); \
 	done
 
 delete_dat:
