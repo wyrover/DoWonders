@@ -71,7 +71,7 @@ inline CP_TypeFlags CpNormalizeTypeFlags(CP_TypeFlags flags) {
     if (flags == 0)
         flags = TF_INT;
     return flags & ~(TF_EXTERN | TF_STATIC | TF_INLINE);
-}
+} // CpNormalizeTypeFlags
 
 ////////////////////////////////////////////////////////////////////////////
 // IDs
@@ -106,8 +106,7 @@ typedef CP_DeqSet<CP_ID> CP_IDSet;
 ////////////////////////////////////////////////////////////////////////////
 // CP_LogFunc
 
-struct CP_LogFunc
-{
+struct CP_LogFunc {
     bool                    m_ellipsis;
     CP_TypeSet              m_type_list;
     CP_StringSet            m_name_list;
@@ -138,8 +137,7 @@ struct CP_LogFunc
 ////////////////////////////////////////////////////////////////////////////
 // CP_LogType
 
-struct CP_LogType
-{
+struct CP_LogType {
     CP_TypeFlags m_flags;
 
     // For TF_POINTER:              the type ID (CP_TypeID)
@@ -182,11 +180,11 @@ struct CP_LogType
 ////////////////////////////////////////////////////////////////////////////
 // CP_LogStruct -- logical structure or union
 
-struct CP_LogStruct
-{
+struct CP_LogStruct {
     bool                    m_struct_or_union;
     CP_TypeSet              m_type_list;
     CP_StringSet            m_name_list;
+    CP_DeqSet<size_t>       m_field_offset;
     CP_DeqSet<size_t>       m_bitfield;
     size_t                  m_pack;
 
@@ -197,15 +195,18 @@ struct CP_LogStruct
         m_struct_or_union(ls.m_struct_or_union),
         m_type_list(ls.m_type_list),
         m_name_list(ls.m_name_list),
+        m_field_offset(ls.m_field_offset),
         m_bitfield(ls.m_bitfield),
         m_pack(ls.m_pack) { }
 
-    void operator=(const CP_LogStruct& ls) {
+    CP_LogStruct& operator=(const CP_LogStruct& ls) {
         m_struct_or_union = ls.m_struct_or_union;
         m_type_list = ls.m_type_list;
         m_name_list = ls.m_name_list;
+        m_field_offset = ls.m_field_offset;
         m_bitfield = ls.m_bitfield;
         m_pack = ls.m_pack;
+        return *this;
     }
 
     size_t FindName(const CP_String& name) const {
@@ -220,6 +221,7 @@ struct CP_LogStruct
         return m_struct_or_union == ls.m_struct_or_union &&
                m_type_list == ls.m_type_list &&
                m_name_list == ls.m_name_list &&
+               m_field_offset == ls.m_field_offset &&
                m_bitfield == ls.m_bitfield &&
                m_pack == ls.m_pack;
     }
@@ -228,6 +230,7 @@ struct CP_LogStruct
         return m_struct_or_union != ls.m_struct_or_union ||
                m_type_list != ls.m_type_list ||
                m_name_list != ls.m_name_list ||
+               m_field_offset != ls.m_field_offset ||
                m_bitfield != ls.m_bitfield ||
                m_pack != ls.m_pack;
     }
@@ -236,8 +239,7 @@ struct CP_LogStruct
 ////////////////////////////////////////////////////////////////////////////
 // CP_LogEnum
 
-struct CP_LogEnum
-{
+struct CP_LogEnum {
     CP_LogEnum() { }
 
     CP_LogEnum(const CP_LogEnum& le) :
@@ -269,8 +271,7 @@ protected:
 ////////////////////////////////////////////////////////////////////////////
 // CP_LogVar
 
-struct CP_LogVar
-{
+struct CP_LogVar {
     CP_LogVar() : m_has_value(false) { }
 
     bool            m_has_value;
@@ -296,8 +297,7 @@ struct CP_LogVar
 ////////////////////////////////////////////////////////////////////////////
 // CP_NameScope
 
-class CP_NameScope
-{
+class CP_NameScope {
 public:
     CP_NameScope(bool is_64bit) : m_is_64bit(is_64bit) {
         Init();
@@ -364,7 +364,7 @@ public:
 
         AddType("va_list", TF_VA_LIST, (Is64Bit() ? 8 : 4));
 
-        // CodeReverse extension
+        // extension
         AddType("xsigned char", TF_XSIGNED | TF_CHAR, 1);
         AddType("xsigned short", TF_XSIGNED | TF_SHORT, 2);
         AddType("xsigned long", TF_XSIGNED | TF_LONG, 4);
@@ -546,7 +546,7 @@ public:
             CP_StructID sid = m_structs.insert(ls);
             lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
             lt.m_id = sid;
-            lt.m_size = GetSizeofStruct(sid);
+            lt.m_size = _CalculateStruct(sid);
             lt.location() = location;
             CP_TypeID newtid = m_types.AddUnique(lt);
             m_mTypeIDToName[newtid] = name;
@@ -557,7 +557,7 @@ public:
             CP_StructID sid = m_structs.insert(ls);
             lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
             lt.m_id = sid;
-            lt.m_size = GetSizeofStruct(sid);
+            lt.m_size = _CalculateStruct(sid);
             lt.location() = location;
             CP_TypeID newtid = m_types.AddUnique(lt);
             m_mNameToTypeID[name] = newtid;
@@ -583,7 +583,7 @@ public:
             CP_StructID sid = m_structs.insert(ls);
             lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
             lt.m_id = sid;
-            lt.m_size = GetSizeofUnion(sid);
+            lt.m_size = _CalculateUnion(sid);
             lt.location() = location;
             CP_TypeID newtid = m_types.AddUnique(lt);
             m_mTypeIDToName[newtid] = name;
@@ -594,7 +594,7 @@ public:
             CP_StructID sid = m_structs.insert(ls);
             lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
             lt.m_id = sid;
-            lt.m_size = GetSizeofUnion(sid);
+            lt.m_size = _CalculateUnion(sid);
             lt.location() = location;
             CP_TypeID newtid = m_types.AddUnique(lt);
             m_mNameToTypeID[name] = newtid;
@@ -648,12 +648,14 @@ public:
         }
     }
 
-    size_t GetSizeofStruct(CP_StructID sid) const {
+    size_t _CalculateStruct(CP_StructID sid) {
         assert(sid != cr_invalid_id);
         if (sid == cr_invalid_id)
             return 0;
 
-        const CP_LogStruct& ls = m_structs[sid];
+        CP_LogStruct& ls = m_structs[sid];
+        ls.m_field_offset.clear();
+
         size_t size = 0, align = 0, bitremain = 0, oldtypesize = 0;
         CP_TypeID oldtid = cr_invalid_id;
         const std::size_t count = ls.m_type_list.size();
@@ -667,18 +669,23 @@ public:
                 if ((oldtid == cr_invalid_id || tid == oldtid) &&
                     bitremain >= bits)
                 {
+                    ls.m_field_offset.push_back(size);
                     bitremain -= bits;
                 } else if (bitremain == 0) {
+                    ls.m_field_offset.push_back(size);
                     bitremain += typesize * 8;
                     bitremain -= bits;
                 } else {
                     size += oldtypesize;
+                    ls.m_field_offset.push_back(size);
                     bitremain += oldtypesize * 8;
                     bitremain -= bits;
                 }
             } else {
                 if (bitremain)
                     size += oldtypesize;
+
+                ls.m_field_offset.push_back(size);
 
                 size += typesize;
 
@@ -698,21 +705,27 @@ public:
         }
         if (bitremain)
             size += oldtypesize;
+        assert(ls.m_field_offset.size() == ls.m_type_list.size());
         return size;
-    }
+    } // _CalculateStruct
 
-    size_t GetSizeofUnion(CP_StructID sid) const {
+    size_t _CalculateUnion(CP_StructID sid) {
         assert(sid != cr_invalid_id);
         if (sid == cr_invalid_id)
             return 0;
 
-        const CP_LogStruct& ls = m_structs[sid];
+        CP_LogStruct& ls = m_structs[sid];
+        ls.m_field_offset.clear();
+
         size_t maxsize = 0, size;
         for (auto tid : ls.m_type_list) {
             size = GetSizeofType(tid);
             if (maxsize < size)
                 maxsize = size;
+
+            ls.m_field_offset.push_back(0);
         }
+        assert(ls.m_field_offset.size() == ls.m_type_list.size());
         return maxsize;
     }
 

@@ -96,7 +96,9 @@
 
 /* more misc. */
 #include <lmrepl.h>
-#include <dhcpsapi.h>
+#if 0
+    #include <dhcpsapi.h>   // failed on Vista and XP
+#endif
 #include <urlmon.h>
 #include <ipexport.h>
 #include <icmpapi.h>

@@ -96,7 +96,9 @@
 
 /* more misc. */
 #include <lmrepl.h>
-#include <dhcpsapi.h>
+#if 0
+    #include <dhcpsapi.h>   // failed on Vista and XP
+#endif
 #include <urlmon.h>
 #include <ipexport.h>
 #include <icmpapi.h>
@@ -110,6 +112,8 @@
 #include <sspi.h>
 #include <ntsecapi.h>
 #include <ntsecpkg.h>
-#include <wlanapi.h>
+#if (_WIN32_WINNT >= _WIN32_WINNT_WINXP)
+    #include <wlanapi.h>
+#endif
 #include <rpc.h>
 #include <hlink.h>

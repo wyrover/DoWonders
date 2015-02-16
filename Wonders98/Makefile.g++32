@@ -1,0 +1,37 @@
+DOTEXE = .exe
+
+MAKE = make
+MCPP = ../tools/mcpp-2.7.2-hacked/src/mcpp$(DOTEXE)
+CPARSER = ../tools/cparser/cparser$(DOTEXE)
+
+DO_WONDERS_MINGW = /mingw/*-*-mingw*/
+DO_WONDERS_MINGW2 = /mingw/lib/gcc/*-*-mingw*/*.*.*/
+
+DO_WONDERS_INCLUDES = -I /mingw/include/ -I $(DO_WONDERS_MINGW)include/ -I $(DO_WONDERS_MINGW2)include
+
+PREDEF_COMMON = -D_M_IX86=1 -D_MT=1 -D_WIN32=1 -D_X86_=1
+
+all: macros types
+macros: ansi_macros wide_macros
+types: ansi_types wide_types
+
+ansi_macros: $(MCPP)
+	($(MCPP) $(DO_WONDERS_INCLUDES) $(PREDEF_COMMON) -DMBCS -D_MBCS -! win32.h >macros-gcc-32-a.dat 2>macros-gcc-32-a.log) || true
+wide_macros: $(MCPP)
+	($(MCPP) $(DO_WONDERS_INCLUDES) $(PREDEF_COMMON) -DUNICODE -D_UNICODE -! win32.h >macros-gcc-32-w.dat 2>macros-gcc-32-w.log) || true
+
+ansi_types: $(CPARSER)
+	$(CPARSER) --nologo -32 --suffix -gcc-32-a.dat win32.h $(PREDEF_COMMON) -m32 -DMBCS -D_MBCS >cparser-gcc-32-a.log 2>&1
+wide_types: $(CPARSER)
+	$(CPARSER) --nologo -32 --suffix -gcc-32-w.dat win32.h $(PREDEF_COMMON) -m32 -DUNICODE -D_UNICODE >cparser-gcc-32-w.log 2>&1
+
+$(MCPP):
+	cd ../tools/mcpp-2.7.2-hacked && $(MAKE)
+$(CPARSER):
+	cd ../tools/cparser && $(MAKE) -f Makefile.g++32
+
+delete_dat:
+	rm -f *.dat
+
+clean:
+	rm -f *.log *.tmp

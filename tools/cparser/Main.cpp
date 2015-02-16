@@ -1101,7 +1101,9 @@ CP_TypeID CpAnalyseDeclSpecs(CP_NameScope& namescope, DeclSpecs *ds) {
                         name = "va_list";
                 #endif
                 tid = namescope.TypeIDFromName(name);
-                assert(tid != cr_invalid_id);
+				if (tid == 0 || tid == cr_invalid_id) {
+					return 0;
+				}
                 return tid;
 
             case TF_STRUCT:
@@ -1457,7 +1459,7 @@ void CpDumpSemantic(
 
     fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(count)\t(pack)\t(file)\t(line)\t(definition)\t(item_1_type_id)\t(item_1_name)\t(item_1_bits)\t(item_2_type_id)\t...\n");
+        fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(count)\t(pack)\t(file)\t(line)\t(definition)\t(item_1_type_id)\t(item_1_name)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
         for (CP_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& type = namescope.LogType(tid);
             if (!(type.m_flags & (TF_STRUCT | TF_UNION))) {
@@ -1479,13 +1481,14 @@ void CpDumpSemantic(
                 location.m_file.data(), location.m_line, strDef.data());
             if (type.m_flags & TF_UNION) {
                 for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
-                    fprintf(fp, "\t%d\t%s\t0",
+                    fprintf(fp, "\t%d\t%s\t0\t0",
                         static_cast<int>(ls.m_type_list[i]), ls.m_name_list[i].data());
                 }
             } else {                
                 for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
-                    fprintf(fp, "\t%d\t%s\t%d",
+                    fprintf(fp, "\t%d\t%s\t%d\t%d",
                         static_cast<int>(ls.m_type_list[i]), ls.m_name_list[i].data(),
+                        static_cast<int>(ls.m_field_offset[i]),
                         static_cast<int>(ls.m_bitfield[i]));
                 }
             }
