@@ -791,6 +791,7 @@ void CpAnalyseStructDeclorList(CP_NameScope& namescope, CP_TypeID tid,
         }
         ls.m_type_list.push_back(tid2);
         ls.m_name_list.push_back(name);
+        ls.m_offset_list.push_back(0);
         ls.m_bitfield.push_back(bits);
     }
 }
@@ -956,6 +957,7 @@ CP_TypeID CpAnalyseStructDeclList(CP_NameScope& namescope,
             if (tid != cr_invalid_id) {
                 ls.m_type_list.push_back(tid);
                 ls.m_name_list.push_back("");
+                ls.m_offset_list.push_back(0);
                 ls.m_bitfield.push_back(0);
             }
             break;
@@ -1001,6 +1003,7 @@ CP_TypeID CpAnalyseUnionDeclList(CP_NameScope& namescope,
             if (tid != cr_invalid_id) {
                 ls.m_type_list.push_back(tid);
                 ls.m_name_list.push_back("");
+                ls.m_offset_list.push_back(0);
                 ls.m_bitfield.push_back(0);
             }
             break;
@@ -1419,10 +1422,12 @@ void CpDumpSemantic(
             const auto& name = namescope.MapTypeIDToName()[tid];
             const auto& type = namescope.LogType(tid);
             if (namescope.IsExtendedType(tid)) {
-                size_t size = namescope.GetSizeofType(tid);
-                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(cr_extended)\t0\t(cr_extended)\n",
-                    static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_id), 0, static_cast<int>(size));
+                #if 0
+                    size_t size = namescope.GetSizeofType(tid);
+                    fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(cr_extended)\t0\t(cr_extended)\n",
+                        static_cast<int>(tid), name.data(), type.m_flags,
+                        static_cast<int>(type.m_id), 0, static_cast<int>(size));
+                #endif
             } else if (namescope.IsPredefinedType(tid)) {
                 size_t size = namescope.GetSizeofType(tid);
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(predefined)\t0\t(predefined)\n",
@@ -1484,11 +1489,12 @@ void CpDumpSemantic(
                     fprintf(fp, "\t%d\t%s\t0\t0",
                         static_cast<int>(ls.m_type_list[i]), ls.m_name_list[i].data());
                 }
-            } else {                
+            } else {   
+                assert(ls.m_type_list.size() == ls.m_offset_list.size());
                 for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
                     fprintf(fp, "\t%d\t%s\t%d\t%d",
                         static_cast<int>(ls.m_type_list[i]), ls.m_name_list[i].data(),
-                        static_cast<int>(ls.m_field_offset[i]),
+                        static_cast<int>(ls.m_offset_list[i]),
                         static_cast<int>(ls.m_bitfield[i]));
                 }
             }

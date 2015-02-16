@@ -184,7 +184,7 @@ struct CP_LogStruct {
     bool                    m_struct_or_union;
     CP_TypeSet              m_type_list;
     CP_StringSet            m_name_list;
-    CP_DeqSet<size_t>       m_field_offset;
+    CP_DeqSet<size_t>       m_offset_list;
     CP_DeqSet<size_t>       m_bitfield;
     size_t                  m_pack;
 
@@ -195,7 +195,7 @@ struct CP_LogStruct {
         m_struct_or_union(ls.m_struct_or_union),
         m_type_list(ls.m_type_list),
         m_name_list(ls.m_name_list),
-        m_field_offset(ls.m_field_offset),
+        m_offset_list(ls.m_offset_list),
         m_bitfield(ls.m_bitfield),
         m_pack(ls.m_pack) { }
 
@@ -203,7 +203,7 @@ struct CP_LogStruct {
         m_struct_or_union = ls.m_struct_or_union;
         m_type_list = ls.m_type_list;
         m_name_list = ls.m_name_list;
-        m_field_offset = ls.m_field_offset;
+        m_offset_list = ls.m_offset_list;
         m_bitfield = ls.m_bitfield;
         m_pack = ls.m_pack;
         return *this;
@@ -221,7 +221,7 @@ struct CP_LogStruct {
         return m_struct_or_union == ls.m_struct_or_union &&
                m_type_list == ls.m_type_list &&
                m_name_list == ls.m_name_list &&
-               m_field_offset == ls.m_field_offset &&
+               m_offset_list == ls.m_offset_list &&
                m_bitfield == ls.m_bitfield &&
                m_pack == ls.m_pack;
     }
@@ -230,7 +230,7 @@ struct CP_LogStruct {
         return m_struct_or_union != ls.m_struct_or_union ||
                m_type_list != ls.m_type_list ||
                m_name_list != ls.m_name_list ||
-               m_field_offset != ls.m_field_offset ||
+               m_offset_list != ls.m_offset_list ||
                m_bitfield != ls.m_bitfield ||
                m_pack != ls.m_pack;
     }
@@ -364,7 +364,7 @@ public:
 
         AddType("va_list", TF_VA_LIST, (Is64Bit() ? 8 : 4));
 
-        // extension
+        // CodeReverse extension
         AddType("xsigned char", TF_XSIGNED | TF_CHAR, 1);
         AddType("xsigned short", TF_XSIGNED | TF_SHORT, 2);
         AddType("xsigned long", TF_XSIGNED | TF_LONG, 4);
@@ -564,11 +564,10 @@ public:
             m_mTypeIDToName[newtid] = name;
             return newtid;
         } else {
-            CP_TypeID tid = it->second;
-            while (m_types[tid].m_flags & TF_ALIAS)
-                tid = m_types[tid].m_id;
+            CP_TypeID tid = ResolveAlias(it->second);
             assert(m_types[tid].m_flags & (TF_STRUCT | TF_UNION));
             CP_StructID sid = m_types[tid].m_id;
+            _CalculateStruct(sid);
             if (ls.m_type_list.size())
                 m_structs[sid] = ls;
             return tid;
@@ -601,11 +600,10 @@ public:
             m_mTypeIDToName[newtid] = name;
             return newtid;
         } else {
-            CP_TypeID tid = it->second;
-            while (m_types[tid].m_flags & TF_ALIAS)
-                tid = m_types[tid].m_id;
+            CP_TypeID tid = ResolveAlias(it->second);
             assert(m_types[tid].m_flags & (TF_STRUCT | TF_UNION));
             CP_StructID sid = m_types[tid].m_id;
+            _CalculateUnion(sid);
             if (ls.m_type_list.size())
                 m_structs[sid] = ls;
             return tid;
@@ -638,9 +636,7 @@ public:
             m_mTypeIDToName[newtid] = name;
             return newtid;
         } else {
-            CP_TypeID tid = it->second;
-            while (m_types[tid].m_flags & TF_ALIAS)
-                tid = m_types[tid].m_id;
+            CP_TypeID tid = ResolveAlias(it->second);
             assert(m_types[tid].m_flags & TF_ENUM);
             CP_EnumID eid = m_types[tid].m_id;
             m_enums[eid] = le;
@@ -654,7 +650,7 @@ public:
             return 0;
 
         CP_LogStruct& ls = m_structs[sid];
-        ls.m_field_offset.clear();
+        ls.m_offset_list.clear();
 
         size_t size = 0, align = 0, bitremain = 0, oldtypesize = 0;
         CP_TypeID oldtid = cr_invalid_id;
@@ -669,15 +665,15 @@ public:
                 if ((oldtid == cr_invalid_id || tid == oldtid) &&
                     bitremain >= bits)
                 {
-                    ls.m_field_offset.push_back(size);
+                    ls.m_offset_list.push_back(size);
                     bitremain -= bits;
                 } else if (bitremain == 0) {
-                    ls.m_field_offset.push_back(size);
+                    ls.m_offset_list.push_back(size);
                     bitremain += typesize * 8;
                     bitremain -= bits;
                 } else {
                     size += oldtypesize;
-                    ls.m_field_offset.push_back(size);
+                    ls.m_offset_list.push_back(size);
                     bitremain += oldtypesize * 8;
                     bitremain -= bits;
                 }
@@ -685,7 +681,7 @@ public:
                 if (bitremain)
                     size += oldtypesize;
 
-                ls.m_field_offset.push_back(size);
+                ls.m_offset_list.push_back(size);
 
                 size += typesize;
 
@@ -705,7 +701,7 @@ public:
         }
         if (bitremain)
             size += oldtypesize;
-        assert(ls.m_field_offset.size() == ls.m_type_list.size());
+        assert(ls.m_offset_list.size() == ls.m_type_list.size());
         return size;
     } // _CalculateStruct
 
@@ -715,7 +711,7 @@ public:
             return 0;
 
         CP_LogStruct& ls = m_structs[sid];
-        ls.m_field_offset.clear();
+        ls.m_offset_list.clear();
 
         size_t maxsize = 0, size;
         for (auto tid : ls.m_type_list) {
@@ -723,9 +719,9 @@ public:
             if (maxsize < size)
                 maxsize = size;
 
-            ls.m_field_offset.push_back(0);
+            ls.m_offset_list.push_back(0);
         }
-        assert(ls.m_field_offset.size() == ls.m_type_list.size());
+        assert(ls.m_offset_list.size() == ls.m_type_list.size());
         return maxsize;
     }
 
@@ -1030,10 +1026,10 @@ public:
     CP_TypeID ResolveAlias(CP_TypeID tid) const {
         if (tid == cr_invalid_id)
             return tid;
-        return ResolveAlias_(tid);
+        return ResolveAliasRecurse(tid);
     }
 
-    CP_TypeID ResolveAlias_(CP_TypeID tid) const {
+    CP_TypeID ResolveAliasRecurse(CP_TypeID tid) const {
         assert(tid != cr_invalid_id);
         while (m_types[tid].m_flags & TF_ALIAS)
             tid = m_types[tid].m_id;

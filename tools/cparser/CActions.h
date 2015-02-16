@@ -8,12 +8,9 @@ namespace cparser
     //
     // Actions
     //
-    struct Actions
-    {
+    struct Actions {
     public:
-        Actions() : m_num_errors(0), m_num_warnings(0)
-        {
-        }
+        Actions() : m_num_errors(0), m_num_warnings(0) { }
 
         void syntax_error() { }
         void stack_overflow() { }
