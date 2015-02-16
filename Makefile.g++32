@@ -1,3 +1,6 @@
+# Makefile.g++32 --- Makefile for 32-bit GNU C++
+# Usage: make -f Makefile.g++32
+
 DOTEXE = .exe
 
 MAKE = make
@@ -36,6 +39,12 @@ delete_dat:
 	rm -f *.dat
 	@for subdir in $(SUBDIRS); do \
 		(cd $$subdir && $(MAKE) -f Makefile.g++32 delete_dat); \
+	done
+
+delete_log:
+	rm -f *.log
+	@for subdir in $(SUBDIRS); do \
+		(cd $$subdir && $(MAKE) -f Makefile.g++32 delete_log); \
 	done
 
 dllexp: $(DLLEXPDUMPER)
