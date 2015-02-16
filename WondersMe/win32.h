@@ -96,8 +96,8 @@
 
 /* more misc. */
 #include <lmrepl.h>
-#if 0
-    #include <dhcpsapi.h>   // failed on Vista and XP
+#if !defined(__GNUC__) || (_WIN32_WINNT < 0x0600)
+    #include <dhcpsapi.h>
 #endif
 #include <urlmon.h>
 #include <ipexport.h>

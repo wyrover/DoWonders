@@ -16,14 +16,14 @@ macros: ansi_macros wide_macros
 types: ansi_types wide_types
 
 ansi_macros: $(MCPP)
-	($(MCPP) $(DO_WONDERS_INCLUDES) $(PREDEF_COMMON) -DMBCS -D_MBCS -! win64.h >macros-gcc-64-a.dat 2>macros-gcc-64-a.log) || true
+	($(MCPP) $(DO_WONDERS_INCLUDES) $(PREDEF_COMMON) -DMBCS -D_MBCS -! win32.h >macros-gcc-64-a.dat 2>macros-gcc-64-a.log) || true
 wide_macros: $(MCPP)
-	($(MCPP) $(DO_WONDERS_INCLUDES) $(PREDEF_COMMON) -DUNICODE -D_UNICODE -! win64.h >macros-gcc-64-w.dat 2>macros-gcc-64-w.log) || true
+	($(MCPP) $(DO_WONDERS_INCLUDES) $(PREDEF_COMMON) -DUNICODE -D_UNICODE -! win32.h >macros-gcc-64-w.dat 2>macros-gcc-64-w.log) || true
 
 ansi_types: $(CPARSER)
-	$(CPARSER) --nologo -64 --suffix -gcc-64-a.dat win64.h $(PREDEF_COMMON) -m64 -DMBCS -D_MBCS >cparser-gcc-64-a.log 2>&1
+	$(CPARSER) --nologo -64 --suffix -gcc-64-a.dat win32.h $(PREDEF_COMMON) -m64 -DMBCS -D_MBCS >cparser-gcc-64-a.log 2>&1
 wide_types: $(CPARSER)
-	$(CPARSER) --nologo -64 --suffix -gcc-64-w.dat win64.h $(PREDEF_COMMON) -m64 -DUNICODE -D_UNICODE >cparser-gcc-64-w.log 2>&1
+	$(CPARSER) --nologo -64 --suffix -gcc-64-w.dat win32.h $(PREDEF_COMMON) -m64 -DUNICODE -D_UNICODE >cparser-gcc-64-w.log 2>&1
 
 $(MCPP):
 	cd ../tools/mcpp-2.7.2-hacked && $(MAKE) -f Makefile

@@ -195,41 +195,60 @@ namespace cparser
                                 ungetch();   // closed
                             }
                         }
-                    } else if (lexeme("line") || isdigit(c)) {
-                        if (!isdigit(c))
-                            c = skip_blank();
-
+                    } else if (isdigit(c)) {
+                        // #lineno...
+                        // D+
+                        std::string str2;
+                        for (;;) {
+                            c = getch();
+                            if (!isdigit(c))
+                                break;
+                            str2 += c;
+                        }
+                        ungetch();   // closed
+                        c = skip_blank();   // open
+                        if (c == '"') {
+                            // #lineno "file"
+                            std::string file;
+                            c = nonescaped_string_guts(file);   // open
+                            // set location
+                            int lineno = std::atoi(str2.c_str());
+                            location().set(file.c_str(), lineno - 1);
+                        } else {
+                            // #lineno
+                            // set location
+                            int lineno = std::atoi(str2.c_str());
+                            location().m_line = lineno - 1;
+                        }   // open
+                    } else if (lexeme("line")) {
+                        c = skip_blank();
                         // #line ...
                         // D+
                         if (isdigit(c)) {
                             std::string str2;
-                            str2 += c;
+                            if (isdigit(c)) {
+                                str2 += c;
+                            }
                             for (;;) {
                                 c = getch();
                                 if (!isdigit(c))
                                     break;
                                 str2 += c;
                             }
-                            if (!isdigit(c))
-                                ungetch();   // closed
-
+                            ungetch();   // closed
                             c = skip_blank();   // open
                             if (c == '"') {
                                 // #line lineno "file"
                                 std::string file;
                                 c = nonescaped_string_guts(file);   // open
-                                #if 1
-                                    int lineno = std::atoi(str2.c_str());
-                                    location().set(file.c_str(), lineno - 1);
-                                    //std::printf("1: %s\n", location().to_string().c_str());
-                                #endif
+                                // set location
+                                int lineno = std::atoi(str2.c_str());
+                                location().set(file.c_str(), lineno - 1);
                             } else {
                                 // #line lineno
-                                #if 1
-                                    int lineno = std::atoi(str2.c_str());
-                                    location().m_line = lineno - 1;
-                                    //std::printf("2: %s\n", location().to_string().c_str());
-                                #endif
+                                // set location
+                                int lineno = std::atoi(str2.c_str());
+                                location().m_line = lineno - 1;
                             }   // open
                         }
                     }
