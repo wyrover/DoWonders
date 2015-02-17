@@ -19,7 +19,7 @@ namespace cparser
         Actions as;
         Scanner<Iterator, Actions> scanner(as, is_64bit);
 
-        std::vector<CP_TokenInfo> infos;
+        std::vector<CR_TokenInfo> infos;
         scanner.scan(infos, begin, end);
         #if 0
             scanner.show_tokens(infos.begin(), infos.end());
@@ -28,13 +28,13 @@ namespace cparser
         #endif
 
         Parser<shared_ptr<Node>, Actions> parser(as);
-        std::vector<CP_TokenInfo>::iterator it, end2 = infos.end();
+        std::vector<CR_TokenInfo>::iterator it, end2 = infos.end();
         for (it = infos.begin(); it != end2; ++it) {
             #if 0
                 std::printf("%s\n", scanner.token_to_string(*it).c_str());
                 fflush(stdout);
             #endif
-            if (parser.post(it->m_token, make_shared<CP_TokenInfo>(*it))) {
+            if (parser.post(it->m_token, make_shared<CR_TokenInfo>(*it))) {
                 if (parser.error()) {
                     as.location() = it->location();
                     as.message("ERROR: syntax error near " + 

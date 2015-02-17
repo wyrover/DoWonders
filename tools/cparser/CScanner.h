@@ -75,7 +75,7 @@ namespace cparser
             return str;
         }
 
-        Token get_token(CP_TokenInfo& info) {
+        Token get_token(CR_TokenInfo& info) {
             using namespace std;
             using namespace cparser;
             char c, d, e;
@@ -1494,11 +1494,11 @@ namespace cparser
         iterator_type           m_current;
         iterator_type           m_end;
 
-        CP_Location& location() {
+        CR_Location& location() {
             return m_actions.location();
         }
 
-        const CP_Location& location() const {
+        const CR_Location& location() const {
             return m_actions.location();
         }
 

@@ -29,7 +29,7 @@ using std::dynamic_pointer_cast;
 using std::static_pointer_cast;
 using std::make_shared;
 
-#include "Location.h"       // CP_Location
+#include "Location.h"       // CR_Location
 #include "Main.h"
 #include "TypeSystem.h"
 #include "AST.h"     // for cparser::Node, cparser::TokenInfo

@@ -2,21 +2,19 @@
 #define LOCATION_H_
 
 //
-// CP_Location
+// CR_Location
 //
-struct CP_Location
+struct CR_Location
 {
     std::string m_file;
     int m_line;
 
-    CP_Location() : m_file(""), m_line(1) { }
+    CR_Location() : m_file(""), m_line(1) { }
 
-    CP_Location(const CP_Location& loc)
+    CR_Location(const CR_Location& loc)
     : m_file(loc.m_file), m_line(loc.m_line) { }
 
-    CP_Location(const char *file, int line) : m_file(file), m_line(line) { }
-
-    CP_Location(const std::string& file, int line) :
+    CR_Location(const std::string& file, int line) :
         m_file(file), m_line(line) { }
 
     void set(const char *file, int line) {
@@ -24,18 +22,19 @@ struct CP_Location
         m_line = line;
     }
 
-    void operator=(const CP_Location& loc) {
+    CR_Location& operator=(const CR_Location& loc) {
         m_file = loc.m_file;
         m_line = loc.m_line;
+        return *this;
     }
 
-    CP_Location& operator++() {
+    CR_Location& operator++() {
         m_line++;
         return *this;
     }
 
-    CP_Location operator++(int) {
-        CP_Location loc(*this);
+    CR_Location operator++(int) {
+        CR_Location loc(*this);
         m_line++;
         return loc;
     }
