@@ -46,7 +46,7 @@ namespace cparser
             if (!m_packs.empty()) {
                 return m_packs.back();
             } else {
-                return (m_is_64bit ? 8 : 4);
+                return 2;
             }
         }
 
