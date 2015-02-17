@@ -260,9 +260,10 @@ struct CR_LogEnum {
         m_mNameToValue(le.m_mNameToValue),
         m_mValueToName(le.m_mValueToName) { }
 
-    void operator=(const CR_LogEnum& le) {
+    CR_LogEnum& operator=(const CR_LogEnum& le) {
         m_mNameToValue = le.m_mNameToValue;
         m_mValueToName = le.m_mValueToName;
+        return *this;
     }
 
     CR_UnorderedMap<CR_String, int>& MapNameToValue()

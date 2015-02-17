@@ -1406,7 +1406,7 @@ int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {
         case Decl::SINGLE:
             {
                 auto& ds = decl->m_decl_specs;
-                CR_TypeID tid = CrAnalyseDeclSpecs(namescope, ds.get());
+                CrAnalyseDeclSpecs(namescope, ds.get());
             }
             break;
 

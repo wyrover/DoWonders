@@ -70,8 +70,9 @@ namespace cparser
         Node(const Node& n) : m_loc(n.m_loc) { }
         virtual ~Node() { }
 
-        void operator=(const Node& n) {
+        Node& operator=(const Node& n) {
             m_loc = n.m_loc;
+            return *this;
         }
 
               CR_Location& location()       { return m_loc; }
@@ -471,13 +472,14 @@ namespace cparser
             m_long_long_value = 0;
         }
 
-        void operator=(const TokenInfo& info) {
+        TokenInfo& operator=(const TokenInfo& info) {
             location() = info.location();
             m_token = info.m_token;
             m_text = info.m_text;
             m_pack = info.m_pack;
             m_flags = info.m_flags;
             m_long_long_value = info.m_long_long_value;
+            return *this;
         }
 
         void set_token(token_type token) {
