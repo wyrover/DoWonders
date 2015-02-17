@@ -51,5 +51,5 @@ tools/won32_sanitizer/x64
 !tools/won32_sanitizer/Release/redirector.exe
 !tools/won32_sanitizer/x64/Debug/redirector64.exe
 !tools/won32_sanitizer/x64/Release/redirector64.exe
-Wonders*/sanitize-*.cpp
+Wonders*/sanitize-*.c
 Wonders*/sanitize-*.exe

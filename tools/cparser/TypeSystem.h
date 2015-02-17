@@ -360,7 +360,14 @@ public:
 
         AddType("float", TF_FLOAT, 4);
         AddType("double", TF_DOUBLE, 8);
-        AddType("long double", TF_LONG | TF_DOUBLE, 10);
+        #ifdef __GNUC__
+            if (m_is_64bit)
+                AddType("long double", TF_LONG | TF_DOUBLE, 16);
+            else
+                AddType("long double", TF_LONG | TF_DOUBLE, 12);
+        #else
+            AddType("long double", TF_LONG | TF_DOUBLE, 8);
+        #endif
 
         AddType("va_list", TF_VA_LIST, (Is64Bit() ? 8 : 4));
 

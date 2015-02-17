@@ -55,7 +55,8 @@ delete_log:
 		(cd $$subdir && $(MAKE) -f Makefile.g++32 delete_log); \
 	done
 
-dllexp: $(DLLEXPDUMPER)
+dllexp: dll-info-32.dat
+dll-info-32.dat: $(DLLEXPDUMPER)
 	$(DLLEXPDUMPER) -e dll-info-32.dat
 	$(DLLEXPDUMPER) -e dll-info-32.log
 	$(DLLEXPDUMPER) -a dll-info-32.dat advapi32.dll 2>> dll-info-32.log

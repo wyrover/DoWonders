@@ -52,7 +52,8 @@ delete_log:
 		(cd $$subdir && $(MAKE) -f Makefile.g++64 delete_log); \
 	done
 
-dllexp: $(DLLEXPDUMPER)
+dllexp: dll-info-64.dat
+dll-info-64.dat: $(DLLEXPDUMPER)
 	$(DLLEXPDUMPER) -e dll-info-64.dat
 	$(DLLEXPDUMPER) -e dll-info-64.log
 	$(DLLEXPDUMPER) -a dll-info-64.dat advapi32.dll 2>> dll-info-64.log
