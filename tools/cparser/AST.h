@@ -154,11 +154,7 @@ namespace cparser
         shared_ptr<DeclList>        m_decl_list;    // for struct, union or enum
         shared_ptr<EnumorList>      m_enumor_list;
         shared_ptr<AtomicTypeSpec>  m_atomic_type_spec;
-        CP_Location                 m_loc;
         TypeSpec() : m_flag(0), m_pack(1) { }
-
-              CP_Location& location()       { return m_loc; }
-        const CP_Location& location() const { return m_loc; }
     };
 
     struct TypeQual : Node {

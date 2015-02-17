@@ -125,12 +125,13 @@ struct CP_LogFunc {
         m_return_type(lf.m_return_type),
         m_func_type(lf.m_func_type) { }
 
-    void operator=(const CP_LogFunc& lf) {
+    CP_LogFunc& operator=(const CP_LogFunc& lf) {
         m_ellipsis = lf.m_ellipsis;
         m_type_list = lf.m_type_list;
         m_name_list = lf.m_name_list;
         m_return_type = lf.m_return_type;
         m_func_type = lf.m_func_type;
+        return *this;
     }
 }; // struct CP_LogFunc
 
@@ -160,6 +161,19 @@ struct CP_LogType {
 
     CP_LogType(CP_TypeFlags flags, size_t size, const CP_Location& location) :
         m_flags(flags), m_id(0), m_count(0), m_size(size), m_loc(location) { }
+
+    CP_LogType(const CP_LogType& type) :
+        m_flags(type.m_flags), m_id(type.m_id),
+        m_count(type.m_count), m_size(type.m_size), m_loc(type.m_loc) { }
+
+    CP_LogType& operator=(const CP_LogType& type) {
+        m_flags = type.m_flags;
+        m_id = type.m_id;
+        m_count = type.m_count;
+        m_size = type.m_size;
+        m_loc = type.m_loc;
+        return *this;
+    }
 
     bool operator==(const CP_LogType& type) const {
         return m_flags == type.m_flags &&

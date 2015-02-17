@@ -1104,9 +1104,9 @@ CP_TypeID CpAnalyseDeclSpecs(CP_NameScope& namescope, DeclSpecs *ds) {
                         name = "va_list";
                 #endif
                 tid = namescope.TypeIDFromName(name);
-				if (tid == 0 || tid == cr_invalid_id) {
-					return 0;
-				}
+                if (tid == 0 || tid == cr_invalid_id) {
+                    return 0;
+                }
                 return tid;
 
             case TF_STRUCT:
@@ -1118,9 +1118,11 @@ CP_TypeID CpAnalyseDeclSpecs(CP_NameScope& namescope, DeclSpecs *ds) {
                             namescope, name, ts->m_decl_list.get(), ts->m_pack,
                             ts->location());
                     } else {
-                        CP_LogStruct ls;
-                        ls.m_struct_or_union = true;
-                        tid = namescope.AddStructType(name, ls, ts->location());
+                        tid = namescope.TypeIDFromName(name);
+                        if (tid == cr_invalid_id) {
+                            CP_LogStruct ls(true);
+                            tid = namescope.AddStructType(name, ls, ts->location());
+                        }
                     }
                 }
                 if (flags & TF_CONST) {
@@ -1138,9 +1140,11 @@ CP_TypeID CpAnalyseDeclSpecs(CP_NameScope& namescope, DeclSpecs *ds) {
                             namescope, name, ts->m_decl_list.get(),
                             ts->location());
                     } else {
-                        CP_LogStruct ls;
-                        ls.m_struct_or_union = false;
-                        tid = namescope.AddStructType(name, ls, ts->location());
+                        tid = namescope.TypeIDFromName(name);
+                        if (tid == cr_invalid_id) {
+                            CP_LogStruct ls(false);
+                            tid = namescope.AddUnionType(name, ls, ts->location());
+                        }
                     }
                 }
                 if (flags & TF_CONST) {
@@ -1366,13 +1370,13 @@ int CpInputCSrc(
 
 int CpSemanticAnalysis(CP_NameScope& namescope, shared_ptr<TransUnit>& tu) {
     assert(tu.get());
-    for (shared_ptr<Decl>& decl : *tu.get()) {
+    for (auto& decl : *tu.get()) {
         switch (decl->m_decl_type) {
         case Decl::FUNCTION: {
                 fflush(stderr);
-                shared_ptr<DeclSpecs>& ds = decl->m_decl_specs;
+                auto& ds = decl->m_decl_specs;
                 CP_TypeID tid = CpAnalyseDeclSpecs(namescope, ds.get());
-                shared_ptr<DeclorList>& dl = decl->m_declor_list;
+                auto& dl = decl->m_declor_list;
                 assert(dl.get());
                 auto& declor = (*dl.get())[0];
                 CpAnalyseFunc(namescope, tid, declor.get(),
@@ -1381,9 +1385,10 @@ int CpSemanticAnalysis(CP_NameScope& namescope, shared_ptr<TransUnit>& tu) {
             break;
 
         case Decl::TYPEDEF:
-        case Decl::DECLORLIST: {
-                shared_ptr<DeclSpecs>& ds = decl->m_decl_specs;
-                shared_ptr<DeclorList>& dl = decl->m_declor_list;
+        case Decl::DECLORLIST:
+            {
+                auto& ds = decl->m_decl_specs;
+                auto& dl = decl->m_declor_list;
                 CP_TypeID tid = CpAnalyseDeclSpecs(namescope, ds.get());
                 if (decl->m_decl_type == Decl::TYPEDEF) {
                     fflush(stderr);
@@ -1395,6 +1400,13 @@ int CpSemanticAnalysis(CP_NameScope& namescope, shared_ptr<TransUnit>& tu) {
                     fflush(stderr);
                     CpAnalyseDeclorList(namescope, tid, dl.get());
                 }
+            }
+            break;
+
+        case Decl::SINGLE:
+            {
+                auto& ds = decl->m_decl_specs;
+                CP_TypeID tid = CpAnalyseDeclSpecs(namescope, ds.get());
             }
             break;
 
@@ -1422,7 +1434,7 @@ void CpDumpSemantic(
             const auto& name = namescope.MapTypeIDToName()[tid];
             const auto& type = namescope.LogType(tid);
             if (namescope.IsExtendedType(tid)) {
-                #if 0
+                #ifdef _DEBUG
                     size_t size = namescope.GetSizeofType(tid);
                     fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(cr_extended)\t0\t(cr_extended)\n",
                         static_cast<int>(tid), name.data(), type.m_flags,
@@ -1436,14 +1448,14 @@ void CpDumpSemantic(
             } else if (type.m_flags & (TF_STRUCT | TF_UNION | TF_ENUM)) {
                 auto strDef = namescope.StringOfType(tid, "", true);
                 const auto& location = type.location();
-                size_t size = namescope.GetSizeofType(type.m_id);
+                size_t size = type.m_size;
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\t%s;\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
                     static_cast<int>(type.m_id), 0, static_cast<int>(size),
                     location.m_file.data(), location.m_line, strDef.data());
             } else if (type.m_flags & (TF_POINTER | TF_FUNCTION | TF_ARRAY)) {
                 const auto& location = type.location();
-                size_t size = namescope.GetSizeofType(type.m_id);
+                size_t size = type.m_size;
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
                     static_cast<int>(type.m_id),
