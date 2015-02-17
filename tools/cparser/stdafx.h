@@ -32,7 +32,7 @@ using std::make_shared;
 #include "Location.h"       // CR_Location
 #include "Main.h"
 #include "TypeSystem.h"
-#include "AST.h"     // for cparser::Node, cparser::TokenInfo
+#include "C_AST.h"          // for cparser::Node, cparser::TokenInfo
 
 #include <windows.h>
 #include <tchar.h>

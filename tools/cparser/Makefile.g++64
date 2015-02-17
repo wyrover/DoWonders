@@ -27,7 +27,7 @@ CR_HEADERS = \
 CPARSER_HEADER = \
 	CParseHeader.h \
 	CScanner.h \
-	AST.h \
+	C_AST.h \
 	CActions.h \
 	CParser.h \
 	TypeSystem.h \

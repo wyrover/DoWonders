@@ -162,7 +162,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CParseHeader.h" />
-    <ClInclude Include="AST.h" />
+    <ClInclude Include="C_AST.h" />
     <ClInclude Include="CActions.h" />
     <ClInclude Include="CScanner.h" />
     <ClInclude Include="Location.h" />
