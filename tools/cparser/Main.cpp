@@ -156,7 +156,7 @@ size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
             {
                 int count = CrCalcConstIntCondExpr(
                     namescope, tn->m_declor->m_const_expr.get());
-                return namescope.GetSizeofType(tid) * count;
+                return namescope.GetSizeOfType(tid) * count;
             }
 
         case Declor::BITS:
@@ -166,7 +166,7 @@ size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
             break;
         }
     }
-    return namescope.GetSizeofType(tid);
+    return namescope.GetSizeOfType(tid);
 }
 
 int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
@@ -792,7 +792,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
         ls.m_type_list.push_back(tid2);
         ls.m_name_list.push_back(name);
         ls.m_offset_list.push_back(0);
-        ls.m_bitfield.push_back(bits);
+        ls.m_bits_list.push_back(bits);
     }
 }
 
@@ -958,7 +958,7 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
                 ls.m_type_list.push_back(tid);
                 ls.m_name_list.push_back("");
                 ls.m_offset_list.push_back(0);
-                ls.m_bitfield.push_back(0);
+                ls.m_bits_list.push_back(0);
             }
             break;
 
@@ -1004,7 +1004,7 @@ CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
                 ls.m_type_list.push_back(tid);
                 ls.m_name_list.push_back("");
                 ls.m_offset_list.push_back(0);
-                ls.m_bitfield.push_back(0);
+                ls.m_bits_list.push_back(0);
             }
             break;
 
@@ -1433,41 +1433,41 @@ void CrDumpSemantic(
         for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& name = namescope.MapTypeIDToName()[tid];
             const auto& type = namescope.LogType(tid);
-            if (namescope.IsExtendedType(tid)) {
+            if (namescope.IsCrExtendedType(tid)) {
                 #ifdef _DEBUG
-                    size_t size = namescope.GetSizeofType(tid);
+                    size_t size = namescope.GetSizeOfType(tid);
                     fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(cr_extended)\t0\t(cr_extended)\n",
                         static_cast<int>(tid), name.data(), type.m_flags,
-                        static_cast<int>(type.m_id), 0, static_cast<int>(size));
+                        static_cast<int>(type.m_sub_id), 0, static_cast<int>(size));
                 #endif
             } else if (namescope.IsPredefinedType(tid)) {
-                size_t size = namescope.GetSizeofType(tid);
+                size_t size = namescope.GetSizeOfType(tid);
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(predefined)\t0\t(predefined)\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_id), 0, static_cast<int>(size));
+                    static_cast<int>(type.m_sub_id), 0, static_cast<int>(size));
             } else if (type.m_flags & (TF_STRUCT | TF_UNION | TF_ENUM)) {
                 auto strDef = namescope.StringOfType(tid, "", true);
                 const auto& location = type.location();
                 size_t size = type.m_size;
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\t%s;\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_id), 0, static_cast<int>(size),
+                    static_cast<int>(type.m_sub_id), 0, static_cast<int>(size),
                     location.m_file.data(), location.m_line, strDef.data());
             } else if (type.m_flags & (TF_POINTER | TF_FUNCTION | TF_ARRAY)) {
                 const auto& location = type.location();
                 size_t size = type.m_size;
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_id),
+                    static_cast<int>(type.m_sub_id),
                     static_cast<int>(type.m_count), static_cast<int>(size),
                     location.m_file.data(), location.m_line);
             } else {
                 auto strDef = namescope.StringOfType(tid, name, true);
                 const auto& location = type.location();
-                size_t size = namescope.GetSizeofType(tid);
+                size_t size = namescope.GetSizeOfType(tid);
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\ttypedef %s;\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_id), 0, static_cast<int>(size),
+                    static_cast<int>(type.m_sub_id), 0, static_cast<int>(size),
                     location.m_file.data(), location.m_line, strDef.data());
             }
         }
@@ -1486,8 +1486,8 @@ void CrDumpSemantic(
             auto strDef = namescope.StringOfType(tid, "");
             assert(!strDef.empty());
             const auto& location = type.location();
-            size_t size = namescope.GetSizeofType(tid);
-            auto sid = type.m_id;
+            size_t size = namescope.GetSizeOfType(tid);
+            auto sid = type.m_sub_id;
             const auto& ls = namescope.LogStruct(sid);
             assert(ls.m_type_list.size() == ls.m_name_list.size());
             fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
@@ -1507,7 +1507,7 @@ void CrDumpSemantic(
                     fprintf(fp, "\t%d\t%s\t%d\t%d",
                         static_cast<int>(ls.m_type_list[i]), ls.m_name_list[i].data(),
                         static_cast<int>(ls.m_offset_list[i]),
-                        static_cast<int>(ls.m_bitfield[i]));
+                        static_cast<int>(ls.m_bits_list[i]));
                 }
             }
             fprintf(fp, "\n");
@@ -1522,7 +1522,7 @@ void CrDumpSemantic(
             const auto& type = namescope.LogType(tid);
             if (type.m_flags & TF_ENUM) {
                 const auto& name = namescope.MapTypeIDToName()[tid];
-                const auto& le = namescope.LogEnum(type.m_id);
+                const auto& le = namescope.LogEnum(type.m_sub_id);
                 size_t num_items = le.MapNameToValue().size();
                 const auto& location = type.location();
                 fprintf(fp, "%d\t%s\t%d\t%s\t%d",
@@ -1567,7 +1567,7 @@ void CrDumpSemantic(
             if (namescope.IsFuncType(tid)) {
                 const auto& name = namescope.MapVarIDToName()[i];
                 const auto& type = namescope.LogType(tid);
-                const auto& lf = namescope.LogFunc(type.m_id);
+                const auto& lf = namescope.LogFunc(type.m_sub_id);
                 const auto& location = var.location();
                 fprintf(fp, "%d\t%s\t%d\t%s\t%d\t%s;\t%d",
                     static_cast<int>(tid), name.data(), 

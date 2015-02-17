@@ -45,6 +45,9 @@ mzc2mini$(DOTOBJ): $(CR_HEADERS) mzc2mini.cpp
 CParser.h: $(CAPER) CParser.cpg
 	$(CAPER) CParser.cpg CParser.h
 
+delete_dat:
+	rm -f *.dat
+
 clean:
 	rm -f *$(DOTOBJ)
 	rm -f CParser.h
