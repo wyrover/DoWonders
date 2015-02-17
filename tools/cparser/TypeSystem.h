@@ -273,9 +273,11 @@ public:
         Init();
     }
 
+    // is 64-bit mode or not?
     bool Is64Bit() const { return m_is_64bit; }
     void Set64Bit(bool is_64bit) { m_is_64bit = is_64bit; }
 
+    // initialize
     void Init() {
         AddType("void", TF_VOID, 0);
 
@@ -321,53 +323,7 @@ public:
         AddType("enumitem", TF_ENUMITEM, 4);
     }
 
-    // Is the type a CodeReverse extension type?
-    bool IsCrExtendedType(CR_TypeID tid) const {
-        const auto& type = LogType(tid);
-        if (type.m_flags & (TF_POINTER | TF_ARRAY | TF_CONST)) {
-            return IsCrExtendedType(type.m_sub_id);
-        }
-        const CR_TypeFlags flags = (TF_XSIGNED | TF_ENUMITEM);
-        if (type.m_flags & flags) {
-            return true;
-        }
-        return false;
-    }
-
-    CR_TypeID TypeIDFromFlags(CR_TypeFlags flags) const {
-        const size_t siz = m_types.size();
-        for (size_t i = 0; i < siz; ++i) {
-            if (m_types[i].m_flags == flags)
-                return i;
-        }
-        return cr_invalid_id;
-    }
-
-    size_t SizeFromFlags(CR_TypeFlags flags) const {
-        flags = CrNormalizeTypeFlags(flags & ~TF_CONST);
-        for (const auto& t : m_types) {
-            if (t.m_flags == flags)
-                return t.m_size;
-        }
-        return 0;
-    }
-
-    CR_TypeID TypeIDFromName(const CR_String& name) const {
-        auto it = m_mNameToTypeID.find(name);
-        if (it != m_mNameToTypeID.end())
-            return it->second;
-        else
-            return cr_invalid_id;
-    }
-
-    CR_String NameFromTypeID(CR_TypeID tid) const {
-        auto it = m_mTypeIDToName.find(tid);
-        if (it != m_mTypeIDToName.end())
-            return it->second;
-        else
-            return "";
-    }
-
+    // add type
     CR_TypeID AddType(const CR_String& name, const CR_LogType& lt) {
         auto tid = m_types.AddUnique(lt);
         if (!name.empty()) {
@@ -377,12 +333,14 @@ public:
         return tid;
     }
 
+    // add type
     CR_TypeID AddType(const CR_String& name, CR_TypeFlags flags, size_t size,
                       const CR_Location& location = CR_Location())
     {
         return AddType(name, CR_LogType(flags, size, location));
     }
 
+    // add alias type
     CR_TypeID AddAliasType(const CR_String& name, CR_TypeID tid,
                            const CR_Location& location)
     {
@@ -425,6 +383,7 @@ public:
         return AddVar(name, tid, lt.location());
     }
 
+    // add a constant type
     CR_TypeID AddConstType(CR_TypeID tid) {
         assert(tid != cr_invalid_id);
         CR_LogType lt;
@@ -433,7 +392,7 @@ public:
         lt.m_size = GetSizeOfType(tid);
         auto newtid = m_types.AddUnique(lt);
         auto name = NameFromTypeID(tid);
-        if (!name.empty()) {
+        if (name.size()) {
             name = CR_String("const ") + name;
             m_mNameToTypeID[name] = newtid;
             m_mTypeIDToName[newtid] = name;
@@ -465,7 +424,7 @@ public:
             m_mTypeIDToName[newtid] = name;
         }
         return newtid;
-    }
+    } // AddPtrType
 
     CR_TypeID AddArrayType(CR_TypeID tid, int count,
                            const CR_Location& location)
@@ -480,7 +439,7 @@ public:
         tid = m_types.AddUnique(lt);
         m_mTypeIDToName[tid] = "";
         return tid;
-    }
+    } // AddArrayType
 
     CR_TypeID AddFuncType(const CR_LogFunc& lf, const CR_Location& location) {
         CR_LogFunc func(lf);
@@ -498,8 +457,9 @@ public:
         CR_TypeID tid = m_types.AddUnique(lt);
         m_mTypeIDToName[tid] = "";
         return tid;
-    }
+    } // AddFuncType
 
+    // add struct type
     CR_TypeID AddStructType(const CR_String& name, const CR_LogStruct& ls,
                             const CR_Location& location)
     {
@@ -536,8 +496,9 @@ public:
             }
             return tid;
         }
-    }
+    } // AddStructType
 
+    // add union type
     CR_TypeID AddUnionType(const CR_String& name, const CR_LogStruct& ls,
                            const CR_Location& location)
     {
@@ -574,7 +535,7 @@ public:
             }
             return tid;
         }
-    }
+    } // AddUnionType
 
     CR_TypeID AddEnumType(const CR_String& name, const CR_LogEnum& le,
                           const CR_Location& location)
@@ -610,6 +571,10 @@ public:
             }
             return tid;
         }
+    } // AddEnumType
+
+    void AddTypeFlags(CR_TypeID tid, CR_TypeFlags flags) {
+        m_types[tid].m_flags |= flags;
     }
 
     size_t _AnalyzeStruct(CR_StructID sid) {
@@ -692,8 +657,13 @@ public:
         }
         assert(ls.m_offset_list.size() == ls.m_type_list.size());
         return maxsize;
-    }
+    } // _AnalyzeUnion
 
+    //
+    // getters
+    //
+
+    // get size of type
     size_t GetSizeOfType(CR_TypeID tid) const {
         assert(tid != cr_invalid_id);
         if (tid == cr_invalid_id)
@@ -702,6 +672,7 @@ public:
         return type.m_size;
     }
 
+    // get string of enum
     CR_String StringOfEnum(const CR_String& name, CR_EnumID eid) const {
         assert(eid != cr_invalid_id);
         if (eid == cr_invalid_id) {
@@ -726,6 +697,7 @@ public:
         return str;
     }
 
+    // get string of struct or union
     CR_String StringOfStruct(const CR_String& name, CR_StructID sid) const {
         assert(sid != cr_invalid_id);
         if (sid == cr_invalid_id) {
@@ -754,6 +726,7 @@ public:
         return str;
     }
 
+    // get string of type
     CR_String StringOfType(CR_TypeID tid, const CR_String& name,
                            bool expand = true, bool no_convension = false) const
     {
@@ -927,6 +900,23 @@ public:
         return m_vars[it->second].m_int_value;
     }
 
+    //
+    // type judgements
+    //
+
+    // Is the type a CodeReverse extension type?
+    bool IsCrExtendedType(CR_TypeID tid) const {
+        const auto& type = LogType(tid);
+        if (type.m_flags & (TF_POINTER | TF_ARRAY | TF_CONST)) {
+            return IsCrExtendedType(type.m_sub_id);
+        }
+        const CR_TypeFlags flags = (TF_XSIGNED | TF_ENUMITEM);
+        if (type.m_flags & flags) {
+            return true;
+        }
+        return false;
+    }
+
     // is it function type?
     bool IsFuncType(CR_TypeID tid) const {
         assert(tid != cr_invalid_id);
@@ -999,21 +989,50 @@ public:
         return false;
     }
 
+    //
+    // ResolveAlias
+    //
+
     CR_TypeID ResolveAlias(CR_TypeID tid) const {
         if (tid == cr_invalid_id)
             return tid;
-        return ResolveAliasRecurse(tid);
+        return _ResolveAliasRecurse(tid);
     }
 
-    CR_TypeID ResolveAliasRecurse(CR_TypeID tid) const {
+    CR_TypeID _ResolveAliasRecurse(CR_TypeID tid) const {
         assert(tid != cr_invalid_id);
         while (m_types[tid].m_flags & TF_ALIAS)
             tid = m_types[tid].m_sub_id;
         return tid;
     }
 
-    void AddTypeFlags(CR_TypeID tid, CR_TypeFlags flags) {
-        m_types[tid].m_flags |= flags;
+    //
+    // accessors
+    //
+
+    CR_TypeID TypeIDFromFlags(CR_TypeFlags flags) const {
+        const size_t siz = m_types.size();
+        for (size_t i = 0; i < siz; ++i) {
+            if (m_types[i].m_flags == flags)
+                return i;
+        }
+        return cr_invalid_id;
+    }
+
+    CR_TypeID TypeIDFromName(const CR_String& name) const {
+        auto it = m_mNameToTypeID.find(name);
+        if (it != m_mNameToTypeID.end())
+            return it->second;
+        else
+            return cr_invalid_id;
+    }
+
+    CR_String NameFromTypeID(CR_TypeID tid) const {
+        auto it = m_mTypeIDToName.find(tid);
+        if (it != m_mTypeIDToName.end())
+            return it->second;
+        else
+            return "";
     }
 
     CR_LogType& LogType(CR_TypeID tid) {
