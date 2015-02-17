@@ -9,10 +9,7 @@ struct CR_Location
     std::string m_file;
     int m_line;
 
-    CR_Location() : m_file(""), m_line(1) { }
-
-    CR_Location(const CR_Location& loc)
-    : m_file(loc.m_file), m_line(loc.m_line) { }
+    CR_Location() : m_file(), m_line(1) { }
 
     CR_Location(const std::string& file, int line) :
         m_file(file), m_line(line) { }
@@ -20,12 +17,6 @@ struct CR_Location
     void set(const char *file, int line) {
         m_file = file;
         m_line = line;
-    }
-
-    CR_Location& operator=(const CR_Location& loc) {
-        m_file = loc.m_file;
-        m_line = loc.m_line;
-        return *this;
     }
 
     CR_Location& operator++() {

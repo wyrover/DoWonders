@@ -13,7 +13,7 @@ public:
     CR_DeqSet(const CR_DeqSet<ITEM_T>& vs) : std::deque<ITEM_T>(vs)
     { }
 
-    CR_DeqSet& operator=(const CR_DeqSet<ITEM_T>& vs) {
+    CR_DeqSet<ITEM_T>& operator=(const CR_DeqSet<ITEM_T>& vs) {
         this->assign(vs.begin(), vs.end());
         return *this;
     }

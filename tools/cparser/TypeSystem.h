@@ -117,22 +117,6 @@ struct CR_LogFunc {
 
     CR_LogFunc() :
         m_ellipsis(false), m_return_type(0), m_func_type(FT_CDECL) { }
-
-    CR_LogFunc(const CR_LogFunc& lf) :
-        m_ellipsis(lf.m_ellipsis),
-        m_type_list(lf.m_type_list),
-        m_name_list(lf.m_name_list),
-        m_return_type(lf.m_return_type),
-        m_func_type(lf.m_func_type) { }
-
-    CR_LogFunc& operator=(const CR_LogFunc& lf) {
-        m_ellipsis = lf.m_ellipsis;
-        m_type_list = lf.m_type_list;
-        m_name_list = lf.m_name_list;
-        m_return_type = lf.m_return_type;
-        m_func_type = lf.m_func_type;
-        return *this;
-    }
 }; // struct CR_LogFunc
 
 ////////////////////////////////////////////////////////////////////////////
@@ -161,19 +145,6 @@ struct CR_LogType {
 
     CR_LogType(CR_TypeFlags flags, size_t size, const CR_Location& location) :
         m_flags(flags), m_id(0), m_count(0), m_size(size), m_loc(location) { }
-
-    CR_LogType(const CR_LogType& type) :
-        m_flags(type.m_flags), m_id(type.m_id),
-        m_count(type.m_count), m_size(type.m_size), m_loc(type.m_loc) { }
-
-    CR_LogType& operator=(const CR_LogType& type) {
-        m_flags = type.m_flags;
-        m_id = type.m_id;
-        m_count = type.m_count;
-        m_size = type.m_size;
-        m_loc = type.m_loc;
-        return *this;
-    }
 
     bool operator==(const CR_LogType& type) const {
         return m_flags == type.m_flags &&
@@ -204,24 +175,6 @@ struct CR_LogStruct {
 
     CR_LogStruct(bool struct_or_union = true) :
         m_struct_or_union(struct_or_union), m_pack(1) { }
-
-    CR_LogStruct(const CR_LogStruct& ls) :
-        m_struct_or_union(ls.m_struct_or_union),
-        m_type_list(ls.m_type_list),
-        m_name_list(ls.m_name_list),
-        m_offset_list(ls.m_offset_list),
-        m_bitfield(ls.m_bitfield),
-        m_pack(ls.m_pack) { }
-
-    CR_LogStruct& operator=(const CR_LogStruct& ls) {
-        m_struct_or_union = ls.m_struct_or_union;
-        m_type_list = ls.m_type_list;
-        m_name_list = ls.m_name_list;
-        m_offset_list = ls.m_offset_list;
-        m_bitfield = ls.m_bitfield;
-        m_pack = ls.m_pack;
-        return *this;
-    }
 
     size_t FindName(const CR_String& name) const {
         for (size_t i = 0; i < m_name_list.size(); i++) {
@@ -255,16 +208,6 @@ struct CR_LogStruct {
 
 struct CR_LogEnum {
     CR_LogEnum() { }
-
-    CR_LogEnum(const CR_LogEnum& le) :
-        m_mNameToValue(le.m_mNameToValue),
-        m_mValueToName(le.m_mValueToName) { }
-
-    CR_LogEnum& operator=(const CR_LogEnum& le) {
-        m_mNameToValue = le.m_mNameToValue;
-        m_mValueToName = le.m_mValueToName;
-        return *this;
-    }
 
     CR_UnorderedMap<CR_String, int>& MapNameToValue()
     { return m_mNameToValue; }
@@ -318,41 +261,8 @@ public:
         Init();
     }
 
-    CR_NameScope(const CR_NameScope& ns) :
-        m_is_64bit(ns.m_is_64bit),
-        m_mNameToTypeID(ns.m_mNameToTypeID),
-        m_mTypeIDToName(ns.m_mTypeIDToName),
-        m_mNameToVarID(ns.m_mNameToVarID),
-        m_mVarIDToName(ns.m_mVarIDToName),
-        m_mNameToFuncTypeID(ns.m_mNameToFuncTypeID),
-        m_types(ns.m_types),
-        m_funcs(ns.m_funcs),
-        m_structs(ns.m_structs),
-        m_enums(ns.m_enums),
-        m_vars(ns.m_vars) { }
-
-    CR_NameScope& operator=(const CR_NameScope& ns) {
-        m_is_64bit = ns.m_is_64bit;
-        m_mNameToTypeID = ns.m_mNameToTypeID;
-        m_mTypeIDToName = ns.m_mTypeIDToName;
-        m_mNameToVarID = ns.m_mNameToVarID;
-        m_mVarIDToName = ns.m_mVarIDToName;
-        m_mNameToFuncTypeID = ns.m_mNameToFuncTypeID;
-        m_types = ns.m_types;
-        m_funcs = ns.m_funcs;
-        m_structs = ns.m_structs;
-        m_enums = ns.m_enums;
-        m_vars = ns.m_vars;
-        return *this;
-    }
-
-    bool Is64Bit() const {
-        return m_is_64bit;
-    }
-
-    void Set64Bit(bool is_64bit) {
-        m_is_64bit = is_64bit;
-    }
+    bool Is64Bit() const { return m_is_64bit; }
+    void Set64Bit(bool is_64bit) { m_is_64bit = is_64bit; }
 
     void Init() {
         AddType("void", TF_VOID, 0);

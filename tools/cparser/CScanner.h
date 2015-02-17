@@ -1508,8 +1508,8 @@ namespace cparser
 
     private:
         // NOTE: Scanner is not copyable.
-        Scanner(const Scanner<Iterator, Actions>&);
-        Scanner& operator=(const Scanner<Iterator, Actions>&);
+        Scanner(const Scanner<Iterator, Actions>&) = delete;
+        Scanner& operator=(const Scanner<Iterator, Actions>&) = delete;
     }; // class Scanner<Iterator, Actions>
 } // namespace cparser
 
