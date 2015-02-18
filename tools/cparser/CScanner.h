@@ -42,14 +42,6 @@ namespace cparser
             m_type_names.clear();   // no use
         }
 
-        int get_pack() const {
-            if (!m_packs.empty()) {
-                return m_packs.back();
-            } else {
-                return 2;
-            }
-        }
-
         template <class TokenInfoIt>
         void show_tokens(TokenInfoIt begin, TokenInfoIt end) {
             for (TokenInfoIt it = begin; it != end; ++it) {
@@ -122,7 +114,6 @@ namespace cparser
                             }
                         } else if (lexeme("pack")) {
                             c = skip_blank();   // open
-                            ungetch();           // closed
                             if (c == '(') { // #pragma pack(...)
                                 c = skip_blank();   // open
                                 ungetch();           // closed
@@ -146,8 +137,7 @@ namespace cparser
                                             }
                                             sz[i] = 0;
                                             int n = strtol(sz, NULL, 10);
-                                            if (n == 0)
-                                                DebugBreak();
+                                            assert(n != 0);
                                             pack_push(n);
                                         }
                                     }
@@ -155,11 +145,12 @@ namespace cparser
                                     // #pragma pack(pop)
                                     pack_pop();
                                 }
+                            } else {
+                                ungetch();
                             }
                         } else if (lexeme("comment")) {
                             c = skip_blank();   // open
-                            if (c == '(') // #pragma comment(...)
-                            {
+                            if (c == '(') { // #pragma comment(...)
                                 c = skip_blank();   // open
                                 ungetch();           // closed
                                 if (lexeme("lib")) {
@@ -506,8 +497,7 @@ namespace cparser
                 }
 
                 // identifier or keyword
-                if (isalpha(c) || c == '_') // open
-                {
+                if (isalpha(c) || c == '_') { // open
                     info.m_text += c;
                     for (;;) {
                         d = getch(); // open
@@ -519,7 +509,6 @@ namespace cparser
                     ungetch();   // closed
 
                     std::string& str(info.m_text);
-
                     if (str.find("__builtin_") == 0 && str.size() > 10) {
                         if (str != "__builtin_va_list") {
                             str = str.substr(10);
@@ -1117,12 +1106,26 @@ namespace cparser
         // packing
         //
         void pack_push(int pack) {
+            #if 1
+                std::fprintf(stderr, ("push pack %d at " + location().str()).data(), pack);
+            #endif
             m_packs.push_back(pack);
         }
 
         void pack_pop() {
+            #if 1
+                std::fprintf(stderr, ("pop pack at " + location().str()).data());
+            #endif
             assert(m_packs.size());
             m_packs.pop_back();
+        }
+
+        int get_pack() const {
+            if (m_packs.size()) {
+                return m_packs.back();
+            } else {
+                return (m_is_64bit ? 8 : 4);
+            }
         }
 
         //

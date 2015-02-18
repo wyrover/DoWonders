@@ -77,7 +77,7 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
         return 0;
 
     case PrimExpr::I_CONSTANT:
-        n = std::atoi(pe->m_text.data());
+        n = std::strtol(pe->m_text.data(), NULL, 0);
         return n;
 
     case PrimExpr::STRING:
@@ -156,7 +156,7 @@ size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
             {
                 int count = CrCalcConstIntCondExpr(
                     namescope, tn->m_declor->m_const_expr.get());
-                return namescope.GetSizeOfType(tid) * count;
+                return namescope.SizeOfType(tid) * count;
             }
 
         case Declor::BITS:
@@ -166,7 +166,7 @@ size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
             break;
         }
     }
-    return namescope.GetSizeOfType(tid);
+    return namescope.SizeOfType(tid);
 }
 
 int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
@@ -1275,7 +1275,9 @@ int CrInputCSrc(
         static char filename[MAX_PATH];
         ::GetTempFileNameA(".", "cpa", 0, filename);
         cr_tmpfile = filename;
-        atexit(CrDeleteTempFileAtExit);
+        #if 0
+            atexit(CrDeleteTempFileAtExit);
+        #endif
 
         // build command line
         #ifdef __GNUC__
@@ -1435,13 +1437,13 @@ void CrDumpSemantic(
             const auto& type = namescope.LogType(tid);
             if (namescope.IsCrExtendedType(tid)) {
                 #ifdef _DEBUG
-                    size_t size = namescope.GetSizeOfType(tid);
+                    size_t size = namescope.SizeOfType(tid);
                     fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(cr_extended)\t0\t(cr_extended)\n",
                         static_cast<int>(tid), name.data(), type.m_flags,
                         static_cast<int>(type.m_sub_id), 0, static_cast<int>(size));
                 #endif
             } else if (namescope.IsPredefinedType(tid)) {
-                size_t size = namescope.GetSizeOfType(tid);
+                size_t size = namescope.SizeOfType(tid);
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(predefined)\t0\t(predefined)\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
                     static_cast<int>(type.m_sub_id), 0, static_cast<int>(size));
@@ -1464,7 +1466,7 @@ void CrDumpSemantic(
             } else {
                 auto strDef = namescope.StringOfType(tid, name, true);
                 const auto& location = type.location();
-                size_t size = namescope.GetSizeOfType(tid);
+                size_t size = namescope.SizeOfType(tid);
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\ttypedef %s;\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
                     static_cast<int>(type.m_sub_id), 0, static_cast<int>(size),
@@ -1476,7 +1478,7 @@ void CrDumpSemantic(
 
     fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(count)\t(pack)\t(file)\t(line)\t(definition)\t(item_1_type_id)\t(item_1_name)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
+        fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(count)\t(pack)\t(align)\t(file)\t(line)\t(definition)\t(item_1_type_id)\t(item_1_name)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
         for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& type = namescope.LogType(tid);
             if (!(type.m_flags & (TF_STRUCT | TF_UNION))) {
@@ -1486,22 +1488,22 @@ void CrDumpSemantic(
             auto strDef = namescope.StringOfType(tid, "");
             assert(!strDef.empty());
             const auto& location = type.location();
-            size_t size = namescope.GetSizeOfType(tid);
+            size_t size = namescope.SizeOfType(tid);
             auto sid = type.m_sub_id;
             const auto& ls = namescope.LogStruct(sid);
             assert(ls.m_type_list.size() == ls.m_name_list.size());
-            fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
+            fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
                 static_cast<int>(tid), name.data(), 
                 static_cast<int>(sid), static_cast<int>(ls.m_struct_or_union),
                 static_cast<int>(size), static_cast<int>(ls.m_type_list.size()),
-                static_cast<int>(ls.m_pack),
+                static_cast<int>(ls.m_pack), static_cast<int>(ls.m_align),
                 location.m_file.data(), location.m_line, strDef.data());
             if (type.m_flags & TF_UNION) {
                 for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
                     fprintf(fp, "\t%d\t%s\t0\t0",
                         static_cast<int>(ls.m_type_list[i]), ls.m_name_list[i].data());
                 }
-            } else {   
+            } else {
                 assert(ls.m_type_list.size() == ls.m_offset_list.size());
                 for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
                     fprintf(fp, "\t%d\t%s\t%d\t%d",

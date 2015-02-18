@@ -30,12 +30,12 @@ struct CR_Location
         return loc;
     }
 
-    std::string to_string() const {
-        std::string str = m_file;
+    std::string str() const {
+        std::string s = m_file;
         char buf[32];
         std::sprintf(buf, " (%d)", m_line);
-        str += buf;
-        return str;
+        s += buf;
+        return s;
     }
 };
 

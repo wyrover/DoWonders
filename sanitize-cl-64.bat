@@ -1,0 +1,37 @@
+@echo off
+
+set REDIRECTOR=tools\redirector\x64\Release\redirector64.exe
+if not exist %REDIRECTOR% goto label_no_redirector64
+
+set WON32_SANITIZE = tools\won32_sanitizer\x64\Release\won32_sanitizer64.exe
+if not exist %WON32_SANITIZE% goto label_no_sanitizer64
+
+cd WondersXP
+call sanitize-cl-64.bat
+if ERRORLEVEL 1 goto error
+cd ..
+
+cd WondersVista
+call sanitize-cl-64.bat
+if ERRORLEVEL 1 goto error
+cd ..
+
+cd Wonders7
+call sanitize-cl-64.bat
+if ERRORLEVEL 1 goto error
+cd ..
+
+exit /b 0
+
+:error
+cd ..
+echo ERROR: ERRORLEVEL >= 1
+exit /b 1
+
+:label_no_sanitizer64
+echo ERROR: won32_sanitizer64 required!
+exit /b 4
+
+:label_no_redirector64
+echo ERROR: redirector64 required!
+exit /b 3

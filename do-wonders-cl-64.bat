@@ -1,7 +1,7 @@
 @echo off
 
-set REDIRECTOR=tools\redirector\Release\redirector.exe
-if not exist %REDIRECTOR% goto label_no_redirector
+set REDIRECTOR=tools\redirector\x64\Release\redirector64.exe
+if not exist %REDIRECTOR% goto label_no_redirector64
 
 set MCPP=tools\mcpp-2.7.2-hacked\Release\mcpp.exe
 if not exist %MCPP% goto label_no_mcpp
@@ -209,8 +209,8 @@ exit /b 0
 echo ERROR: ERRORLEVEL >= 1
 exit /b 1
 
-:label_no_redirector
-echo ERROR: redirector required!
+:label_no_redirector64
+echo ERROR: redirector64 required!
 exit /b 3
 
 :label_no_mcpp

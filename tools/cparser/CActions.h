@@ -3198,7 +3198,7 @@ namespace cparser
         // errors and warnings
         //
         void message(const std::string& str) {
-            std::string loc = location().to_string();
+            std::string loc = location().str();
             printf("%s: %s\n", loc.c_str(), str.c_str());
         }
 

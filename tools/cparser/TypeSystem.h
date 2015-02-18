@@ -178,9 +178,10 @@ struct CR_LogStruct {
     CR_DeqSet<size_t>       m_offset_list;      // list of offset
     CR_DeqSet<size_t>       m_bits_list;        // list of bits
     size_t                  m_pack;             // pack
+    size_t                  m_align;            // alignment requirement
 
     CR_LogStruct(bool struct_or_union = true) :
-        m_struct_or_union(struct_or_union), m_pack(1) { }
+        m_struct_or_union(struct_or_union), m_pack(1), m_align(1) { }
 
     size_t FindName(const CR_String& name) const {
         for (size_t i = 0; i < m_name_list.size(); i++) {
@@ -197,7 +198,8 @@ struct CR_LogStruct {
                m_name_list == ls.m_name_list &&
                m_offset_list == ls.m_offset_list &&
                m_bits_list == ls.m_bits_list &&
-               m_pack == ls.m_pack;
+               m_pack == ls.m_pack &&
+               m_align == ls.m_align;
     }
 
     bool operator!=(const CR_LogStruct& ls) const {
@@ -206,7 +208,8 @@ struct CR_LogStruct {
                m_name_list != ls.m_name_list ||
                m_offset_list != ls.m_offset_list ||
                m_bits_list != ls.m_bits_list ||
-               m_pack != ls.m_pack;
+               m_pack != ls.m_pack ||
+               m_align != ls.m_align;
     }
 
     bool empty() const { return m_type_list.empty(); }
@@ -348,7 +351,7 @@ public:
         CR_LogType lt;
         lt.m_flags = TF_ALIAS;
         lt.m_sub_id = tid;
-        lt.m_size = GetSizeOfType(tid);
+        lt.m_size = SizeOfType(tid);
         lt.location() = location;
         tid = m_types.insert(lt);
         m_mNameToTypeID[name] = tid;
@@ -389,7 +392,7 @@ public:
         CR_LogType lt;
         lt.m_flags = TF_CONST;
         lt.m_sub_id = tid;
-        lt.m_size = GetSizeOfType(tid);
+        lt.m_size = SizeOfType(tid);
         auto newtid = m_types.AddUnique(lt);
         auto name = NameFromTypeID(tid);
         if (name.size()) {
@@ -411,7 +414,7 @@ public:
         lt.m_size = (Is64Bit() ? 8 : 4);
         lt.location() = location;
         auto newtid = m_types.AddUnique(lt);
-        auto type = m_types[tid];
+        auto type = LogType(tid);
         auto name = NameFromTypeID(tid);
         if (!name.empty()) {
             if (!(type.m_flags & TF_FUNCTION)) {
@@ -434,7 +437,7 @@ public:
         lt.m_flags = TF_ARRAY;
         lt.m_sub_id = tid;
         lt.m_count = count;
-        lt.m_size = GetSizeOfType(tid) * count;
+        lt.m_size = SizeOfType(tid) * count;
         lt.location() = location;
         tid = m_types.AddUnique(lt);
         m_mTypeIDToName[tid] = "";
@@ -452,7 +455,7 @@ public:
         CR_LogType lt;
         lt.m_flags = TF_FUNCTION;
         lt.m_sub_id = fid;
-        lt.m_size = (Is64Bit() ? 8 : 4);
+        lt.m_size = 1;
         lt.location() = location;
         CR_TypeID tid = m_types.AddUnique(lt);
         m_mTypeIDToName[tid] = "";
@@ -488,11 +491,11 @@ public:
         } else {    // name was found
             CR_TypeID tid = ResolveAlias(it->second);
             assert(m_types[tid].m_flags & (TF_STRUCT | TF_UNION));
-            CR_StructID sid = m_types[tid].m_sub_id;
+            CR_StructID sid = LogType(tid).m_sub_id;
             _AnalyzeStruct(sid);
             if (ls.m_type_list.size()) {
                 // overwrite the definition if type list not empty
-                m_structs[sid] = ls;
+                LogStruct(sid) = ls;
             }
             return tid;
         }
@@ -527,11 +530,11 @@ public:
         } else {    // name was found
             CR_TypeID tid = ResolveAlias(it->second);
             assert(m_types[tid].m_flags & (TF_STRUCT | TF_UNION));
-            CR_StructID sid = m_types[tid].m_sub_id;
+            CR_StructID sid = LogType(tid).m_sub_id;
             _AnalyzeUnion(sid);
             if (ls.m_type_list.size()) {
                 // overwrite the definition if type list not empty
-                m_structs[sid] = ls;
+                LogStruct(sid) = ls;
             }
             return tid;
         }
@@ -565,7 +568,7 @@ public:
         } else {    // name was found
             CR_TypeID tid = ResolveAlias(it->second);
             assert(m_types[tid].m_flags & TF_ENUM);
-            CR_EnumID eid = m_types[tid].m_sub_id;
+            CR_EnumID eid = LogType(tid).m_sub_id;
             if (!le.empty()) {
                 m_enums[eid] = le;  // overwrite the definition if not empty
             }
@@ -574,89 +577,123 @@ public:
     } // AddEnumType
 
     void AddTypeFlags(CR_TypeID tid, CR_TypeFlags flags) {
-        m_types[tid].m_flags |= flags;
+        LogType(tid).m_flags |= flags;
+    }
+
+    size_t AlignOfStruct(CR_StructID sid) const {
+        const auto& ls = LogStruct(sid);
+        if (ls.m_align > 1)
+            return ls.m_align;
+        size_t align, max_align = 1;
+        for (const auto& tid : ls.m_type_list) {
+            align = AlignOfType(tid);
+            if (align > max_align) {
+                max_align = align;
+            }
+        }
+        return max_align;
+    }
+
+    size_t AlignOfUnion(CR_StructID sid) const {
+        return AlignOfStruct(sid);
+    }
+
+    size_t AlignOfType(CR_TypeID tid) const {
+        tid = ResolveAlias(tid);
+        const auto& type = LogType(tid);
+        if (type.m_flags & TF_ARRAY) {
+            return AlignOfType(type.m_sub_id);
+        }
+        if (type.m_flags & TF_STRUCT) {
+            return AlignOfStruct(type.m_sub_id);
+        }
+        if (type.m_flags & TF_UNION) {
+            return AlignOfUnion(type.m_sub_id);
+        }
+        return SizeOfType(tid);
     }
 
     size_t _AnalyzeStruct(CR_StructID sid) {
-        assert(sid != cr_invalid_id);
-        if (sid == cr_invalid_id)
-            return 0;
-
-        auto& ls = m_structs[sid];
+        auto& ls = LogStruct(sid);
         ls.m_offset_list.clear();
 
-        size_t size = 0, align = 0, bitremain = 0, oldtypesize = 0;
-        CR_TypeID oldtid = cr_invalid_id;
-        const std::size_t count = ls.m_type_list.size();
-        for (std::size_t i = 0; i < count; i++) {
+        size_t offset = 0, prev_item_size = 0, bits_remain = 0;
+        size_t max_align = 1;
+        const size_t siz = ls.m_type_list.size();
+        // for each field
+        for (std::size_t i = 0; i < siz; ++i) {
             auto tid = ls.m_type_list[i];
-            size_t typesize = GetSizeOfType(tid);
-            size_t bits = ls.m_bits_list[i];
-            if (bits) {
-                // the bits specified on bitfield
-                assert(bits <= typesize * 8);
-                if ((oldtid == cr_invalid_id || tid == oldtid) &&
-                    bitremain >= bits)
-                {
-                    ls.m_offset_list.push_back(size);
-                    bitremain -= bits;
-                } else if (bitremain == 0) {
-                    ls.m_offset_list.push_back(size);
-                    bitremain += typesize * 8;
-                    bitremain -= bits;
-                } else {
-                    size += oldtypesize;
-                    ls.m_offset_list.push_back(size);
-                    bitremain += oldtypesize * 8;
-                    bitremain -= bits;
+            size_t item_size = SizeOfType(tid);     // size of type
+            size_t item_align = AlignOfType(tid);   // alignment requirement
+            size_t bits = ls.m_bits_list[i];        // bits of bitfield
+            if (bits) { // the bits specified on bitfield
+                assert(bits <= item_size * 8);
+                ls.m_offset_list.push_back(offset);
+                if (prev_item_size == item_size || bits_remain == 0) {
+                    // bitfield continuous
+                    bits_remain += bits;
+                    offset += bits_remain / 8;
+                    bits_remain %= 8;
+                } else { // bitfield discontinuous
+                    offset += bits / 8;
+                    bits_remain = 0;
                 }
-            } else {
-                // no bits specified
-                if (bitremain)
-                    size += oldtypesize;
-
-                ls.m_offset_list.push_back(size);
-
-                size += typesize;
-
-                // consider struct packing...
-                if (align && typesize >= ls.m_pack) {
-                    size += ls.m_pack - (typesize + align) % ls.m_pack;
-                    align = typesize % ls.m_pack;
-                } else {
-                    align += typesize;
-                    align %= ls.m_pack;
+            } else { // not bitfield
+                if (bits_remain) {
+                    offset += prev_item_size;
+                    bits_remain = 0;
                 }
-
-                bitremain = 0;
+                if (prev_item_size && ls.m_pack <= item_align) {
+                    // add padding
+                    offset = (offset + item_align - 1) / item_align * item_align;
+                }
+                ls.m_offset_list.push_back(offset);
+                offset += item_size;
             }
-            oldtid = tid;
-            oldtypesize = typesize;
+            if (item_align > max_align) {
+                max_align = item_align;
+            }
+            prev_item_size = item_size;
         }
-        if (bitremain)
-            size += oldtypesize;
         assert(ls.m_offset_list.size() == ls.m_type_list.size());
-        return size;
+        if (bits_remain) {
+            offset += prev_item_size;
+        }
+        if (max_align > 1) {
+            // set alignment requirement value
+            ls.m_align = max_align;
+            // tail padding
+            offset = (offset + max_align - 1) / max_align * max_align;
+        }
+        return offset;  // total size
     } // _AnalyzeStruct
 
     size_t _AnalyzeUnion(CR_StructID sid) {
-        assert(sid != cr_invalid_id);
-        if (sid == cr_invalid_id)
-            return 0;
+        auto& ls = LogStruct(sid);
 
-        auto& ls = m_structs[sid];
-        ls.m_offset_list.clear();
-
-        size_t maxsize = 0, size;
-        for (auto tid : ls.m_type_list) {
-            size = GetSizeOfType(tid);
-            if (maxsize < size)
-                maxsize = size;
-
-            ls.m_offset_list.push_back(0);
-        }
+        // every offset is zero
+        ls.m_offset_list.assign(ls.m_type_list.size(), 0);
         assert(ls.m_offset_list.size() == ls.m_type_list.size());
-        return maxsize;
+
+        // for each field
+        size_t item_size, item_align, max_size = 0, max_align = 1;
+        for (auto tid : ls.m_type_list) {
+            item_size = SizeOfType(tid);
+            item_align = AlignOfType(tid);
+            if (max_size < item_size) {
+                max_size = item_size;
+            }
+            if (item_align > max_align) {
+                max_align = item_align;
+            }
+        }
+        if (max_align > 1) {
+            // set alignment requirement value
+            ls.m_align = max_align;
+            // tail padding
+            //max_size = (max_size + max_align - 1) / max_align * max_align;
+        }
+        return max_size; // total size
     } // _AnalyzeUnion
 
     //
@@ -664,11 +701,11 @@ public:
     //
 
     // get size of type
-    size_t GetSizeOfType(CR_TypeID tid) const {
+    size_t SizeOfType(CR_TypeID tid) const {
         assert(tid != cr_invalid_id);
         if (tid == cr_invalid_id)
             return 0;
-        auto& type = m_types[tid];
+        auto& type = LogType(tid);
         return type.m_size;
     }
 
@@ -699,11 +736,7 @@ public:
 
     // get string of struct or union
     CR_String StringOfStruct(const CR_String& name, CR_StructID sid) const {
-        assert(sid != cr_invalid_id);
-        if (sid == cr_invalid_id) {
-            return "";  // invalid ID
-        }
-        const auto& s = m_structs[sid];
+        const auto& s = LogStruct(sid);
         CR_String str = (s.m_struct_or_union ? "struct " : "union ");
         if (name.size()) {
             str += name;
@@ -730,12 +763,7 @@ public:
     CR_String StringOfType(CR_TypeID tid, const CR_String& name,
                            bool expand = true, bool no_convension = false) const
     {
-        assert(tid != cr_invalid_id);
-        if (tid == cr_invalid_id) {
-            return "";  // invalid ID
-        }
-        assert(tid < m_types.size());
-        const auto& type = m_types[tid];
+        const auto& type = LogType(tid);
         auto type_name = NameFromTypeID(tid);
         if (type.m_flags & TF_ALIAS) {
             // if type was alias
@@ -801,8 +829,7 @@ public:
         if (type.m_flags & TF_POINTER) {
             // if type was pointer
             auto sub_id = type.m_sub_id;
-            assert(sub_id < m_types.size());
-            const auto& type2 = m_types[sub_id];
+            const auto& type2 = LogType(sub_id);
             if (type2.m_flags & TF_FUNCTION) {
                 // function pointer
                 if (type.m_flags & TF_CONST) {
@@ -923,7 +950,7 @@ public:
         if (tid == cr_invalid_id)
             return false;
         tid = ResolveAlias(tid);
-        if (m_types[tid].m_flags & TF_FUNCTION)
+        if (LogType(tid).m_flags & TF_FUNCTION)
             return true;
         return false;
     }
@@ -1013,7 +1040,7 @@ public:
     CR_TypeID TypeIDFromFlags(CR_TypeFlags flags) const {
         const size_t siz = m_types.size();
         for (size_t i = 0; i < siz; ++i) {
-            if (m_types[i].m_flags == flags)
+            if (LogType(i).m_flags == flags)
                 return i;
         }
         return cr_invalid_id;
@@ -1036,18 +1063,22 @@ public:
     }
 
     CR_LogType& LogType(CR_TypeID tid) {
+        assert(tid < m_types.size());
         return m_types[tid];
     }
 
     const CR_LogType& LogType(CR_TypeID tid) const {
+        assert(tid < m_types.size());
         return m_types[tid];
     }
 
     CR_LogVar& LogVar(CR_VarID vid) {
+        assert(vid < m_vars.size());
         return m_vars[vid];
     }
 
     const CR_LogVar& LogVar(CR_VarID vid) const {
+        assert(vid < m_vars.size());
         return m_vars[vid];
     }
 

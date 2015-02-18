@@ -97,18 +97,22 @@ bool WsJustDoIt(
         "\n" << 
         "#define check_size(name,size) do { \\\n" << 
         "\tif (sizeof(name) != (size)) { \\\n" << 
-        "\t\tfprintf(stderr, \"%s: size mismatch\\n\", #name); \\\n" << 
+        "\t\tfprintf(stderr, \"%s: size mismatched, real size is %d\\n\", #name, (int)sizeof(name)); \\\n" << 
         "\t\treturn 1; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" << 
         "#define check_value(name,value) do { \\\n" << 
         "\tif ((name) != (value)) { \\\n" << 
-        "\t\tfprintf(stderr, \"%s: value mismatch\\n\", #name); \\\n" << 
+        "\t\tfprintf(stderr, \"%s: value mismatched, real value is %d\\n\", #name, (int)name); \\\n" << 
         "\t\treturn 1; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
-        "\n" << 
+        "\n" <<
+        "/* fixup */\n" <<
+        "#undef RASCTRYINFO\n" <<
+        "#undef RASIPADDR\n" <<
+        "\n" <<
         "int main(void) {" << std::endl;
 
     std::vector<std::string> fields;
