@@ -13,6 +13,7 @@ tools/cparser/FTCHECK*.BAT
 tools/cparser/Debug
 tools/cparser/Release
 tools/cparser/x64
+tools/cparser/ipch
 tools/cparser/CParser.h
 !tools/cparser/Debug/cparser.exe
 !tools/cparser/Release/cparser.exe
