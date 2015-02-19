@@ -7,19 +7,19 @@ const char * const cr_logo =
     "///////////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser sample 0.2.1 (64-bit) for gcc     //\n"
+    "// CParser sample 0.2.2 (64-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.1 (64-bit) for clang    //\n"
+    "// CParser sample 0.2.2 (64-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.1 (64-bit) for cl      //\n"
+    "// CParser sample 0.2.2 (64-bit) for cl      //\n"
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser sample 0.2.1 (32-bit) for gcc     //\n"
+    "// CParser sample 0.2.2 (32-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.1 (32-bit) for clang    //\n"
+    "// CParser sample 0.2.2 (32-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.1 (32-bit) for cl      //\n"
+    "// CParser sample 0.2.2 (32-bit) for cl      //\n"
 # endif
 #endif  // !64-bit
     "// public domain software (PDS)              //\n"
@@ -44,6 +44,615 @@ void CrDeleteTempFileAtExit(void) {
 ////////////////////////////////////////////////////////////////////////////
 
 using namespace cparser;
+
+////////////////////////////////////////////////////////////////////////////
+// cparser::Scanner
+
+void cparser::Scanner::resynth1(ScannerBase& base, token_container& c) {
+    token_container     newc;
+
+    bool    line_top = true;
+    auto    end = c.end();
+    for (auto it = c.begin(); it != end; ++it) {
+        it->location() = base.location();
+        it->m_pack = base.packing();
+
+        if (it->m_token == T_INVALID_CHAR) {
+            std::string text = "unexpected character '";
+            text += it->m_text + "'";
+            add_error(base.location(), text);
+            continue;
+        }
+
+        if (it->m_token == T_SHARP) {
+            if (!line_top) {
+                add_error(base.location(), "invalid character '#'");
+                continue;
+            }
+
+            // #
+            bool is_lineno_directive = false;
+            ++it;
+
+            // #lineno "file"
+            // #lineno
+            // #line lineno "file"
+            // #line lineno
+            if (it != end && it->m_text == "line") {
+                ++it;
+                is_lineno_directive = true;
+            }
+            if (it != end && it->m_token == T_CONSTANT) {
+                int lineno = std::atoi(it->m_text.data()) - 1;
+                ++it;
+                if (it != end && it->m_token == T_STRING) {
+                    base.location().set(it->m_text, lineno);
+                } else {
+                    --it;
+                    base.location().m_line = lineno;
+                }
+                is_lineno_directive = true;
+            }
+
+            if (!is_lineno_directive && it != end && it->m_text == "pragma") {
+                // #pragma name("...")
+                ++it;
+                CR_ErrorInfo::Type type = parse_pragma(base, it, end);
+                add(type, base.location(), "unknown pragma found");
+            }
+
+            // up to new line
+            while (it != end) {
+                if (it->m_token == T_NEWLINE) {
+                    line_top = true;
+                    ++base.location();
+                    break;
+                }
+                ++it;
+            }
+            continue;
+        }
+        if (it->m_token == T_NEWLINE) {
+            line_top = true;
+            ++base.location();
+        } else {
+            line_top = false;
+            newc.emplace_back(*it);
+        }
+    }
+    std::swap(c, newc);
+}
+
+void cparser::Scanner::resynth2(token_container& c) {
+    token_container newc;
+    token_iterator it, it2, end = c.end();
+    for (it = c.begin(); it != end; ++it) {
+        if (it->m_token == T_R_PAREN && (it + 1)->m_token == T_ASM) {
+            // int func() __asm__("..." "...");
+            it = skip_asm_for_fn_decl(it + 1, end);
+            if (it == end)
+                break;
+        }
+
+        if (it->m_token == T_GNU_ATTRIBUTE) {
+            it2 = it;
+            it = skip_gnu_attribute(it, end);
+            if (it != end) {
+                ++it2;  // T_GNU_ATTRIBUTE
+                ++it2;  // T_L_PAREN
+                ++it2;  // T_L_PAREN
+                switch (it2->m_token) {
+                case T_CDECL: case T_STDCALL: case T_FASTCALL:
+                    newc.push_back(*it2);
+                    break;
+
+                default:
+                    break;
+                }
+            }
+        } else if (it->m_token == T_DECLSPEC || it->m_token == T_PRAGMA) {
+            it2 = it;
+            ++it2;
+            bool f = false;
+            int paren_nest = 0;
+            for (; it2 != end; ++it2) {
+                if (it2->m_token == T_L_PAREN) {
+                    f = true;
+                    paren_nest++;
+                } else if (it2->m_token == T_R_PAREN) {
+                    paren_nest--;
+                    if (paren_nest == 0)
+                        break;
+                }
+            }
+            if (f)
+                it = it2;
+        } else {
+            newc.push_back(*it);
+        }
+    }
+    std::swap(c, newc);
+} // resynth2
+
+void cparser::Scanner::resynth3(token_iterator begin, token_iterator end) {
+    m_type_names.clear();
+    #ifdef __GNUC__
+        m_type_names.insert("__builtin_va_list");   // fixup
+    #else
+        m_type_names.insert("va_list");
+        m_type_names.insert("SOCKADDR_STORAGE");    // fixup
+    #endif
+
+    for (token_iterator it = begin; it != end; ++it) {
+        if (it->m_token == T_ENUM || it->m_token == T_STRUCT ||
+            it->m_token == T_UNION)
+        {
+            ++it;
+            if (it->m_token == T_IDENTIFIER) {
+                it->set_token(T_TAGNAME);
+                if ((it + 1)->m_token == T_SEMICOLON) {
+                    // struct tag_name; fixup
+                    m_type_names.insert(it->m_text);
+                }
+            }
+        }
+    }
+
+    for (token_iterator it = begin; it != end; ++it) {
+        if (it->m_token == T_TYPEDEF) {
+            it = resynth_typedef(++it, end);
+        } else if (it->m_token == T_IDENTIFIER) {
+            if (m_type_names.count(it->m_text)) {
+                it->set_token(T_TYPEDEF_NAME);
+            }
+        }
+    }
+} // resynth3
+
+cparser::token_iterator
+cparser::Scanner::resynth_typedef(token_iterator begin, token_iterator end) {
+    int paren_nest = 0, brace_nest = 0, bracket_nest = 0;
+    token_iterator it;
+    for (it = begin; it != end; ++it) {
+        if (brace_nest == 0 && it->m_token == T_SEMICOLON)
+            break;
+        else if (it->m_token == T_L_BRACE)
+            brace_nest++;
+        else if (it->m_token == T_R_BRACE)
+            brace_nest--;
+        else if (it->m_token == T_L_BRACKET)
+            bracket_nest++;
+        else if (it->m_token == T_R_BRACKET)
+            bracket_nest--;
+        else if (it->m_token == T_L_PAREN)
+            paren_nest++;
+        else if (it->m_token == T_R_PAREN) {
+            paren_nest--;
+            ++it;
+            if (it->m_token == T_L_PAREN) {
+                it = resynth_parameter_list(++it, end);
+            } else
+                --it;
+        } else if (it->m_token == T_IDENTIFIER) {
+            if (brace_nest == 0 && bracket_nest == 0) {
+                if (m_type_names.count(it->m_text)) {
+                    ++it;
+                    if (it->m_token == T_SEMICOLON || it->m_token == T_R_PAREN ||
+                        it->m_token == T_L_BRACKET || it->m_token == T_COMMA)
+                    {
+                        --it;
+                        it->set_token(T_TYPEDEF_TAG);
+                    } else {
+                        --it;
+                        it->set_token(T_TYPEDEF_NAME);
+                    }
+                } else {
+                    it->set_token(T_TYPEDEF_TAG);
+                    m_type_names.insert(it->m_text);
+
+                    ++it;
+                    if (it->m_token == T_L_PAREN) {
+                        it = resynth_parameter_list(++it, end);
+                    } else
+                        --it;
+                }
+            } else if (m_type_names.count(it->m_text)) {
+                it->set_token(T_TYPEDEF_NAME);
+            }
+        }
+    }
+    return it;
+} // resynth_typedef
+
+cparser::token_iterator
+cparser::Scanner::resynth_parameter_list(
+    token_iterator begin, token_iterator end)
+{
+    int paren_nest = 1;
+    bool fresh = true;
+    token_iterator it;
+    for (it = begin; it != end; ++it) {
+        if (it->m_token == T_SEMICOLON)
+            break;
+        else if (it->m_token == T_L_PAREN) {
+            paren_nest++;
+            fresh = true;
+        } else if (it->m_token == T_R_PAREN) {
+            paren_nest--;
+            if (paren_nest == 0)
+                break;
+
+            ++it;
+            if (it->m_token == T_L_PAREN) {
+                it = resynth_parameter_list(++it, end);
+            } else
+                --it;
+        } else if (it->m_token == T_IDENTIFIER) {
+            if (m_type_names.count(it->m_text)) {
+                ++it;
+                if (fresh) {
+                    --it;
+                    it->set_token(T_TYPEDEF_NAME);
+                } else {
+                    --it;
+                }
+            }
+            fresh = false;
+        } else if (it->m_token == T_COMMA) {
+            fresh = true;
+        }
+    }
+    return it;
+} // resynth_parameter_list
+
+cparser::token_iterator
+cparser::Scanner::skip_gnu_attribute(
+    token_iterator begin, token_iterator end)
+{
+    token_iterator it = begin;
+    if (it != end && it->m_token == T_GNU_ATTRIBUTE)
+        ++it;
+
+    if (it != end && it->m_token == T_L_PAREN) {
+        ++it;
+        int paren_nest = 1;
+        for (; it != end; ++it) {
+            if (it->m_token == T_L_PAREN) {
+                paren_nest++;
+            } else if (it->m_token == T_R_PAREN) {
+                paren_nest--;
+                if (paren_nest == 0)
+                    break;
+            }
+        }
+    }
+    return it;
+} // skip_gnu_attribute
+
+cparser::token_iterator
+cparser::Scanner::skip_asm_for_fn_decl(
+    token_iterator begin, token_iterator end)
+{
+    token_iterator it = begin;
+    if (it != end && it->m_token == T_ASM)
+        ++it;
+
+    if (it != end && it->m_token == T_L_PAREN) {
+        ++it;
+        int paren_nest = 1;
+        for (; it != end; ++it) {
+            if (it->m_token == T_L_PAREN) {
+                paren_nest++;
+            } else if (it->m_token == T_R_PAREN) {
+                paren_nest--;
+                if (paren_nest == 0)
+                    break;
+            }
+        }
+    }
+    return it;
+} // skip_asm_for_fn_decl
+
+void cparser::Scanner::resynth4(token_container& c) {
+    token_container newc;
+    token_iterator it, it2, end = c.end();
+    for (it = c.begin(); it != end; ++it) {
+        switch (it->m_token) {
+        case T_CDECL: case T_STDCALL: case T_FASTCALL:
+            // TODO: do calling convention
+            if ((it + 1)->m_token == T_ASTERISK) {
+                if (it->m_token == T_CDECL)
+                    (it + 1)->m_flags |= TF_CDECL;
+                else if (it->m_token == T_STDCALL)
+                    (it + 1)->m_flags |= TF_STDCALL;
+                else if (it->m_token == T_FASTCALL)
+                    (it + 1)->m_flags |= TF_FASTCALL;
+            } else if ((it + 1)->m_token == T_IDENTIFIER ||
+                       (it + 1)->m_token == T_TYPEDEF_NAME) {
+                if (it->m_token == T_CDECL)
+                    (it + 1)->m_flags |= TF_CDECL;
+                else if (it->m_token == T_STDCALL)
+                    (it + 1)->m_flags |= TF_STDCALL;
+                else if (it->m_token == T_FASTCALL)
+                    (it + 1)->m_flags |= TF_FASTCALL;
+            }
+            break;
+
+        case T_L_BRACKET:
+            it2 = it;
+            ++it2;
+            if (it2->m_token == T_IDENTIFIER ||
+                it2->m_token == T_TYPEDEF_NAME)
+            {
+                bool f =
+                    (it2->m_text == "returnvalue") ||
+                    (it2->m_text == "SA_Pre") ||
+                    (it2->m_text == "SA_Post") ||
+                    (it2->m_text == "SA_FormatString") ||
+                    (it2->m_text == "source_annotation_attribute");
+                if (f) {
+                    int paren_nest = 0;
+                    f = false;
+                    for (; it2 != end; ++it2) {
+                        if (it2->m_token == T_L_PAREN) {
+                            f = true;
+                            paren_nest++;
+                        } else if (it2->m_token == T_R_PAREN) {
+                            paren_nest--;
+                            if (paren_nest == 0)
+                                break;
+                        }
+                    }
+                    if (f) {
+                        f = false;
+                        if (it2 != end) {
+                            ++it2;
+                            if (it2->m_token == T_R_BRACKET) {
+                                it = it2;
+                                f = true;
+                            }
+                        }
+                    }
+                }
+                if (!f)
+                    newc.push_back(*it);
+            } else {
+                newc.push_back(*it);
+            }
+            break;
+
+        case T_GNU_EXTENSION:
+            break;
+
+        default:
+            newc.push_back(*it);
+        }
+    }
+    std::swap(c, newc);
+} // resynth4
+
+void cparser::Scanner::resynth5(token_iterator begin, token_iterator end) {
+    token_iterator it, paren_it, it2;
+    int paren_nest = 0;
+    for (it = begin; it != end; ++it) {
+        if (it->m_token == T_L_PAREN) {
+            paren_it = it;
+            paren_nest++;
+        } else if (it->m_token == T_R_PAREN) {
+            paren_nest--;
+        } else if (paren_nest >= 1 &&
+            it->m_token == T_TYPEDEF_NAME &&
+            ((it + 1)->m_token == T_R_PAREN || (it + 1)->m_token == T_COMMA))
+        {
+            it2 = it - 1;
+            while (it2 != paren_it) {
+                switch (it2->m_token) {
+                case T_VOID: case T_CHAR: case T_SHORT: case T_INT:
+                case T_INT32: case T_INT64: case T_INT128: case T_LONG:
+                case T_FLOAT: case T_DOUBLE:
+                case T_SIGNED: case T_UNSIGNED: case T_BOOL:
+                case T_TYPEDEF_NAME: case T_TAGNAME:
+                case T_ASTERISK:
+                    it->m_token = T_IDENTIFIER;
+                    break;
+
+                case T_CONST:
+                    --it2;
+                    continue;
+
+                default:
+                    break;
+                }
+                break;
+            }
+        }
+    }
+} // resynth5
+
+cparser::Token
+cparser::Scanner::parse_identifier(const std::string& text) const {
+    Token token = T_IDENTIFIER;
+    char c, d;
+    c = text[0];
+    if (c == '_') {
+        if (text.size() >= 2 && text[1] != '_') {
+            d = text[1];
+            if (d == 'A' && text == "_Alignas") token = T_ALIGNAS;
+            else if (d == 'A' && text == "_Alignof") token = T_ALIGNOF;
+            else if (d == 'A' && text == "_Atomic") token = T_ATOMIC;
+            else if (d == 'B' && text == "_Bool") token = T_BOOL;
+            else if (d == 'C' && text == "_Complex") token = T_COMPLEX;
+            else if (d == 'G' && text == "_Generic") token = T_GENERIC;
+            else if (d == 'I' && text == "_Imaginary") token = T_IMAGINARY;
+            else if (d == 'N' && text == "_Noreturn") token = T_NORETURN;
+            else if (d == 'S' && text == "_Static_assert") token = T_STATIC_ASSERT;
+            else if (d == 'T' && text == "_Thread_local") token = T_THREAD_LOCAL;
+        } else if (text.size() >= 3) {
+            d = text[2];
+            if (d == 'a' && text == "__asm") token = T_ASM;
+            else if (d == 'a' && text == "__asm__") token = T_ASM;
+            else if (d == 'a' && text == "__attribute__") token = T_GNU_ATTRIBUTE;
+            else if (d == 'c' && text == "__cdecl") token = T_CDECL;
+            else if (d == 'c' && text == "__cdecl__") token = T_CDECL;
+            else if (d == 'c' && text == "__const__") token = T_CONST;
+            else if (d == 'd' && text == "__declspec") token = T_DECLSPEC;
+            else if (d == 'e' && text == "__extension__") token = T_GNU_EXTENSION;
+            else if (d == 'f' && text == "__fastcall") token = T_FASTCALL;
+            else if (d == 'f' && text == "__fastcall__") token = T_FASTCALL;
+            else if (d == 'f' && text == "__forceinline") token = T_FORCEINLINE;
+            else if (d == 'i' && text == "__inline") token = T_INLINE;
+            else if (d == 'i' && text == "__inline__") token = T_INLINE;
+            else if (d == 'i' && text == "__int32") token = T_INT32;
+            else if (d == 'i' && text == "__int64") token = T_INT64;
+            else if (d == 'i' && text == "__int128") token = T_INT128;
+            else if (d == 'n' && text == "__noreturn__") token = T_NORETURN;
+            else if (d == 'n' && text == "__nothrow__") token = T_NOTHROW;
+            else if (d == 'p' && text == "__pragma") token = T_PRAGMA;
+            else if (d == 'p' && text == "__ptr32") token = T_PTR32;
+            else if (d == 'p' && text == "__ptr64") token = T_PTR64;
+            else if (d == 'r' && text == "__restrict") token = T_RESTRICT;
+            else if (d == 'r' && text == "__restrict__") token = T_RESTRICT;
+            else if (d == 's' && text == "__signed__") token = T_SIGNED;
+            else if (d == 's' && text == "__stdcall") token = T_STDCALL;
+            else if (d == 's' && text == "__stdcall__") token = T_STDCALL;
+            else if (d == 'u' && text == "__unaligned") token = T_UNALIGNED;
+            else if (d == 'v' && text == "__volatile__") token = T_VOLATILE;
+            else if (d == 'w' && text == "__w64") token = T_W64;
+        }
+    } else if (c < 'd') {
+        if (c == 'a' && text == "asm") token = T_ASM;
+        else if (c == 'a' && text == "auto") token = T_AUTO;
+        else if (c == 'b' && text == "break") token = T_BREAK;
+        else if (c == 'c' && text == "case") token = T_CASE;
+        else if (c == 'c' && text == "char") token = T_CHAR;
+        else if (c == 'c' && text == "const") token = T_CONST;
+        else if (c == 'c' && text == "continue") token = T_CONTINUE;
+    } else if (c < 'f') {
+        if (c == 'd' && text == "default") token = T_DEFAULT;
+        else if (c == 'd' && text == "do") token = T_DO;
+        else if (c == 'd' && text == "double") token = T_DOUBLE;
+        else if (c == 'e' && text == "else") token = T_ELSE;
+        else if (c == 'e' && text == "enum") token = T_ENUM;
+        else if (c == 'e' && text == "extern") token = T_EXTERN;
+    } else if (c < 's') {
+        if (c == 'f' && text == "float") token = T_FLOAT;
+        else if (c == 'f' && text == "for") token = T_FOR;
+        else if (c == 'g' && text == "goto") token = T_GOTO;
+        else if (c == 'i' && text == "if") token = T_IF;
+        else if (c == 'i' && text == "inline") token = T_INLINE;
+        else if (c == 'i' && text == "int") token = T_INT;
+        else if (c == 'l' && text == "long") token = T_LONG;
+        else if (c == 'n' && text == "noreturn") token = T_NORETURN;
+        else if (c == 'r' && text == "register") token = T_REGISTER;
+        else if (c == 'r' && text == "restrict") token = T_RESTRICT;
+        else if (c == 'r' && text == "return") token = T_RETURN;
+    } else {
+        if (c == 's' && text == "short") token = T_SHORT;
+        else if (c == 's' && text == "signed") token = T_SIGNED;
+        else if (c == 's' && text == "sizeof") token = T_SIZEOF;
+        else if (c == 's' && text == "static") token = T_STATIC;
+        else if (c == 's' && text == "struct") token = T_STRUCT;
+        else if (c == 's' && text == "switch") token = T_SWITCH;
+        else if (c == 't' && text == "typedef") token = T_TYPEDEF;
+        else if (c == 'u' && text == "union") token = T_UNION;
+        else if (c == 'u' && text == "unsigned") token = T_UNSIGNED;
+        else if (c == 'v' && text == "void") token = T_VOID;
+        else if (c == 'v' && text == "volatile") token = T_VOLATILE;
+        else if (c == 'w' && text == "while") token = T_WHILE;
+        else if (c == 'x' && text == "xsigned") token = T_XSIGNED;
+    }
+    return token;
+} // parse_identifier
+
+CR_ErrorInfo::Type
+cparser::Scanner::parse_pragma(
+    ScannerBase& base, token_iterator& it, token_iterator end)
+{
+    if (it == end) {
+        return CR_ErrorInfo::NOTHING;
+    }
+    // #pragma name...
+    auto name = it->m_text;
+    ++it;
+    if (name == "message") {
+        // #pragma message("...")
+        bool flag = token_pattern_match(it, end,
+            {T_L_PAREN, T_STRING, T_R_PAREN}
+        );
+        if (flag) {
+            message(base.location(), (it + 1)->m_text);
+            it += 3;
+        }
+        return CR_ErrorInfo::NOTHING;
+    }
+    if (name == "pack") {
+        // #pragma pack...
+        bool flag = token_pattern_match(it, end,
+            {T_L_PAREN, T_R_PAREN}
+        );
+        if (flag) {
+            // #pragma pack()
+            base.packing().set_pack(); // default value
+            it += 2;
+            return CR_ErrorInfo::NOTHING;
+        }
+        flag = token_pattern_match(it, end,
+            {T_L_PAREN, eof, T_R_PAREN}
+        );
+        if (flag) {
+            if ((it + 1)->m_text == "pop") {
+                // #pragma pack(pop)
+                base.packing().pop_pack();
+            } else {
+                // #pragma pack(#)
+                int pack = std::strtol((it + 1)->m_text.data(), NULL, 0);
+                base.packing().set_pack(pack);
+            }
+            it += 3;
+            return CR_ErrorInfo::NOTHING;
+        }
+        flag = token_pattern_match(it, end,
+            {T_L_PAREN, eof, T_COMMA, eof, T_R_PAREN}
+        );
+        if (flag) {
+            // #pragma pack(push, #)
+            if ((it + 1)->m_text == "push") {
+                int pack = std::strtol((it + 3)->m_text.data(), NULL, 0);
+                assert(pack != 0);
+                base.packing().push_pack(pack);
+                it += 5;
+                return CR_ErrorInfo::NOTHING;
+            }
+        }
+        flag = token_pattern_match(it, end,
+            {T_L_PAREN, eof, T_COMMA, eof, T_COMMA, eof, T_R_PAREN}
+        );
+        if (flag) {
+            // #pragma pack(push, #, #)
+            if ((it + 1)->m_text == "push") {
+                // TODO & FIXME
+                return CR_ErrorInfo::NOTICE;
+            }
+        }
+    }
+    if (name == "comment") {
+        bool flag = token_pattern_match(it, end,
+            {T_L_PAREN, eof, T_COMMA, eof, T_R_PAREN}
+        );
+        if (flag) {
+            if ((it + 1)->m_text == "lib") {
+                // #pragma comment(lib, "...")
+                lib((it + 3)->m_text);
+            } else if ((it + 1)->m_text == "linker") {
+                // #pragma comment(linker, "...")
+                linker((it + 3)->m_text);
+            }
+            it += 5;
+            return CR_ErrorInfo::NOTHING;
+        }
+    }
+    return CR_ErrorInfo::ERR;
+} // parse_pragma
 
 ////////////////////////////////////////////////////////////////////////////
 // CrCalcConstInt...Expr functions
@@ -1275,7 +1884,7 @@ int CrInputCSrc(
         static char filename[MAX_PATH];
         ::GetTempFileNameA(".", "cpa", 0, filename);
         cr_tmpfile = filename;
-        #if 0
+        #if 1
             atexit(CrDeleteTempFileAtExit);
         #endif
 
@@ -1290,7 +1899,11 @@ int CrInputCSrc(
             #error You lose.
         #endif
 
+        int k = -1;
         for (; i < argc; i++) {
+            if (k == -1 && ::GetFileAttributesA(argv[i]) != 0xFFFFFFFF) {
+                k = i;
+            }
             cmdline += " ";
             cmdline += CrConvertCmdLineParam(argv[i]);
         }
@@ -1348,8 +1961,6 @@ int CrInputCSrc(
 
             if (bOK) {
                 if (!cparser::parse_file(tu, cr_tmpfile, is_64bit)) {
-                    fprintf(stderr, "ERROR: Failed to parse file '%s'\n",
-                            argv[i]);
                     return cr_exit_parse_error;   // failure
                 }
             } else {
@@ -1478,7 +2089,7 @@ void CrDumpSemantic(
 
     fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(count)\t(pack)\t(align)\t(file)\t(line)\t(definition)\t(item_1_type_id)\t(item_1_name)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
+        fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(count)\t(pack)\t(align)\t(file)\t(line)\t(definition)\t(item_1_name)\t(item_1_type_id)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
         for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& type = namescope.LogType(tid);
             if (!(type.m_flags & (TF_STRUCT | TF_UNION))) {
@@ -1500,14 +2111,16 @@ void CrDumpSemantic(
                 location.m_file.data(), location.m_line, strDef.data());
             if (type.m_flags & TF_UNION) {
                 for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
-                    fprintf(fp, "\t%d\t%s\t0\t0",
-                        static_cast<int>(ls.m_type_list[i]), ls.m_name_list[i].data());
+                    fprintf(fp, "\t%s\t%d\t0\t0",
+                        ls.m_name_list[i].data(),
+                        static_cast<int>(ls.m_type_list[i]));
                 }
             } else {
                 assert(ls.m_type_list.size() == ls.m_offset_list.size());
                 for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
-                    fprintf(fp, "\t%d\t%s\t%d\t%d",
-                        static_cast<int>(ls.m_type_list[i]), ls.m_name_list[i].data(),
+                    fprintf(fp, "\t%s\t%d\t%d\t%d",
+                        ls.m_name_list[i].data(),
+                        static_cast<int>(ls.m_type_list[i]),
                         static_cast<int>(ls.m_offset_list[i]),
                         static_cast<int>(ls.m_bits_list[i]));
                 }
@@ -1619,11 +2232,6 @@ void CrShowHelp(void) {
 extern "C"
 int main(int argc, char **argv) {
     int i;
-
-    #if 0
-        printf("Press [Enter] key.");
-        getchar();
-    #endif
 
     #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
         bool is_64bit = true;

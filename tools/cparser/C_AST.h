@@ -67,6 +67,7 @@ namespace cparser
     //
     struct Node {
         Node() { }
+        Node(const CR_Location& location) : m_loc(location) { }
         virtual ~Node() { }
 
               CR_Location& location()       { return m_loc; }
@@ -149,7 +150,7 @@ namespace cparser
         shared_ptr<DeclList>        m_decl_list;    // for struct, union or enum
         shared_ptr<EnumorList>      m_enumor_list;
         shared_ptr<AtomicTypeSpec>  m_atomic_type_spec;
-        TypeSpec() : m_flag(0), m_pack(1) { }
+        TypeSpec() : m_flag(0), m_pack(0) { }
     };
 
     struct TypeQual : Node {
@@ -442,6 +443,7 @@ namespace cparser
 
         token_type      m_token;
         CR_String       m_text;
+        CR_String       m_extra;
         int             m_pack;
         CR_TypeFlags    m_flags;
         union {
@@ -454,7 +456,25 @@ namespace cparser
         };
 
     public:
-        TokenInfo() : m_pack(1), m_flags(0), m_long_long_value(0) { }
+        TokenInfo() : m_pack(0), m_flags(0), m_long_long_value(0) { }
+
+        TokenInfo(token_type token) :
+            m_token(token), m_pack(0), m_flags(0),
+            m_long_long_value(0) { }
+
+        TokenInfo(token_type token, const std::string& text) :
+            m_token(token), m_text(text), m_pack(0),
+            m_flags(0), m_long_long_value(0) { }
+
+        TokenInfo(token_type token, 
+                  const std::string& text, const std::string& extra) :
+            m_token(token), m_text(text),
+            m_extra(extra), m_pack(0), m_flags(0), m_long_long_value(0) { }
+
+        TokenInfo(token_type token,  const std::string& text,
+                  const std::string& extra, CR_TypeFlags flags) :
+            m_token(token), m_text(text), m_extra(extra),
+            m_pack(0), m_flags(flags), m_long_long_value(0) { }
 
         void set_token(token_type token) {
             m_token = token;

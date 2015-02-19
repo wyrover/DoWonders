@@ -24,8 +24,11 @@
 %token T_CONST<CR_TokenInfo>;
 %token T_CONSTANT<CR_TokenInfo>;
 %token T_CONTINUE<CR_TokenInfo>;
-%token T_DECLSPEC<CR_TokenInfo>;
+%token T_CPP_COMMENT<CR_TokenInfo>;
+%token T_C_COMMENT_BEGIN<CR_TokenInfo>;
+%token T_C_COMMENT_END<CR_TokenInfo>;
 %token T_DEC<CR_TokenInfo>;
+%token T_DECLSPEC<CR_TokenInfo>;
 %token T_DEFAULT<CR_TokenInfo>;
 %token T_DIV_ASSIGN<CR_TokenInfo>;
 %token T_DO<CR_TokenInfo>;
@@ -55,6 +58,7 @@
 %token T_INT32<CR_TokenInfo>;
 %token T_INT64<CR_TokenInfo>;
 %token T_INT128<CR_TokenInfo>;
+%token T_INVALID_CHAR<CR_TokenInfo>;	// invalid character (to be deleted)
 %token T_LE<CR_TokenInfo>;
 %token T_LONG<CR_TokenInfo>;
 %token T_LT<CR_TokenInfo>;
@@ -69,6 +73,7 @@
 %token T_MOD_ASSIGN<CR_TokenInfo>;
 %token T_MUL_ASSIGN<CR_TokenInfo>;
 %token T_NE<CR_TokenInfo>;
+%token T_NEWLINE<CR_TokenInfo>;         // new line (to be deleted)
 %token T_NORETURN<CR_TokenInfo>;
 %token T_NOTHROW<CR_TokenInfo>;
 %token T_NOT<CR_TokenInfo>;
@@ -89,6 +94,7 @@
 %token T_R_SHIFT<CR_TokenInfo>;
 %token T_R_PAREN<CR_TokenInfo>;
 %token T_SEMICOLON<CR_TokenInfo>;
+%token T_SHARP<CR_TokenInfo>;
 %token T_SHORT<CR_TokenInfo>;
 %token T_SIGNED<CR_TokenInfo>;
 %token T_SIZEOF<CR_TokenInfo>;

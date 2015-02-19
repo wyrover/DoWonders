@@ -14,7 +14,7 @@ struct CR_Location
     CR_Location(const std::string& file, int line) :
         m_file(file), m_line(line) { }
 
-    void set(const char *file, int line) {
+    void set(const std::string& file, int line) {
         m_file = file;
         m_line = line;
     }

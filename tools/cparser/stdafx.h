@@ -14,6 +14,7 @@
 #include <cstdio>           // standard I/O
 #include <cstring>          // C string
 #include <cassert>          // for assert
+#include <cctype>           // for isdigit, isalpha, isalnum, ...
 
 #include <vector>           // for std::vector
 #include <string>           // for std::string
@@ -28,6 +29,8 @@ using std::shared_ptr;
 using std::dynamic_pointer_cast;
 using std::static_pointer_cast;
 using std::make_shared;
+
+#include <regex>            // std::regex
 
 #include "Location.h"       // CR_Location
 #include "Main.h"

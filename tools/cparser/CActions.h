@@ -9,9 +9,6 @@ namespace cparser
     // Actions
     //
     struct Actions {
-    public:
-        Actions() : m_num_errors(0), m_num_warnings(0) { }
-
         void syntax_error() { }
         void stack_overflow() { }
 
@@ -1195,22 +1192,6 @@ namespace cparser
             return shared_ptr<Declor>(declor);
         }
 
-        #if 0
-            shared_ptr<Declor> DoTypedefDirDeclor6(
-                shared_ptr<Declor>& d, shared_ptr<IdentList>& il)
-            {
-                #ifdef DEEPDEBUG
-                    std::printf("DoTypedefDirDeclor6\n");
-                #endif
-                Declor *declor = new Declor;
-                declor->m_declor_type = Declor::FUNCTION;
-                declor->m_declor = d;
-                declor->m_ident_list = il;
-                declor->location() = d->location();
-                return shared_ptr<Declor>(declor);
-            }
-        #endif
-
         shared_ptr<Declor> DoTypedefDirDeclor7(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
                 std::printf("DoTypedefDirDeclor7\n");
@@ -1279,22 +1260,6 @@ namespace cparser
             declor->location() = d->location();
             return shared_ptr<Declor>(declor);
         }
-
-        #if 0
-            shared_ptr<Declor> DoDirDeclor6(
-                shared_ptr<Declor>& d, shared_ptr<IdentList>& il)
-            {
-                #ifdef DEEPDEBUG
-                    std::printf("DoDirDeclor6\n");
-                #endif
-                Declor *declor = new Declor;
-                declor->m_declor_type = Declor::FUNCTION;
-                declor->m_declor = d;
-                declor->m_ident_list = il;
-                declor->location() = d->location();
-                return shared_ptr<Declor>(declor);
-            }
-        #endif
 
         shared_ptr<Declor> DoDirDeclor7(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
@@ -1504,27 +1469,6 @@ namespace cparser
 
             return shared_ptr<Decl>(decl);
         }
-
-        #if 0
-            shared_ptr<IdentList> DoIdentList1(
-                shared_ptr<IdentList>& il, shared_ptr<CR_TokenInfo>& id)
-            {
-                #ifdef DEEPDEBUG
-                    std::printf("DoIdentList1\n");
-                #endif
-                il.get()->push_back(id->m_text);
-                return il;
-            }
-
-            shared_ptr<IdentList> DoIdentList2(shared_ptr<CR_TokenInfo>& id) {
-                #ifdef DEEPDEBUG
-                    std::printf("DoIdentList2\n");
-                #endif
-                IdentList *il = new IdentList;
-                il->push_back(id->m_text);
-                return shared_ptr<IdentList>(il);
-            }
-        #endif
 
         shared_ptr<Initer> DoIniter1(shared_ptr<AssignExpr>& ae) {
             #ifdef DEEPDEBUG
@@ -1804,7 +1748,7 @@ namespace cparser
             #endif
             LabeledStmt *ls = new LabeledStmt;
             ls->m_labeled_type = LabeledStmt::LABEL;
-            ls->m_label = id->m_text.c_str();
+            ls->m_label = id->m_text.data();
             ls->m_stmt = s;
             return shared_ptr<LabeledStmt>(ls);
         }
@@ -3189,55 +3133,6 @@ namespace cparser
             ao->m_expr = e;
             return shared_ptr<AsmOperand>(ao);
         }
-
-    public:
-              CR_Location& location()       { return m_loc; }
-        const CR_Location& location() const { return m_loc; }
-
-        //
-        // errors and warnings
-        //
-        void message(const std::string& str) {
-            std::string loc = location().str();
-            printf("%s: %s\n", loc.c_str(), str.c_str());
-        }
-
-        void unsupported_escape_sequence() {
-            message("WARNING: unsupported escape sequence");
-            add_warning();
-        }
-
-        void unexpected_character(char c) {
-            std::string str("ERROR: unexpected character '");
-            str += c;
-            str += '\'';
-            message(str);
-            add_error();
-        }
-
-        void unexpected_eof() {
-            message("ERROR: unexpected end of file");
-            add_error();
-        }
-
-        void not_supported_yet(const std::string& str) {
-            message(std::string("ERROR: ") + str + " is not supported yet");
-            add_error();
-        }
-
-        int get_errors() const   { return m_num_errors; }
-        int get_warnings() const { return m_num_warnings; }
-        void add_error()         { m_num_errors++; }
-        void add_warning()       { m_num_warnings++; }
-
-        void clear_errors() {
-            m_num_errors = m_num_warnings = 0;
-        }
-
-    protected:
-        CR_Location                     m_loc;
-        int                             m_num_errors;
-        int                             m_num_warnings;
     };
 } // namespace cparser
 

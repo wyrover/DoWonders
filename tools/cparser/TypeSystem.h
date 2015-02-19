@@ -181,7 +181,7 @@ struct CR_LogStruct {
     size_t                  m_align;            // alignment requirement
 
     CR_LogStruct(bool struct_or_union = true) :
-        m_struct_or_union(struct_or_union), m_pack(1), m_align(1) { }
+        m_struct_or_union(struct_or_union), m_pack(8), m_align(1) { }
 
     size_t FindName(const CR_String& name) const {
         for (size_t i = 0; i < m_name_list.size(); i++) {
