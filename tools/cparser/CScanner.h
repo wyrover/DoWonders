@@ -4,7 +4,7 @@
 namespace cparser
 {
     //
-    // Pack
+    // Packing
     //
     class Packing {
     public:
@@ -36,7 +36,7 @@ namespace cparser
     //
     class ScannerBase {
     public:
-        ScannerBase(my_iterator begin, my_iterator end) :
+        ScannerBase(scanner_iterator begin, scanner_iterator end) :
             m_current(begin), m_end(end) { }
 
         char getch() {
@@ -59,10 +59,10 @@ namespace cparser
         const CR_Location& location() const { return m_location; }
 
     protected:
-        my_iterator     m_current;
-        my_iterator     m_end;
-        Packing         m_packing;
-        CR_Location     m_location;
+        scanner_iterator    m_current;
+        scanner_iterator    m_end;
+        Packing             m_packing;
+        CR_Location         m_location;
     };
 
     //
@@ -77,7 +77,9 @@ namespace cparser
         bool is_in_block_comment() const { return m_in_c_comment; }
         bool is_in_line_comment() const { return m_in_cxx_comment; }
 
-        void scan(token_container& infos, my_iterator begin, my_iterator end) {
+        void scan(token_container& infos,
+                  scanner_iterator begin, scanner_iterator end)
+        {
             ScannerBase base(begin, end);
 
             // get tokens

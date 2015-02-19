@@ -9,7 +9,7 @@
 
 namespace cparser
 {
-    typedef std::istreambuf_iterator<char>  my_iterator;
+    typedef std::istreambuf_iterator<char>  scanner_iterator;
     typedef std::string::iterator           str_iterator;
     typedef TokenInfo<Token>                token_type;
     typedef std::vector<token_type>         token_container;
@@ -23,7 +23,7 @@ namespace cparser
 {
     inline bool parse(
         shared_ptr<TransUnit>& tu,
-        my_iterator begin, my_iterator end,
+        scanner_iterator begin, scanner_iterator end,
         bool is_64bit = false)
     {
         using namespace cparser;
