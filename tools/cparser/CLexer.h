@@ -64,11 +64,11 @@ namespace cparser
     }; // Packing
 
     //
-    // ScannerBase
+    // LexerBase
     //
-    class ScannerBase {
+    class LexerBase {
     public:
-        ScannerBase(scanner_iterator begin, scanner_iterator end) :
+        LexerBase(scanner_iterator begin, scanner_iterator end) :
             m_current(begin), m_end(end) { }
 
         char getch() {
@@ -102,11 +102,11 @@ namespace cparser
     };
 
     //
-    // Scanner
+    // Lexer
     //
-    class Scanner {
+    class Lexer {
     public:
-        Scanner(shared_ptr<CR_ErrorInfo> error_info, bool is_64bit = false) :
+        Lexer(shared_ptr<CR_ErrorInfo> error_info, bool is_64bit = false) :
             m_error_info(error_info), m_is_64bit(is_64bit),
             m_in_c_comment(false), m_in_cxx_comment(false)
         {
@@ -116,8 +116,8 @@ namespace cparser
         bool is_in_block_comment() const { return m_in_c_comment; }
         bool is_in_line_comment() const { return m_in_cxx_comment; }
 
-        void scan(token_container& infos,
-                  scanner_iterator begin, scanner_iterator end);
+        void just_do_it(token_container& infos,
+                        scanner_iterator begin, scanner_iterator end);
 
         void show_tokens(token_iterator begin, token_iterator end) const {
             for (auto it = begin; it != end; ++it) {
@@ -131,8 +131,8 @@ namespace cparser
             infos.emplace_back(T_NEWLINE, "\\n");
         }
 
-        void skip_block_comment(ScannerBase& base, token_container& infos);
-        void skip_line_comment(ScannerBase& base, token_container& infos);
+        void skip_block_comment(LexerBase& base, token_container& infos);
+        void skip_line_comment(LexerBase& base, token_container& infos);
 
         std::string guts_escape_sequence(str_iterator& it, str_iterator end) const;
         std::string guts_string(str_iterator& it, str_iterator end) const;
@@ -151,19 +151,19 @@ namespace cparser
 
         bool lexeme(str_iterator& it, str_iterator end, const std::string& str);
 
-        std::string get_line(ScannerBase& base);
-        bool get_tokens(ScannerBase& base, token_container& infos);
+        std::string get_line(LexerBase& base);
+        bool get_tokens(LexerBase& base, token_container& infos);
         bool token_pattern_match(
-            ScannerBase& base, token_iterator it, token_iterator end,
+            LexerBase& base, token_iterator it, token_iterator end,
             const std::vector<Token>& tokens) const;
 
     protected:
         //
         // resynth
         //
-        void resynth(ScannerBase& base, token_container& c);
+        void resynth(LexerBase& base, token_container& c);
 
-        void resynth1(ScannerBase& base, token_container& c);
+        void resynth1(LexerBase& base, token_container& c);
         void resynth2(token_container& c);
         void resynth3(token_iterator begin, token_iterator end);
 
@@ -185,10 +185,10 @@ namespace cparser
         Token parse_identifier(const std::string& text) const;
 
         CR_ErrorInfo::Type
-        parse_pragma(ScannerBase& base, token_iterator it, token_iterator end);
+        parse_pragma(LexerBase& base, token_iterator it, token_iterator end);
 
         CR_ErrorInfo::Type
-        parse_pack(ScannerBase& base, token_iterator it, token_iterator end);
+        parse_pack(LexerBase& base, token_iterator it, token_iterator end);
 
     protected:
         shared_ptr<CR_ErrorInfo>    m_error_info;
@@ -228,10 +228,10 @@ namespace cparser
         void init_symbol_table();
 
     private:
-        // NOTE: Scanner is not copyable.
-        Scanner(const Scanner&) = delete;
-        Scanner& operator=(const Scanner&) = delete;
-    }; // class Scanner
+        // NOTE: Lexer is not copyable.
+        Lexer(const Lexer&) = delete;
+        Lexer& operator=(const Lexer&) = delete;
+    }; // class Lexer
 } // namespace cparser
 
 #endif  // ndef CSCANNER_H_

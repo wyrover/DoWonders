@@ -16,27 +16,26 @@ namespace cparser
     typedef token_container::iterator       token_iterator;
 }
 
-#include "CScanner.h"       // for cparser::Scanner
+#include "CLexer.h"       // for cparser::Lexer
 #include "CActions.h"    // for cparser::Actions
 
 namespace cparser
 {
     inline bool parse(
-        shared_ptr<TransUnit>& tu,
+        shared_ptr<CR_ErrorInfo> error_info, shared_ptr<TransUnit>& tu,
         scanner_iterator begin, scanner_iterator end,
         bool is_64bit = false)
     {
         using namespace cparser;
-        auto error_info = make_shared<CR_ErrorInfo>();
 
         Actions as;
-        Scanner scanner(error_info, is_64bit);
+        Lexer lexer(error_info, is_64bit);
 
         std::vector<CR_TokenInfo> infos;
-        scanner.scan(infos, begin, end);
+        lexer.just_do_it(infos, begin, end);
         #if 0
             std::printf("\n#2\n");
-            scanner.show_tokens(infos.begin(), infos.end());
+            lexer.show_tokens(infos.begin(), infos.end());
             std::printf("\n--------------\n");
             fflush(stdout);
         #endif
@@ -58,7 +57,7 @@ namespace cparser
                     }
                     for (int i = 0; i < count; ++i) {
                         if (infos_end != it) {
-                            around += scanner.token_to_string(*it);
+                            around += lexer.token_to_string(*it);
                             around += " ";
                             ++it;
                         }
@@ -67,7 +66,7 @@ namespace cparser
                     }
                     error_info.get()->add_error(
                         it_save->location(),
-                        "Syntax error near " + scanner.token_to_string(*it_save) +
+                        "Syntax error near " + lexer.token_to_string(*it_save) +
                         "\n" + "around: " + around
                     );
                     error_info->emit_all();
@@ -84,17 +83,17 @@ namespace cparser
             return true;
         }
 
-        error_info->emit_all();
         return false;
     }
 
-    inline bool parse_file(shared_ptr<TransUnit>& ts, const char *filename,
-                           bool is_64bit = false)
+    inline bool parse_file(
+        shared_ptr<CR_ErrorInfo> error_info, shared_ptr<TransUnit>& ts,
+        const char *filename, bool is_64bit = false)
     {
         std::ifstream file(filename);
         if (file.is_open()) {
             std::istreambuf_iterator<char> begin(file), end;
-            bool ok = parse(ts, begin, end, is_64bit);
+            bool ok = parse(error_info, ts, begin, end, is_64bit);
             file.close();
             return ok;
         }

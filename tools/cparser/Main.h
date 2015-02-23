@@ -153,6 +153,18 @@ public:
         m_errors.emplace_back(location.str() + ": ERROR: " + str);
     }
 
+    void add_notice(const std::string str) {
+        m_notices.emplace_back(str);
+    }
+
+    void add_warning(const std::string str) {
+        m_warnings.emplace_back("WARNING: " + str);
+    }
+
+    void add_error(const std::string str) {
+        m_errors.emplace_back("ERROR: " + str);
+    }
+
           error_container& notices()        { return m_notices; }
     const error_container& notices() const  { return m_notices; }
           error_container& warnings()       { return m_warnings; }

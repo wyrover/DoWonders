@@ -50,9 +50,9 @@ void CrDeleteTempFileAtExit(void) {
 using namespace cparser;
 
 ////////////////////////////////////////////////////////////////////////////
-// cparser::Scanner
+// cparser::Lexer
 
-std::string cparser::Scanner::token_to_string(const token_type& info) const {
+std::string cparser::Lexer::token_to_string(const token_type& info) const {
     std::string str = token_label(info.m_token);
     if (info.m_text.size()) {
         str += "(";
@@ -62,8 +62,8 @@ std::string cparser::Scanner::token_to_string(const token_type& info) const {
     return str;
 }
 
-void cparser::Scanner::skip_block_comment(
-    ScannerBase& base, token_container& infos)
+void cparser::Lexer::skip_block_comment(
+    LexerBase& base, token_container& infos)
 {
     char c;
     do {
@@ -81,8 +81,8 @@ void cparser::Scanner::skip_block_comment(
     } while (c != -1);
 } // skip_block_comment
 
-void cparser::Scanner::skip_line_comment(
-    ScannerBase& base, token_container& infos)
+void cparser::Lexer::skip_line_comment(
+    LexerBase& base, token_container& infos)
 {
     char c;
     do {
@@ -95,8 +95,8 @@ void cparser::Scanner::skip_line_comment(
     } while (c != EOF);
 } // skip_line_comment
 
-bool cparser::Scanner::token_pattern_match(
-    ScannerBase& base, token_iterator it, token_iterator end,
+bool cparser::Lexer::token_pattern_match(
+    LexerBase& base, token_iterator it, token_iterator end,
     const std::vector<Token>& tokens) const
 {
     token_iterator saved = it;
@@ -117,7 +117,7 @@ bool cparser::Scanner::token_pattern_match(
 }
 
 std::string
-cparser::Scanner::guts_escape_sequence(
+cparser::Lexer::guts_escape_sequence(
     str_iterator& it, str_iterator end) const
 {
     std::string result;
@@ -174,7 +174,7 @@ cparser::Scanner::guts_escape_sequence(
 } // guts_escape_sequence
 
 std::string
-cparser::Scanner::guts_string(str_iterator& it, str_iterator end) const {
+cparser::Lexer::guts_string(str_iterator& it, str_iterator end) const {
     std::string result;
     assert(it != end && *it == '\"');
     for (++it; it != end; ++it) {
@@ -205,7 +205,7 @@ cparser::Scanner::guts_string(str_iterator& it, str_iterator end) const {
 } // guts_string
 
 std::string
-cparser::Scanner::guts_char(str_iterator& it, str_iterator end) const {
+cparser::Lexer::guts_char(str_iterator& it, str_iterator end) const {
     std::string result;
     assert(it != end && *it == '\'');
     for (++it; it != end; ++it) {
@@ -228,7 +228,7 @@ cparser::Scanner::guts_char(str_iterator& it, str_iterator end) const {
 } // guts_char
 
 std::string
-cparser::Scanner::guts_hex(str_iterator& it, str_iterator end) const {
+cparser::Lexer::guts_hex(str_iterator& it, str_iterator end) const {
     std::string result;
     for (; it != end; ++it) {
         if (isxdigit(*it)) {
@@ -241,7 +241,7 @@ cparser::Scanner::guts_hex(str_iterator& it, str_iterator end) const {
 } // guts_hex
 
 std::string
-cparser::Scanner::guts_digits(str_iterator& it, str_iterator end) const {
+cparser::Lexer::guts_digits(str_iterator& it, str_iterator end) const {
     std::string result;
     for (; it != end; ++it) {
         if (isdigit(*it)) {
@@ -254,7 +254,7 @@ cparser::Scanner::guts_digits(str_iterator& it, str_iterator end) const {
 } // guts_digits
 
 std::string
-cparser::Scanner::guts_octal(str_iterator& it, str_iterator end) const {
+cparser::Lexer::guts_octal(str_iterator& it, str_iterator end) const {
     std::string result;
     for (; it != end; ++it) {
         if ('0' <= *it && *it <= '7') {
@@ -270,7 +270,7 @@ cparser::Scanner::guts_octal(str_iterator& it, str_iterator end) const {
 } // guts_octal
 
 std::string
-cparser::Scanner::guts_floating(str_iterator& it, str_iterator end) const {
+cparser::Lexer::guts_floating(str_iterator& it, str_iterator end) const {
     std::string result;
     if (it != end && *it == '.') {
         ++it;
@@ -280,7 +280,7 @@ cparser::Scanner::guts_floating(str_iterator& it, str_iterator end) const {
 } // guts_floating
 
 std::string
-cparser::Scanner::guts_indentifier(str_iterator& it, str_iterator end) const {
+cparser::Lexer::guts_indentifier(str_iterator& it, str_iterator end) const {
     std::string result;
     if (it != end && (isalpha(*it) || *it == '_')) {
         result += *it;
@@ -297,7 +297,7 @@ cparser::Scanner::guts_indentifier(str_iterator& it, str_iterator end) const {
 } // guts_indentifier
 
 std::string
-cparser::Scanner::guts_integer_suffix(
+cparser::Lexer::guts_integer_suffix(
     str_iterator& it, str_iterator end, CR_TypeFlags& flags) const
 {
     std::string result;
@@ -321,7 +321,7 @@ cparser::Scanner::guts_integer_suffix(
 } // guts_integer_suffix
 
 std::string
-cparser::Scanner::guts_floating_suffix(
+cparser::Lexer::guts_floating_suffix(
     str_iterator& it, str_iterator end, CR_TypeFlags& flags) const
 {
     std::string result;
@@ -339,7 +339,7 @@ cparser::Scanner::guts_floating_suffix(
 } // guts_floating_suffix
 
 std::string
-cparser::Scanner::guts_exponent(str_iterator& it, str_iterator end) const
+cparser::Lexer::guts_exponent(str_iterator& it, str_iterator end) const
 {
     std::string result;
     if (it != end) {
@@ -364,7 +364,7 @@ cparser::Scanner::guts_exponent(str_iterator& it, str_iterator end) const
     return result;
 } // guts_exponent
 
-bool cparser::Scanner::lexeme(
+bool cparser::Lexer::lexeme(
     str_iterator& it, str_iterator end, const std::string& str)
 {
     str_iterator saved = it;
@@ -378,11 +378,11 @@ bool cparser::Scanner::lexeme(
     return i == siz;
 } // lexeme
 
-void cparser::Scanner::scan(
+void cparser::Lexer::just_do_it(
     token_container& infos,
     scanner_iterator begin, scanner_iterator end)
 {
-    ScannerBase base(begin, end);
+    LexerBase base(begin, end);
 
     // get tokens
     token_container read_infos;
@@ -398,9 +398,9 @@ void cparser::Scanner::scan(
     resynth(base, infos);
 
     m_type_names.clear();   // no use
-} // scan
+} // just_do_it
 
-std::string cparser::Scanner::get_line(ScannerBase& base) {
+std::string cparser::Lexer::get_line(LexerBase& base) {
     std::string line;
     // get line
     char ch;
@@ -417,7 +417,7 @@ std::string cparser::Scanner::get_line(ScannerBase& base) {
 }
 
 bool
-cparser::Scanner::get_tokens(ScannerBase& base, token_container& infos) {
+cparser::Lexer::get_tokens(LexerBase& base, token_container& infos) {
 retry:
     if (base.is_eof()) {
         return false;
@@ -782,7 +782,7 @@ label_default:
     return true;
 } // get_tokens
 
-void cparser::Scanner::resynth(ScannerBase& base, token_container& c) {
+void cparser::Lexer::resynth(LexerBase& base, token_container& c) {
     const bool c_show_tokens = true;
 
     if (c_show_tokens) {
@@ -807,7 +807,7 @@ void cparser::Scanner::resynth(ScannerBase& base, token_container& c) {
     resynth5(c.begin(), c.end());
 }
 
-void cparser::Scanner::resynth1(ScannerBase& base, token_container& c) {
+void cparser::Lexer::resynth1(LexerBase& base, token_container& c) {
     token_container     newc;
     newc.reserve(c.size());
 
@@ -883,7 +883,7 @@ void cparser::Scanner::resynth1(ScannerBase& base, token_container& c) {
     std::swap(c, newc);
 }
 
-void cparser::Scanner::resynth2(token_container& c) {
+void cparser::Lexer::resynth2(token_container& c) {
     token_container newc;
     token_iterator it, it2, end = c.end();
     for (it = c.begin(); it != end; ++it) {
@@ -934,7 +934,7 @@ void cparser::Scanner::resynth2(token_container& c) {
     std::swap(c, newc);
 } // resynth2
 
-void cparser::Scanner::resynth3(token_iterator begin, token_iterator end) {
+void cparser::Lexer::resynth3(token_iterator begin, token_iterator end) {
     m_type_names.clear();
     #ifdef __GNUC__
         m_type_names.insert("__builtin_va_list");   // fixup
@@ -970,7 +970,7 @@ void cparser::Scanner::resynth3(token_iterator begin, token_iterator end) {
 } // resynth3
 
 cparser::token_iterator
-cparser::Scanner::resynth_typedef(token_iterator begin, token_iterator end) {
+cparser::Lexer::resynth_typedef(token_iterator begin, token_iterator end) {
     int paren_nest = 0, brace_nest = 0, bracket_nest = 0;
     token_iterator it;
     for (it = begin; it != end; ++it) {
@@ -1026,7 +1026,7 @@ cparser::Scanner::resynth_typedef(token_iterator begin, token_iterator end) {
 } // resynth_typedef
 
 cparser::token_iterator
-cparser::Scanner::resynth_parameter_list(
+cparser::Lexer::resynth_parameter_list(
     token_iterator begin, token_iterator end)
 {
     int paren_nest = 1;
@@ -1067,7 +1067,7 @@ cparser::Scanner::resynth_parameter_list(
 } // resynth_parameter_list
 
 cparser::token_iterator
-cparser::Scanner::skip_gnu_attribute(
+cparser::Lexer::skip_gnu_attribute(
     token_iterator begin, token_iterator end)
 {
     token_iterator it = begin;
@@ -1091,7 +1091,7 @@ cparser::Scanner::skip_gnu_attribute(
 } // skip_gnu_attribute
 
 cparser::token_iterator
-cparser::Scanner::skip_asm_for_fn_decl(
+cparser::Lexer::skip_asm_for_fn_decl(
     token_iterator begin, token_iterator end)
 {
     token_iterator it = begin;
@@ -1114,7 +1114,7 @@ cparser::Scanner::skip_asm_for_fn_decl(
     return it;
 } // skip_asm_for_fn_decl
 
-void cparser::Scanner::resynth4(token_container& c) {
+void cparser::Lexer::resynth4(token_container& c) {
     token_container newc;
     token_iterator it, it2, end = c.end();
     for (it = c.begin(); it != end; ++it) {
@@ -1192,7 +1192,7 @@ void cparser::Scanner::resynth4(token_container& c) {
     std::swap(c, newc);
 } // resynth4
 
-void cparser::Scanner::resynth5(token_iterator begin, token_iterator end) {
+void cparser::Lexer::resynth5(token_iterator begin, token_iterator end) {
     token_iterator it, paren_it, it2;
     int paren_nest = 0;
     for (it = begin; it != end; ++it) {
@@ -1230,7 +1230,7 @@ void cparser::Scanner::resynth5(token_iterator begin, token_iterator end) {
     }
 } // resynth5
 
-void cparser::Scanner::init_symbol_table() {
+void cparser::Lexer::init_symbol_table() {
     auto& st = m_symbol_table;
     st.clear();
     st.reserve(76);
@@ -1313,7 +1313,7 @@ void cparser::Scanner::init_symbol_table() {
 }
 
 cparser::Token
-cparser::Scanner::parse_identifier(const std::string& text) const {
+cparser::Lexer::parse_identifier(const std::string& text) const {
     const auto& st = m_symbol_table;
     auto it = st.find(text);
     auto end = st.end();
@@ -1325,8 +1325,8 @@ cparser::Scanner::parse_identifier(const std::string& text) const {
 } // parse_identifier
 
 CR_ErrorInfo::Type
-cparser::Scanner::parse_pack(
-    ScannerBase& base, token_iterator it, token_iterator end)
+cparser::Lexer::parse_pack(
+    LexerBase& base, token_iterator it, token_iterator end)
 {
     const bool c_show_pack = false;
     bool flag;
@@ -1447,8 +1447,8 @@ cparser::Scanner::parse_pack(
 }
 
 CR_ErrorInfo::Type
-cparser::Scanner::parse_pragma(
-    ScannerBase& base, token_iterator it, token_iterator end)
+cparser::Lexer::parse_pragma(
+    LexerBase& base, token_iterator it, token_iterator end)
 {
     if (it == end) {
         return CR_ErrorInfo::NOTHING;
@@ -2702,15 +2702,18 @@ std::string CrConvertCmdLineParam(const std::string& str) {
 
 // do input
 int CrInputCSrc(
-    shared_ptr<TransUnit>& tu,
+    shared_ptr<CR_ErrorInfo> error_info, shared_ptr<TransUnit>& tu,
     int i, int argc, char **argv, bool is_64bit)
 {
     char *pchDotExt = strrchr(argv[i], '.');
+
     // if file extension is ".i",
     if (strcmp(pchDotExt, ".i") == 0) {
         // directly parse
-        if (!cparser::parse_file(tu, argv[i], is_64bit)) {
-            fprintf(stderr, "ERROR: Failed to parse file '%s'\n", argv[i]);
+        if (!cparser::parse_file(error_info, tu, argv[i], is_64bit)) {
+            error_info.get()->add_error(
+                std::string("failed to parse file '") + argv[i] + "'"
+            );
             return cr_exit_parse_error;   // failure
         }
     } else if (strcmp(pchDotExt, ".h") == 0 ||
@@ -2765,16 +2768,17 @@ int CrInputCSrc(
                 if (output.PeekNamedPipe(NULL, 0, NULL, &cbAvail) && cbAvail > 0) {
                     if (output.ReadFile(szBuf, cbBuf, &cbRead)) {
                         if (!tfile.WriteFile(szBuf, cbRead, &cbRead)) {
-                            fprintf(stderr,
-                                "ERROR: Cannot write to temporary file '%s'\n",
-                                cr_tmpfile);
+                            error_info.get()->add_error(
+                                std::string("cannot write to temporary file'") +
+                                    cr_tmpfile + "'");
                             bOK = FALSE;
                             break;
                         }
                     } else {
                         DWORD dwError = ::GetLastError();
                         if (dwError != ERROR_MORE_DATA) {
-                            fprintf(stderr, "ERROR: Cannot read output\n");
+                            error_info.get()->add_error(
+                                std::string("cannot read output"));
                             break;
                         }
                     }
@@ -2796,7 +2800,7 @@ int CrInputCSrc(
             }
 
             if (bOK) {
-                if (!cparser::parse_file(tu, cr_tmpfile, is_64bit)) {
+                if (!cparser::parse_file(error_info, tu, cr_tmpfile, is_64bit)) {
                     return cr_exit_parse_error;   // failure
                 }
             } else {
@@ -2806,9 +2810,10 @@ int CrInputCSrc(
             return cr_exit_cpp_error;   // failure
         }
     } else {
-        fprintf(stderr,
-            "ERROR: Unknown input file extension '%s'. Please use .i or .h\n",
-            pchDotExt);
+        error_info.get()->add_error(
+            std::string("unknown input file extension '") +
+                pchDotExt + "'. please use .i or .h"
+        );
         return cr_exit_wrong_ext;   // failure
     }
     return cr_exit_ok;   // success
@@ -2817,7 +2822,10 @@ int CrInputCSrc(
 ////////////////////////////////////////////////////////////////////////////
 // semantic analysis
 
-int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {
+int CrSemanticAnalysis(
+    shared_ptr<CR_ErrorInfo> error_info,
+    CR_NameScope& namescope, shared_ptr<TransUnit>& tu)
+{
     assert(tu.get());
     for (auto& decl : *tu.get()) {
         switch (decl->m_decl_type) {
@@ -3124,19 +3132,25 @@ int main(int argc, char **argv) {
         return cr_exit_ok;
     }
 
-    fprintf(stderr, "Parsing...\n");
+    int result = cr_exit_ok;
+
     shared_ptr<TransUnit> tu;
+    auto error_info = make_shared<CR_ErrorInfo>();
     if (i < argc) {
+        fprintf(stderr, "Parsing...\n");
         // argv[i] == input-file
         // argv[i + 1] == compiler option #1
         // argv[i + 2] == compiler option #2
         // argv[i + 3] == ...
-        int result = CrInputCSrc(tu, i, argc, argv, is_64bit);
-        if (result)
-            return result;
+        result = CrInputCSrc(error_info, tu, i, argc, argv, is_64bit);
     } else {
-        fprintf(stderr, "ERROR: No input files.\n");
-        return cr_exit_no_input;
+        error_info.get()->add_error("no input files");
+        result = cr_exit_no_input;
+    }
+
+    if (result) {
+        error_info->emit_all();
+        return result;
     }
 
     if (tu) {
@@ -3144,27 +3158,26 @@ int main(int argc, char **argv) {
         if (is_64bit) {
             CR_NameScope namescope(true);
 
-            int result = CrSemanticAnalysis(namescope, tu);
-            if (result)
-                return result;
-
+            result = CrSemanticAnalysis(error_info, namescope, tu);
             tu = shared_ptr<TransUnit>();
-            CrDumpSemantic(namescope, strPrefix, strSuffix);
+            if (result == 0) {
+                CrDumpSemantic(namescope, strPrefix, strSuffix);
+            }
         } else {
             CR_NameScope namescope(false);
 
-            int result = CrSemanticAnalysis(namescope, tu);
-            if (result)
-                return result;
-
+            result = CrSemanticAnalysis(error_info, namescope, tu);
             tu = shared_ptr<TransUnit>();
-            CrDumpSemantic(namescope, strPrefix, strSuffix);
+            if (result == 0) {
+                CrDumpSemantic(namescope, strPrefix, strSuffix);
+            }
         }
     }
 
-    fprintf(stderr, "Done.\n");
+    error_info->emit_all();
 
-    return cr_exit_ok;
+    fprintf(stderr, "Done.\n");
+    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////

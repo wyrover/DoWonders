@@ -164,7 +164,7 @@
     <ClInclude Include="CParseHeader.h" />
     <ClInclude Include="C_AST.h" />
     <ClInclude Include="CActions.h" />
-    <ClInclude Include="CScanner.h" />
+    <ClInclude Include="CLexer.h" />
     <ClInclude Include="Location.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="mzc2mini.h" />
