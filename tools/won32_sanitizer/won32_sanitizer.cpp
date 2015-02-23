@@ -109,6 +109,13 @@ bool WsJustDoIt(
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" <<
+        "#define check_align(name,align) do { \\\n" << 
+        "\tif (__alignof(name) != (align)) { \\\n" << 
+        "\t\tfprintf(stderr, \"%s: alignment mismatched, real value is %d\\n\", #name, (int)__alignof(name)); \\\n" << 
+        "\t\treturn 1; \\\n" << 
+        "\t} \\\n" << 
+        "} while (0) \n" << 
+        "\n" <<
         "/* fixup */\n" <<
         "#undef RASCTRYINFO\n" <<
         "#undef RASIPADDR\n" <<
@@ -164,11 +171,16 @@ bool WsJustDoIt(
             auto struct_or_union = atoi(fields[3].data());
             auto size = atoi(fields[4].data());
             auto count = atoi(fields[5].data());
+            auto align = atoi(fields[7].data());
             if (size && name.size() && count) {
                 if (struct_or_union) {
+                    out << "\tcheck_align(struct " << name << ", " << align << ");" <<
+                           std::endl;
                     out << "\tcheck_size(struct " << name << ", " << size << ");" <<
                            std::endl;
                 } else {
+                    out << "\tcheck_align(union " << name << ", " << align << ");" <<
+                           std::endl;
                     out << "\tcheck_size(union " << name << ", " << size << ");" <<
                            std::endl;
                 }
@@ -191,7 +203,7 @@ bool WsJustDoIt(
         while (std::getline(in3, line)) {
             WsSplitByTabs(fields, line);
 
-            auto name = fields[0];
+            auto name = fields[1];
             //auto enum_type_id = atoi(fields[1].data());
             auto value = atoi(fields[2].data());
             //auto enum_name = fields[3];

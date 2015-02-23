@@ -130,7 +130,9 @@ public:
 public:
     CR_ErrorInfo() { }
 
-    void add(Type type, const CR_Location& location, const std::string str) {
+    void add_message(Type type, const CR_Location& location,
+                     const std::string str)
+    {
         switch (type) {
         case NOTICE:    add_notice(location, str); break;
         case WARN:      add_warning(location, str); break;

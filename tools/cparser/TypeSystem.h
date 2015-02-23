@@ -172,7 +172,8 @@ struct CR_LogType {
 // CR_LogStruct --- logical structure or union
 
 struct CR_LogStruct {
-    bool                    m_struct_or_union;  // it's a struct if true
+    CR_TypeID               m_tid;              // type ID
+    bool                    m_is_struct;        // it's not union if true
     CR_TypeSet              m_type_list;        // list of type IDs
     CR_StringSet            m_name_list;        // list of names
     CR_DeqSet<size_t>       m_offset_list;      // list of offset
@@ -180,8 +181,8 @@ struct CR_LogStruct {
     size_t                  m_pack;             // pack
     size_t                  m_align;            // alignment requirement
 
-    CR_LogStruct(bool struct_or_union = true) :
-        m_struct_or_union(struct_or_union), m_pack(8), m_align(1) { }
+    CR_LogStruct(bool is_struct = true) :
+        m_is_struct(is_struct), m_pack(8), m_align(1) { }
 
     size_t FindName(const CR_String& name) const {
         for (size_t i = 0; i < m_name_list.size(); i++) {
@@ -191,9 +192,9 @@ struct CR_LogStruct {
         return cr_invalid_id;
     }
 
-    // perfect comparison
+    // incomplete comparison with ignoring m_tid
     bool operator==(const CR_LogStruct& ls) const {
-        return m_struct_or_union == ls.m_struct_or_union &&
+        return m_is_struct == ls.m_is_struct &&
                m_type_list == ls.m_type_list &&
                m_name_list == ls.m_name_list &&
                m_offset_list == ls.m_offset_list &&
@@ -203,7 +204,7 @@ struct CR_LogStruct {
     }
 
     bool operator!=(const CR_LogStruct& ls) const {
-        return m_struct_or_union != ls.m_struct_or_union ||
+        return m_is_struct != ls.m_is_struct ||
                m_type_list != ls.m_type_list ||
                m_name_list != ls.m_name_list ||
                m_offset_list != ls.m_offset_list ||
@@ -469,33 +470,37 @@ public:
         CR_LogType lt;
         if (name.empty()) {     // name is empty
             CR_StructID sid = m_structs.insert(ls);
-            lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
+            lt.m_flags = (ls.m_is_struct ? TF_STRUCT : TF_UNION);
             lt.m_sub_id = sid;
             lt.m_size = _AnalyzeStruct(sid);
             lt.location() = location;
             CR_TypeID newtid = m_types.AddUnique(lt);
+            LogStruct(sid).m_tid = newtid;
             m_mTypeIDToName[newtid] = name;
             return newtid;
         }
         auto it = m_mNameToTypeID.find(name);
         if (it == m_mNameToTypeID.end()) {  // name not found
             CR_StructID sid = m_structs.insert(ls);
-            lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
+            lt.m_flags = (ls.m_is_struct ? TF_STRUCT : TF_UNION);
             lt.m_sub_id = sid;
             lt.m_size = _AnalyzeStruct(sid);
             lt.location() = location;
             CR_TypeID newtid = m_types.AddUnique(lt);
+            LogStruct(sid).m_tid = newtid;
             m_mNameToTypeID[name] = newtid;
             m_mTypeIDToName[newtid] = name;
             return newtid;
         } else {    // name was found
             CR_TypeID tid = ResolveAlias(it->second);
             assert(m_types[tid].m_flags & (TF_STRUCT | TF_UNION));
-            CR_StructID sid = LogType(tid).m_sub_id;
-            _AnalyzeStruct(sid);
             if (ls.m_type_list.size()) {
                 // overwrite the definition if type list not empty
+                auto& type = LogType(tid);
+                CR_StructID sid = type.m_sub_id;
                 LogStruct(sid) = ls;
+                LogStruct(sid).m_tid = tid;
+                type.m_size = _AnalyzeStruct(sid);
             }
             return tid;
         }
@@ -508,33 +513,37 @@ public:
         CR_LogType lt;
         if (name.empty()) { // name is empty
             CR_StructID sid = m_structs.insert(ls);
-            lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
+            lt.m_flags = (ls.m_is_struct ? TF_STRUCT : TF_UNION);
             lt.m_sub_id = sid;
             lt.m_size = _AnalyzeUnion(sid);
             lt.location() = location;
             CR_TypeID newtid = m_types.AddUnique(lt);
+            LogStruct(sid).m_tid = newtid;
             m_mTypeIDToName[newtid] = name;
             return newtid;
         }
         auto it = m_mNameToTypeID.find(name);
         if (it == m_mNameToTypeID.end()) {  // name not found
             CR_StructID sid = m_structs.insert(ls);
-            lt.m_flags = (ls.m_struct_or_union ? TF_STRUCT : TF_UNION);
+            lt.m_flags = (ls.m_is_struct ? TF_STRUCT : TF_UNION);
             lt.m_sub_id = sid;
             lt.m_size = _AnalyzeUnion(sid);
             lt.location() = location;
             CR_TypeID newtid = m_types.AddUnique(lt);
+            LogStruct(sid).m_tid = newtid;
             m_mNameToTypeID[name] = newtid;
             m_mTypeIDToName[newtid] = name;
             return newtid;
         } else {    // name was found
             CR_TypeID tid = ResolveAlias(it->second);
             assert(m_types[tid].m_flags & (TF_STRUCT | TF_UNION));
-            CR_StructID sid = LogType(tid).m_sub_id;
-            _AnalyzeUnion(sid);
             if (ls.m_type_list.size()) {
                 // overwrite the definition if type list not empty
+                auto& type = LogType(tid);
+                CR_StructID sid = type.m_sub_id;
                 LogStruct(sid) = ls;
+                LogStruct(sid).m_tid = tid;
+                type.m_size = _AnalyzeUnion(sid);
             }
             return tid;
         }
@@ -643,9 +652,13 @@ public:
                     offset += prev_item_size;
                     bits_remain = 0;
                 }
-                if (prev_item_size && ls.m_pack <= item_align) {
+                if (prev_item_size) {
                     // add padding
-                    offset = (offset + item_align - 1) / item_align * item_align;
+                    if (ls.m_pack <= item_align) {
+                        offset = (offset + ls.m_pack - 1) / ls.m_pack * ls.m_pack;
+                    } else {
+                        offset = (offset + item_align - 1) / item_align * item_align;
+                    }
                 }
                 ls.m_offset_list.push_back(offset);
                 offset += item_size;
@@ -659,10 +672,12 @@ public:
         if (bits_remain) {
             offset += prev_item_size;
         }
-        if (max_align > 1) {
-            // set alignment requirement value
-            ls.m_align = max_align;
-            // tail padding
+        // set alignment requirement value
+        ls.m_align = max_align;
+        // tail padding
+        if (ls.m_pack < max_align) {
+            offset = (offset + ls.m_pack - 1) / ls.m_pack * ls.m_pack;
+        } else {
             offset = (offset + max_align - 1) / max_align * max_align;
         }
         return offset;  // total size
@@ -737,7 +752,7 @@ public:
     // get string of struct or union
     CR_String StringOfStruct(const CR_String& name, CR_StructID sid) const {
         const auto& s = LogStruct(sid);
-        CR_String str = (s.m_struct_or_union ? "struct " : "union ");
+        CR_String str = (s.m_is_struct ? "struct " : "union ");
         if (name.size()) {
             str += name;
             str += " ";
@@ -1082,45 +1097,32 @@ public:
         return m_vars[vid];
     }
 
-    CR_Map<CR_String, CR_TypeID>& MapNameToTypeID() {
-        return m_mNameToTypeID;
-    }
+    CR_Map<CR_String, CR_TypeID>& MapNameToTypeID()
+    { return m_mNameToTypeID; }
 
-    const CR_Map<CR_String, CR_TypeID>& MapNameToTypeID() const {
-        return m_mNameToTypeID;
-    }
+    const CR_Map<CR_String, CR_TypeID>& MapNameToTypeID() const
+    { return m_mNameToTypeID; }
 
-    CR_Map<CR_TypeID, CR_String>& MapTypeIDToName() {
-        return m_mTypeIDToName;
-    }
+    CR_Map<CR_TypeID, CR_String>& MapTypeIDToName()
+    { return m_mTypeIDToName; }
 
-    const CR_Map<CR_TypeID, CR_String>& MapTypeIDToName() const {
-        return m_mTypeIDToName;
-    }
+    const CR_Map<CR_TypeID, CR_String>& MapTypeIDToName() const
+    { return m_mTypeIDToName; }
 
-    CR_Map<CR_String, CR_VarID>& MapNameToVarID() {
-        return m_mNameToVarID;
-    }
+    CR_Map<CR_String, CR_VarID>& MapNameToVarID()
+    { return m_mNameToVarID; }
 
-    const CR_Map<CR_String, CR_VarID>& MapNameToVarID() const {
-        return m_mNameToVarID;
-    }
+    const CR_Map<CR_String, CR_VarID>& MapNameToVarID() const
+    { return m_mNameToVarID; }
 
-    CR_Map<CR_VarID, CR_String>& MapVarIDToName() {
-        return m_mVarIDToName;
-    }
+    CR_Map<CR_VarID, CR_String>& MapVarIDToName()
+    { return m_mVarIDToName; }
 
-    const CR_Map<CR_VarID, CR_String>& MapVarIDToName() const {
-        return m_mVarIDToName;
-    }
+    const CR_Map<CR_VarID, CR_String>& MapVarIDToName() const
+    { return m_mVarIDToName; }
 
-    CR_DeqSet<CR_LogVar>& Vars() {
-        return m_vars;
-    }
-
-    const CR_DeqSet<CR_LogVar>& Vars() const {
-        return m_vars;
-    }
+          CR_DeqSet<CR_LogVar>& Vars()       { return m_vars; }
+    const CR_DeqSet<CR_LogVar>& Vars() const { return m_vars; }
 
     CR_LogStruct& LogStruct(CR_StructID sid) {
         assert(sid < m_structs.size());
@@ -1152,13 +1154,11 @@ public:
         return m_enums[eid];
     }
 
-    CR_DeqSet<CR_LogType>& LogTypes() {
-        return m_types;
-    }
+          CR_DeqSet<CR_LogType>& LogTypes()       { return m_types; }
+    const CR_DeqSet<CR_LogType>& LogTypes() const { return m_types; }
 
-    const CR_DeqSet<CR_LogType>& LogTypes() const {
-        return m_types;
-    }
+          CR_DeqSet<CR_LogStruct>& LogStructs()       { return m_structs; }
+    const CR_DeqSet<CR_LogStruct>& LogStructs() const { return m_structs; }
 
 protected:
     bool                            m_is_64bit;

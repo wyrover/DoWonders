@@ -7,22 +7,26 @@ const char * const cr_logo =
     "///////////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser sample 0.2.2 (64-bit) for gcc     //\n"
+    "// CParser sample 0.2.3 (64-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.2 (64-bit) for clang    //\n"
+    "// CParser sample 0.2.3 (64-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.2 (64-bit) for cl      //\n"
+    "// CParser sample 0.2.3 (64-bit) for cl      //\n"
+# else
+#  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser sample 0.2.2 (32-bit) for gcc     //\n"
+    "// CParser sample 0.2.3 (32-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.2 (32-bit) for clang    //\n"
+    "// CParser sample 0.2.3 (32-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.2 (32-bit) for cl      //\n"
+    "// CParser sample 0.2.3 (32-bit) for cl      //\n"
+# else
+#  error You lose!
 # endif
 #endif  // !64-bit
-    "// public domain software (PDS)              //\n"
+    "// Public Domain Software (PDS)              //\n"
     "// by Katayama Hirofumi MZ (katahiromz)      //\n"
     "// katayama.hirofumi.mz@gmail.com            //\n"
     "///////////////////////////////////////////////\n";
@@ -48,8 +52,764 @@ using namespace cparser;
 ////////////////////////////////////////////////////////////////////////////
 // cparser::Scanner
 
+std::string cparser::Scanner::token_to_string(const token_type& info) const {
+    std::string str = token_label(info.m_token);
+    if (info.m_text.size()) {
+        str += "(";
+        str += info.m_text;
+        str += ")";
+    }
+    return str;
+}
+
+void cparser::Scanner::skip_block_comment(
+    ScannerBase& base, token_container& infos)
+{
+    char c;
+    do {
+        c = base.getch();
+        if (c == '\n') {
+            newline(infos);
+        } else if (c == '*') {
+            c = base.getch();
+            if (c == '/') {
+                infos.emplace_back(T_C_COMMENT_END, "*/");
+                m_in_c_comment = false;
+                break;  // closed
+            }
+        }
+    } while (c != -1);
+} // skip_block_comment
+
+void cparser::Scanner::skip_line_comment(
+    ScannerBase& base, token_container& infos)
+{
+    char c;
+    do {
+        c = base.getch();
+        if (c == '\n') {
+            newline(infos);
+            m_in_cxx_comment = false;
+            break;  // closed
+        }
+    } while (c != EOF);
+} // skip_line_comment
+
+bool cparser::Scanner::token_pattern_match(
+    ScannerBase& base, token_iterator it, token_iterator end,
+    const std::vector<Token>& tokens) const
+{
+    token_iterator saved = it;
+    for (const auto& token : tokens) {
+        if (it == end) {
+            it = saved;
+        }
+        if (it->m_token == T_NEWLINE) {
+            base.location()++;
+        } else if (token != eof && it->m_token != token) {
+            it = saved;
+            return false;
+        }
+        ++it;
+    }
+    it = saved;
+    return true;
+}
+
+std::string
+cparser::Scanner::guts_escape_sequence(
+    str_iterator& it, str_iterator end) const
+{
+    std::string result;
+    if (it != end && *it == '\\') {
+        ++it;
+        if (it == end) {
+            return result;
+        }
+        switch (*it) {
+        case '\'': case '\"': case '?': case '\\':
+            result += *it;
+            break;
+
+        case '0': result += '\0'; break;
+        case 'a': result += '\a'; break;
+        case 'b': result += '\b'; break;
+        case 'f': result += '\f'; break;
+        case 'n': result += '\n'; break;
+        case 'r': result += '\r'; break;
+        case 't': result += '\t'; break;
+        case 'v': result += '\v'; break;
+
+        case 'x':
+            {
+                ++it;
+                auto hex = guts_hex(it, end);
+                result +=
+                    static_cast<char>(
+                        std::strtoul(hex.data(), NULL, 16));
+            }
+            break;
+
+        case 'u':
+        case 'U':
+            {
+                ++it;
+                auto hex = guts_hex(it, end);
+                result += '?';  // FIXME & TODO
+            }
+            break;
+
+        default:
+            if ('0' <= *it && *it <= '7') {
+                auto octal = guts_octal(it, end);
+                result +=
+                    static_cast<char>(
+                        std::strtoul(octal.data(), NULL, 8));
+            } else {
+                result += *it;
+            }
+        }
+    }
+    return result;
+} // guts_escape_sequence
+
+std::string
+cparser::Scanner::guts_string(str_iterator& it, str_iterator end) const {
+    std::string result;
+    assert(it != end && *it == '\"');
+    for (++it; it != end; ++it) {
+        switch (*it) {
+        case '\"':
+            ++it;
+            if (it != end) {
+                if (*it == '\"') {
+                    result += '\"';
+                } else {
+                    return result;
+                }
+            }
+            break;
+
+        case '\\':
+            {
+                auto text = guts_escape_sequence(it, end);
+                result += text;
+            }
+            break;
+
+        default:
+            result += *it;
+        }
+    }
+    return result;
+} // guts_string
+
+std::string
+cparser::Scanner::guts_char(str_iterator& it, str_iterator end) const {
+    std::string result;
+    assert(it != end && *it == '\'');
+    for (++it; it != end; ++it) {
+        switch (*it) {
+        case '\'':
+            return result;
+
+        case '\\':
+            {
+                auto text = guts_escape_sequence(it, end);
+                result += text;
+            }
+            break;
+
+        default:
+            result += *it;
+        }
+    }
+    return result;
+} // guts_char
+
+std::string
+cparser::Scanner::guts_hex(str_iterator& it, str_iterator end) const {
+    std::string result;
+    for (; it != end; ++it) {
+        if (isxdigit(*it)) {
+            result += *it;
+        } else {
+            break;
+        }
+    }
+    return result;
+} // guts_hex
+
+std::string
+cparser::Scanner::guts_digits(str_iterator& it, str_iterator end) const {
+    std::string result;
+    for (; it != end; ++it) {
+        if (isdigit(*it)) {
+            result += *it;
+        } else {
+            break;
+        }
+    }
+    return result;
+} // guts_digits
+
+std::string
+cparser::Scanner::guts_octal(str_iterator& it, str_iterator end) const {
+    std::string result;
+    for (; it != end; ++it) {
+        if ('0' <= *it && *it <= '7') {
+            result += *it;
+            if (result.size() == 3) {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+    return result;
+} // guts_octal
+
+std::string
+cparser::Scanner::guts_floating(str_iterator& it, str_iterator end) const {
+    std::string result;
+    if (it != end && *it == '.') {
+        ++it;
+        std::string digits = guts_digits(it, end);
+    }
+    return result;
+} // guts_floating
+
+std::string
+cparser::Scanner::guts_indentifier(str_iterator& it, str_iterator end) const {
+    std::string result;
+    if (it != end && (isalpha(*it) || *it == '_')) {
+        result += *it;
+        for (++it; it != end; ++it) {
+            if (isalnum(*it) || *it == '_') {
+                result += *it;
+            } else {
+                break;
+            }
+        }
+    }
+    //std::puts(result.data());
+    return result;
+} // guts_indentifier
+
+std::string
+cparser::Scanner::guts_integer_suffix(
+    str_iterator& it, str_iterator end, CR_TypeFlags& flags) const
+{
+    std::string result;
+    for (; it != end; ++it) {
+        if (*it == 'u' || *it == 'U') {
+            result += *it;
+            flags |= TF_UNSIGNED;
+        } else if (*it == 'l' || *it == 'L') {
+            result += *it;
+            if (flags & TF_LONG) {
+                flags &= ~TF_LONG;
+                flags |= TF_LONGLONG;
+            } else {
+                flags |= TF_LONG;
+            }
+        } else {
+            break;
+        }
+    }
+    return result;
+} // guts_integer_suffix
+
+std::string
+cparser::Scanner::guts_floating_suffix(
+    str_iterator& it, str_iterator end, CR_TypeFlags& flags) const
+{
+    std::string result;
+    for (; it != end; ++it) {
+        if (*it == 'f' || *it == 'F') {
+            flags &= ~TF_DOUBLE;
+            flags |= TF_FLOAT;
+        } else if (*it == 'l' || *it == 'L') {
+            flags |= TF_LONG | TF_DOUBLE;
+        } else {
+            break;
+        }
+    }
+    return result;
+} // guts_floating_suffix
+
+std::string
+cparser::Scanner::guts_exponent(str_iterator& it, str_iterator end) const
+{
+    std::string result;
+    if (it != end) {
+        if (*it == 'e' || *it == 'E') {
+            result += *it;
+            ++it;
+            if (it != end) {
+                if (*it == '+') {
+                    result += *it;
+                    ++it;
+                } else if (*it == '-') {
+                    result += *it;
+                    ++it;
+                }
+                if (it != end) {
+                    auto exponent = guts_digits(it, end);
+                    result += exponent;
+                }
+            }
+        }
+    }
+    return result;
+} // guts_exponent
+
+bool cparser::Scanner::lexeme(
+    str_iterator& it, str_iterator end, const std::string& str)
+{
+    str_iterator saved = it;
+    std::size_t i = 0, siz = str.size();
+    for (; i < siz && it != end; ++it, ++i) {
+        if (*it != str[i]) {
+            it = saved;
+            return false;
+        }
+    }
+    return i == siz;
+} // lexeme
+
+void cparser::Scanner::scan(
+    token_container& infos,
+    scanner_iterator begin, scanner_iterator end)
+{
+    ScannerBase base(begin, end);
+
+    // get tokens
+    token_container read_infos;
+    while (get_tokens(base, read_infos)) {
+        infos.insert(infos.end(), read_infos.begin(), read_infos.end());
+        read_infos.clear();
+    }
+    infos.insert(infos.end(), read_infos.begin(), read_infos.end());
+    read_infos.clear();
+    infos.emplace_back(eof);
+
+    // token resynthesization
+    resynth(base, infos);
+
+    m_type_names.clear();   // no use
+} // scan
+
+std::string cparser::Scanner::get_line(ScannerBase& base) {
+    std::string line;
+    // get line
+    char ch;
+    line.reserve(64);
+    do {
+        ch = base.getch();
+        if (ch == '\n') {
+            line += ch;
+            break;
+        }
+        line += ch;
+    } while (ch != -1);
+    return line;
+}
+
+bool
+cparser::Scanner::get_tokens(ScannerBase& base, token_container& infos) {
+retry:
+    if (base.is_eof()) {
+        return false;
+    }
+
+    if (m_in_c_comment) {
+        // /* ... */
+        skip_block_comment(base, infos);
+        goto retry;
+    }
+
+    if (m_in_cxx_comment) {
+        // // ...
+        skip_line_comment(base, infos);
+        goto retry;
+    }
+
+    auto line = get_line(base);
+
+    auto end = line.end();
+    for (auto it = line.begin(); it != end; ++it) {
+        std::string extra;
+        switch (*it) {
+        case ' ': case '\t':
+            continue;
+
+        case '\n':
+            newline(infos);
+            break;
+
+        case '#':
+            infos.emplace_back(T_SHARP, "#");
+            break;
+
+        case 'u':
+            ++it;
+            if (*it == '8') {
+                ++it;
+                extra = "u8";
+            } else {
+                extra = "u";
+            }
+            if (*it == '"') {
+                auto text = guts_string(it, end);
+                --it;
+                infos.emplace_back(T_STRING, text, extra);
+            } else if (*it == '\'') {
+                auto text = guts_char(it, end);
+                --it;
+                infos.emplace_back(T_CONSTANT, text, extra);
+            } else {
+                --it;
+                goto label_default;
+            }
+            break;
+
+        case 'L': case 'U':
+            extra += *it;
+            ++it;
+            if (*it == '"') {
+                auto text = guts_string(it, end);
+                --it;
+                infos.emplace_back(T_STRING, text, extra);
+            } else if (*it == '\'') {
+                auto text = guts_char(it, end);
+                --it;
+                infos.emplace_back(T_CONSTANT, text, extra);
+            } else {
+                --it;
+                goto label_default;
+            }
+            break;
+
+        case '"':
+            {
+                auto text = guts_string(it, end);
+                --it;
+                infos.emplace_back(T_STRING, text);
+            }
+            break;
+
+        case '\'':
+            {
+                auto text = guts_char(it, end);
+                infos.emplace_back(T_STRING, text);
+            }
+            break;
+
+        case '0':
+            ++it;
+            if (*it == 'x' || *it == 'X') {
+                // 0x or 0X
+                ++it;
+                auto text = guts_hex(it, end);
+                CR_TypeFlags flags = 0;
+                extra = guts_integer_suffix(it, end, flags);
+                --it;
+                infos.emplace_back(T_CONSTANT, "0x" + text, extra, flags);
+            } else if (*it == '.') {
+                // 0.
+                auto text = guts_floating(it, end);
+                CR_TypeFlags flags = TF_DOUBLE;
+                extra = guts_floating_suffix(it, end, flags);
+                --it;
+                infos.emplace_back(T_CONSTANT, "0." + text, extra, flags);
+            } else {
+                // octal
+                --it;
+                auto text = guts_octal(it, end);
+                CR_TypeFlags flags = 0;
+                extra = guts_integer_suffix(it, end, flags);
+                --it;
+                infos.emplace_back(T_CONSTANT, text, extra, flags);
+            }
+            break;
+
+        case '.':
+            if (lexeme(it, end, "...")) {
+                --it;
+                infos.emplace_back(T_ELLIPSIS, "...");
+            } else {
+                // .
+                auto text = guts_floating(it, end);
+                if (text.size() > 1) {
+                    CR_TypeFlags flags = TF_DOUBLE;
+                    extra = guts_floating_suffix(it, end, flags);
+                    --it;
+                    infos.emplace_back(T_CONSTANT, "0." + text, extra, flags);
+                } else {
+                    --it;
+                    infos.emplace_back(T_DOT, ".");
+                }
+            }
+            break;
+
+        case '<':
+            if (lexeme(it, end, "<<=")) {
+                --it;
+                infos.emplace_back(T_L_SHIFT_ASSIGN, "<<=");
+            } else if (lexeme(it, end, "<<")) {
+                --it;
+                infos.emplace_back(T_L_SHIFT, "<<");
+            } else if (lexeme(it, end, "<=")) {
+                --it;
+                infos.emplace_back(T_LE, "<=");
+            } else if (lexeme(it, end, "<:")) {
+                --it;
+                infos.emplace_back(T_L_BRACKET, "<:");
+            } else {
+                infos.emplace_back(T_LT, "<");
+            }
+            break;
+
+        case '>':
+            if (lexeme(it, end, ">>=")) {
+                --it;
+                infos.emplace_back(T_R_SHIFT_ASSIGN, ">>=");
+            } else if (lexeme(it, end, ">>")) {
+                --it;
+                infos.emplace_back(T_R_SHIFT, ">>");
+            } else if (lexeme(it, end, ">=")) {
+                --it;
+                infos.emplace_back(T_GE, ">=");
+            } else {
+                infos.emplace_back(T_GT, ">");
+            }
+            break;
+
+        case '+':
+            if (lexeme(it, end, "+=")) {
+                --it;
+                infos.emplace_back(T_ADD_ASSIGN, "+=");
+            } else if (lexeme(it, end, "++")) {
+                --it;
+                infos.emplace_back(T_INC, "++");
+            } else {
+                infos.emplace_back(T_PLUS, "+");
+            }
+            break;
+
+        case '-':
+            if (lexeme(it, end, "-=")) {
+                --it;
+                infos.emplace_back(T_SUB_ASSIGN, "-=");
+            } else if (lexeme(it, end, "--")) {
+                --it;
+                infos.emplace_back(T_DEC, "--");
+            } else if (lexeme(it, end, "->")) {
+                --it;
+                infos.emplace_back(T_ARROW, "->");
+            } else {
+                infos.emplace_back(T_MINUS, "-");
+            }
+            break;
+
+        case '*':
+            if (lexeme(it, end, "*=")) {
+                --it;
+                infos.emplace_back(T_MUL_ASSIGN, "*=");
+            } else {
+                infos.emplace_back(T_ASTERISK, "*");
+            }
+            break;
+
+        case '/':
+            if (lexeme(it, end, "/*")) {    // */
+                --it;
+                m_in_c_comment = true;
+                infos.emplace_back(T_C_COMMENT_BEGIN, "/*");    // */
+                skip_block_comment(base, infos);
+            } else if (lexeme(it, end, "//")) {
+                --it;
+                m_in_cxx_comment = true;
+                infos.emplace_back(T_CPP_COMMENT, "//");
+                skip_line_comment(base, infos);
+            } else if (lexeme(it, end, "/=")) {
+                --it;
+                infos.emplace_back(T_DIV_ASSIGN, "/=");
+            } else {
+                infos.emplace_back(T_SLASH, "/");
+            }
+            break;
+
+        case '%':
+            if (lexeme(it, end, "%=")) {
+                --it;
+                infos.emplace_back(T_MOD_ASSIGN, "%=");
+            } else if (lexeme(it, end, "%>")) {
+                --it;
+                infos.emplace_back(T_R_BRACE, "%>");
+            } else {
+                infos.emplace_back(T_PERCENT, "%");
+            }
+            break;
+
+        case '&':
+            if (lexeme(it, end, "&=")) {
+                --it;
+                infos.emplace_back(T_AND_ASSIGN, "&=");
+            } else if (lexeme(it, end, "&&")) {
+                --it;
+                infos.emplace_back(T_L_AND, "&&");
+            } else {
+                infos.emplace_back(T_AND, "&");
+            }
+            break;
+            
+        case '^':
+            if (lexeme(it, end, "^=")) {
+                --it;
+                infos.emplace_back(T_XOR_ASSIGN, "^=");
+            } else {
+                infos.emplace_back(T_XOR, "^");
+            }
+            break;
+
+        case '|':
+            if (lexeme(it, end, "|=")) {
+                --it;
+                infos.emplace_back(T_OR_ASSIGN, "|=");
+            } else if (lexeme(it, end, "||")) {
+                --it;
+                infos.emplace_back(T_L_OR, "||");
+            } else {
+                infos.emplace_back(T_OR, "|");
+            }
+            break;
+
+        case '=':
+            if (lexeme(it, end, "==")) {
+                --it;
+                infos.emplace_back(T_EQUAL, "==");
+            } else {
+                infos.emplace_back(T_ASSIGN, "=");
+            }
+            break;
+
+        case '!':
+            if (lexeme(it, end, "!=")) {
+                --it;
+                infos.emplace_back(T_NE, "!=");
+            } else {
+                infos.emplace_back(T_NOT, "!");
+            }
+            break;
+
+        case ';':
+            infos.emplace_back(T_SEMICOLON, ";");
+            break;
+
+        case ':':
+            if (lexeme(it, end, ":>")) {
+                --it;
+                infos.emplace_back(T_R_BRACKET, ":>");
+            } else {
+                infos.emplace_back(T_COLON, ":");
+            }
+            break;
+
+        case ',': infos.emplace_back(T_COMMA, ","); break;
+        case '{': infos.emplace_back(T_L_BRACE, "{"); break;
+        case '}': infos.emplace_back(T_R_BRACE, "}"); break;
+        case '(': infos.emplace_back(T_L_PAREN, "("); break;
+        case ')': infos.emplace_back(T_R_PAREN, ")"); break;
+        case '[': infos.emplace_back(T_L_BRACKET, "["); break;
+        case ']': infos.emplace_back(T_R_BRACKET, "]"); break;
+        case '~': infos.emplace_back(T_BITWISE_NOT, "~"); break;
+        case '?': infos.emplace_back(T_QUESTION, "?"); break;
+
+label_default:
+        default:
+            if (isspace(*it)) {
+                assert(*it != '\n');
+                continue;
+            }
+            if (isdigit(*it)) {
+                auto digits = guts_digits(it, end);
+                if (*it == '.') {
+                    ++it;
+                    // 123.1232
+                    auto decimals = guts_digits(it, end);
+                    auto text = digits + '.' + decimals;
+                    CR_TypeFlags flags = TF_DOUBLE;
+                    extra = guts_floating_suffix(it, end, flags);
+                    --it;
+                    infos.emplace_back(T_CONSTANT, text, extra, flags);
+                } else {
+                    auto exponent = guts_exponent(it, end);
+                    if (exponent.size()) {
+                        // exponent was found. it's a floating
+                        CR_TypeFlags flags = TF_DOUBLE;
+                        extra = guts_floating_suffix(it, end, flags);
+                        --it;
+                        auto text = digits + exponent + extra;
+                        infos.emplace_back(T_CONSTANT, text, extra, flags);
+                    } else {
+                        // exponent not found. it's a integer
+                        CR_TypeFlags flags = 0;
+                        extra = guts_integer_suffix(it, end, flags);
+                        --it;
+                        infos.emplace_back(T_CONSTANT, digits, extra, flags);
+                    }
+                }
+            } else if (isalpha(*it) || *it == '_') {
+                // identifier or keyword
+                auto text = guts_indentifier(it, end);
+                --it;
+                if (text.find("__builtin_") == 0 && text.size() > 10) {
+                    if (text != "__builtin_va_list") {
+                        text = text.substr(10);
+                    }
+                }
+                Token token = parse_identifier(text);
+                infos.emplace_back(token, text);
+            } else {
+                std::string text;
+                text += *it;
+                infos.emplace_back(T_INVALID_CHAR, text);
+            }
+        } // switch (*it)
+    } // for (auto it = line.begin(); it != end; ++it)
+    return true;
+} // get_tokens
+
+void cparser::Scanner::resynth(ScannerBase& base, token_container& c) {
+    const bool c_show_tokens = true;
+
+    if (c_show_tokens) {
+        std::printf("\n#0\n");
+        show_tokens(c.begin(), c.end());
+        std::printf("\n--------------\n");
+        fflush(stdout);
+    }
+
+    resynth1(base, c);
+
+    if (c_show_tokens) {
+        std::printf("\n#1\n");
+        show_tokens(c.begin(), c.end());
+        std::printf("\n--------------\n");
+        fflush(stdout);
+    }
+
+    resynth2(c);
+    resynth3(c.begin(), c.end());
+    resynth4(c);
+    resynth5(c.begin(), c.end());
+}
+
 void cparser::Scanner::resynth1(ScannerBase& base, token_container& c) {
     token_container     newc;
+    newc.reserve(c.size());
 
     bool    line_top = true;
     auto    end = c.end();
@@ -97,8 +857,8 @@ void cparser::Scanner::resynth1(ScannerBase& base, token_container& c) {
             if (!is_lineno_directive && it != end && it->m_text == "pragma") {
                 // #pragma name("...")
                 ++it;
-                CR_ErrorInfo::Type type = parse_pragma(base, it, end);
-                add(type, base.location(), "unknown pragma found");
+                parse_pragma(base, it, end);
+                //add_message(type, base.location(), "unknown pragma found");
             }
 
             // up to new line
@@ -231,8 +991,9 @@ cparser::Scanner::resynth_typedef(token_iterator begin, token_iterator end) {
             ++it;
             if (it->m_token == T_L_PAREN) {
                 it = resynth_parameter_list(++it, end);
-            } else
+            } else {
                 --it;
+            }
         } else if (it->m_token == T_IDENTIFIER) {
             if (brace_nest == 0 && bracket_nest == 0) {
                 if (m_type_names.count(it->m_text)) {
@@ -469,116 +1230,238 @@ void cparser::Scanner::resynth5(token_iterator begin, token_iterator end) {
     }
 } // resynth5
 
+void cparser::Scanner::init_symbol_table() {
+    auto& st = m_symbol_table;
+    st.clear();
+    st.reserve(76);
+    st.emplace("_Alignas", T_ALIGNAS);
+    st.emplace("_Alignof", T_ALIGNOF);
+    st.emplace("_Atomic", T_ATOMIC);
+    st.emplace("_Bool", T_BOOL);
+    st.emplace("_Complex", T_COMPLEX);
+    st.emplace("_Generic", T_GENERIC);
+    st.emplace("_Imaginary", T_IMAGINARY);
+    st.emplace("_Noreturn", T_NORETURN);
+    st.emplace("_Static_assert", T_STATIC_ASSERT);
+    st.emplace("_Thread_local", T_THREAD_LOCAL);
+    st.emplace("__asm", T_ASM);
+    st.emplace("__asm__", T_ASM);
+    st.emplace("__attribute__", T_GNU_ATTRIBUTE);
+    st.emplace("__cdecl", T_CDECL);
+    st.emplace("__cdecl__", T_CDECL);
+    st.emplace("__const__", T_CONST);
+    st.emplace("__declspec", T_DECLSPEC);
+    st.emplace("__extension__", T_GNU_EXTENSION);
+    st.emplace("__fastcall", T_FASTCALL);
+    st.emplace("__fastcall__", T_FASTCALL);
+    st.emplace("__forceinline", T_FORCEINLINE);
+    st.emplace("__inline", T_INLINE);
+    st.emplace("__inline__", T_INLINE);
+    st.emplace("__int32", T_INT32);
+    st.emplace("__int64", T_INT64);
+    st.emplace("__int128", T_INT128);
+    st.emplace("__noreturn__", T_NORETURN);
+    st.emplace("__nothrow__", T_NOTHROW);
+    st.emplace("__pragma", T_PRAGMA);
+    st.emplace("__ptr32", T_PTR32);
+    st.emplace("__ptr64", T_PTR64);
+    st.emplace("__restrict", T_RESTRICT);
+    st.emplace("__restrict__", T_RESTRICT);
+    st.emplace("__signed__", T_SIGNED);
+    st.emplace("__stdcall", T_STDCALL);
+    st.emplace("__stdcall__", T_STDCALL);
+    st.emplace("__unaligned", T_UNALIGNED);
+    st.emplace("__volatile__", T_VOLATILE);
+    st.emplace("__w64", T_W64);
+    st.emplace("asm", T_ASM);
+    st.emplace("auto", T_AUTO);
+    st.emplace("break", T_BREAK);
+    st.emplace("case", T_CASE);
+    st.emplace("char", T_CHAR);
+    st.emplace("const", T_CONST);
+    st.emplace("continue", T_CONTINUE);
+    st.emplace("default", T_DEFAULT);
+    st.emplace("do", T_DO);
+    st.emplace("double", T_DOUBLE);
+    st.emplace("else", T_ELSE);
+    st.emplace("enum", T_ENUM);
+    st.emplace("extern", T_EXTERN);
+    st.emplace("float", T_FLOAT);
+    st.emplace("for", T_FOR);
+    st.emplace("goto", T_GOTO);
+    st.emplace("if", T_IF);
+    st.emplace("inline", T_INLINE);
+    st.emplace("int", T_INT);
+    st.emplace("long", T_LONG);
+    st.emplace("noreturn", T_NORETURN);
+    st.emplace("register", T_REGISTER);
+    st.emplace("restrict", T_RESTRICT);
+    st.emplace("return", T_RETURN);
+    st.emplace("short", T_SHORT);
+    st.emplace("signed", T_SIGNED);
+    st.emplace("sizeof", T_SIZEOF);
+    st.emplace("static", T_STATIC);
+    st.emplace("struct", T_STRUCT);
+    st.emplace("switch", T_SWITCH);
+    st.emplace("typedef", T_TYPEDEF);
+    st.emplace("union", T_UNION);
+    st.emplace("unsigned", T_UNSIGNED);
+    st.emplace("void", T_VOID);
+    st.emplace("volatile", T_VOLATILE);
+    st.emplace("while", T_WHILE);
+    st.emplace("xsigned", T_XSIGNED);
+}
+
 cparser::Token
 cparser::Scanner::parse_identifier(const std::string& text) const {
-    Token token = T_IDENTIFIER;
-    char c, d;
-    c = text[0];
-    if (c == '_') {
-        if (text.size() >= 2 && text[1] != '_') {
-            d = text[1];
-            if (d == 'A' && text == "_Alignas") token = T_ALIGNAS;
-            else if (d == 'A' && text == "_Alignof") token = T_ALIGNOF;
-            else if (d == 'A' && text == "_Atomic") token = T_ATOMIC;
-            else if (d == 'B' && text == "_Bool") token = T_BOOL;
-            else if (d == 'C' && text == "_Complex") token = T_COMPLEX;
-            else if (d == 'G' && text == "_Generic") token = T_GENERIC;
-            else if (d == 'I' && text == "_Imaginary") token = T_IMAGINARY;
-            else if (d == 'N' && text == "_Noreturn") token = T_NORETURN;
-            else if (d == 'S' && text == "_Static_assert") token = T_STATIC_ASSERT;
-            else if (d == 'T' && text == "_Thread_local") token = T_THREAD_LOCAL;
-        } else if (text.size() >= 3) {
-            d = text[2];
-            if (d == 'a' && text == "__asm") token = T_ASM;
-            else if (d == 'a' && text == "__asm__") token = T_ASM;
-            else if (d == 'a' && text == "__attribute__") token = T_GNU_ATTRIBUTE;
-            else if (d == 'c' && text == "__cdecl") token = T_CDECL;
-            else if (d == 'c' && text == "__cdecl__") token = T_CDECL;
-            else if (d == 'c' && text == "__const__") token = T_CONST;
-            else if (d == 'd' && text == "__declspec") token = T_DECLSPEC;
-            else if (d == 'e' && text == "__extension__") token = T_GNU_EXTENSION;
-            else if (d == 'f' && text == "__fastcall") token = T_FASTCALL;
-            else if (d == 'f' && text == "__fastcall__") token = T_FASTCALL;
-            else if (d == 'f' && text == "__forceinline") token = T_FORCEINLINE;
-            else if (d == 'i' && text == "__inline") token = T_INLINE;
-            else if (d == 'i' && text == "__inline__") token = T_INLINE;
-            else if (d == 'i' && text == "__int32") token = T_INT32;
-            else if (d == 'i' && text == "__int64") token = T_INT64;
-            else if (d == 'i' && text == "__int128") token = T_INT128;
-            else if (d == 'n' && text == "__noreturn__") token = T_NORETURN;
-            else if (d == 'n' && text == "__nothrow__") token = T_NOTHROW;
-            else if (d == 'p' && text == "__pragma") token = T_PRAGMA;
-            else if (d == 'p' && text == "__ptr32") token = T_PTR32;
-            else if (d == 'p' && text == "__ptr64") token = T_PTR64;
-            else if (d == 'r' && text == "__restrict") token = T_RESTRICT;
-            else if (d == 'r' && text == "__restrict__") token = T_RESTRICT;
-            else if (d == 's' && text == "__signed__") token = T_SIGNED;
-            else if (d == 's' && text == "__stdcall") token = T_STDCALL;
-            else if (d == 's' && text == "__stdcall__") token = T_STDCALL;
-            else if (d == 'u' && text == "__unaligned") token = T_UNALIGNED;
-            else if (d == 'v' && text == "__volatile__") token = T_VOLATILE;
-            else if (d == 'w' && text == "__w64") token = T_W64;
-        }
-    } else if (c < 'd') {
-        if (c == 'a' && text == "asm") token = T_ASM;
-        else if (c == 'a' && text == "auto") token = T_AUTO;
-        else if (c == 'b' && text == "break") token = T_BREAK;
-        else if (c == 'c' && text == "case") token = T_CASE;
-        else if (c == 'c' && text == "char") token = T_CHAR;
-        else if (c == 'c' && text == "const") token = T_CONST;
-        else if (c == 'c' && text == "continue") token = T_CONTINUE;
-    } else if (c < 'f') {
-        if (c == 'd' && text == "default") token = T_DEFAULT;
-        else if (c == 'd' && text == "do") token = T_DO;
-        else if (c == 'd' && text == "double") token = T_DOUBLE;
-        else if (c == 'e' && text == "else") token = T_ELSE;
-        else if (c == 'e' && text == "enum") token = T_ENUM;
-        else if (c == 'e' && text == "extern") token = T_EXTERN;
-    } else if (c < 's') {
-        if (c == 'f' && text == "float") token = T_FLOAT;
-        else if (c == 'f' && text == "for") token = T_FOR;
-        else if (c == 'g' && text == "goto") token = T_GOTO;
-        else if (c == 'i' && text == "if") token = T_IF;
-        else if (c == 'i' && text == "inline") token = T_INLINE;
-        else if (c == 'i' && text == "int") token = T_INT;
-        else if (c == 'l' && text == "long") token = T_LONG;
-        else if (c == 'n' && text == "noreturn") token = T_NORETURN;
-        else if (c == 'r' && text == "register") token = T_REGISTER;
-        else if (c == 'r' && text == "restrict") token = T_RESTRICT;
-        else if (c == 'r' && text == "return") token = T_RETURN;
+    const auto& st = m_symbol_table;
+    auto it = st.find(text);
+    auto end = st.end();
+    if (it == end) {
+        return T_IDENTIFIER;
     } else {
-        if (c == 's' && text == "short") token = T_SHORT;
-        else if (c == 's' && text == "signed") token = T_SIGNED;
-        else if (c == 's' && text == "sizeof") token = T_SIZEOF;
-        else if (c == 's' && text == "static") token = T_STATIC;
-        else if (c == 's' && text == "struct") token = T_STRUCT;
-        else if (c == 's' && text == "switch") token = T_SWITCH;
-        else if (c == 't' && text == "typedef") token = T_TYPEDEF;
-        else if (c == 'u' && text == "union") token = T_UNION;
-        else if (c == 'u' && text == "unsigned") token = T_UNSIGNED;
-        else if (c == 'v' && text == "void") token = T_VOID;
-        else if (c == 'v' && text == "volatile") token = T_VOLATILE;
-        else if (c == 'w' && text == "while") token = T_WHILE;
-        else if (c == 'x' && text == "xsigned") token = T_XSIGNED;
+        return it->second;
     }
-    return token;
 } // parse_identifier
 
 CR_ErrorInfo::Type
+cparser::Scanner::parse_pack(
+    ScannerBase& base, token_iterator it, token_iterator end)
+{
+    const bool c_show_pack = false;
+    bool flag;
+
+    // #pragma pack...
+    flag = token_pattern_match(base, it, end, {T_L_PAREN, T_R_PAREN});
+    if (flag) {
+        // #pragma pack()
+        base.packing().set(base.default_packing());
+        return CR_ErrorInfo::NOTHING;
+    }
+
+    // #pragma pack(...)
+	flag = token_pattern_match(base, it, end, { T_L_PAREN, eof, T_R_PAREN });
+    if (flag) {
+        if ((it + 1)->m_text == "pop") {
+            // #pragma pack(pop)
+            if (c_show_pack)
+                fprintf(stderr, "%s: pragma pack(pop)\n",
+                    base.location().str().data());
+            base.packing().pop();
+        } else if ((it + 1)->m_text == "push"){
+            // #pragma pack(push)
+            if (c_show_pack)
+                fprintf(stderr, "%s: pragma pack(push)\n",
+                    base.location().str().data());
+            base.packing().push(base.packing());
+        } else {
+            // #pragma pack(#)
+            int pack = std::strtol((it + 1)->m_text.data(), NULL, 0);
+            if (c_show_pack)
+                fprintf(stderr, "%s: pragma pack(%d)\n",
+                    base.location().str().data(), pack);
+            base.packing().set(pack);
+        }
+        return CR_ErrorInfo::NOTHING;
+    }
+
+    // #pragma pack(..., ...)
+	flag = token_pattern_match(base, it, end,
+        {T_L_PAREN, eof, T_COMMA, eof, T_R_PAREN}
+    );
+    if (flag) {
+        auto param = (it + 3)->m_text;
+        if (param.size() && (isalpha(param[0]) || param[0] == '_')) {
+            // #pragma pack(..., ident)
+            if ((it + 1)->m_text == "pop") {
+                // #pragma pack(pop, ident)
+                if (c_show_pack)
+                    fprintf(stderr, "%s: pragma pack(pop,%s)\n",
+                        base.location().str().data(), param.data());
+                base.packing().pop(param);
+                return CR_ErrorInfo::NOTHING;
+            } else if ((it + 1)->m_text == "push") {
+                // #pragma pack(push, ident)
+                if (c_show_pack)
+                    fprintf(stderr, "%s: pragma pack(push,%s)\n",
+                        base.location().str().data(), param.data());
+                base.packing().push(param);
+                return CR_ErrorInfo::NOTHING;
+            }
+        } else if (param.size() && isdigit(param[0])) {
+            // #pragma pack(..., #)
+            if ((it + 1)->m_text == "pop") {
+                // #pragma pack(pop, #)
+                int pack = std::strtol(param.data(), NULL, 0);
+                if (c_show_pack)
+                    fprintf(stderr, "%s: pragma pack(pop,%d)\n",
+                        base.location().str().data(), pack);
+                base.packing().pop(pack);
+                return CR_ErrorInfo::NOTHING;
+            } else if ((it + 1)->m_text == "push") {
+                // #pragma pack(push, #)
+                int pack = std::strtol(param.data(), NULL, 0);
+                if (c_show_pack)
+                    fprintf(stderr, "%s: pragma pack(push,%d)\n",
+                        base.location().str().data(), pack);
+                base.packing().push(pack);
+                return CR_ErrorInfo::NOTHING;
+            }
+        }
+        return CR_ErrorInfo::WARN;
+    }
+
+    // #pragma pack(..., ..., ...)
+	flag = token_pattern_match(base, it, end,
+        {T_L_PAREN, eof, T_COMMA, eof, T_COMMA, eof, T_R_PAREN}
+    );
+    if (flag) {
+        // #pragma pack(push, ...   , #)
+        auto op = (it + 1)->m_text;
+        auto ident = (it + 3)->m_text;
+        auto param = (it + 5)->m_text;
+        if (op == "push") {
+            if (c_show_pack)
+                fprintf(stderr, "%s: pragma pack(push,%s,%s)\n",
+                    base.location().str().data(),
+                    ident.data(), param.data());
+            base.packing().push(ident);
+            base.packing().set(base.packing());
+            return CR_ErrorInfo::NOTHING;
+        } else if (op == "pop") {
+            int pack = std::strtol(param.data(), NULL, 0);
+            if (c_show_pack)
+                fprintf(stderr, "%s: pragma pack(pop,%s,%s)\n",
+                    base.location().str().data(),
+                    ident.data(), param.data());
+            if (base.packing().pop(ident)) {
+                base.packing().set(pack);
+            } else {
+                base.packing().set(base.default_packing());
+            }
+            return CR_ErrorInfo::NOTHING;
+        }
+    }
+
+    return CR_ErrorInfo::WARN;
+}
+
+CR_ErrorInfo::Type
 cparser::Scanner::parse_pragma(
-    ScannerBase& base, token_iterator& it, token_iterator end)
+    ScannerBase& base, token_iterator it, token_iterator end)
 {
     if (it == end) {
         return CR_ErrorInfo::NOTHING;
     }
     // #pragma name...
+    bool flag;
     auto name = it->m_text;
     ++it;
     if (name == "message") {
         // #pragma message("...")
-        bool flag = token_pattern_match(it, end,
-            {T_L_PAREN, T_STRING, T_R_PAREN}
-        );
+        flag = token_pattern_match(base, it, end, 
+			{ T_L_PAREN, T_STRING, T_R_PAREN }
+		);
         if (flag) {
             message(base.location(), (it + 1)->m_text);
             it += 3;
@@ -586,57 +1469,10 @@ cparser::Scanner::parse_pragma(
         return CR_ErrorInfo::NOTHING;
     }
     if (name == "pack") {
-        // #pragma pack...
-        bool flag = token_pattern_match(it, end,
-            {T_L_PAREN, T_R_PAREN}
-        );
-        if (flag) {
-            // #pragma pack()
-            base.packing().set_pack(); // default value
-            it += 2;
-            return CR_ErrorInfo::NOTHING;
-        }
-        flag = token_pattern_match(it, end,
-            {T_L_PAREN, eof, T_R_PAREN}
-        );
-        if (flag) {
-            if ((it + 1)->m_text == "pop") {
-                // #pragma pack(pop)
-                base.packing().pop_pack();
-            } else {
-                // #pragma pack(#)
-                int pack = std::strtol((it + 1)->m_text.data(), NULL, 0);
-                base.packing().set_pack(pack);
-            }
-            it += 3;
-            return CR_ErrorInfo::NOTHING;
-        }
-        flag = token_pattern_match(it, end,
-            {T_L_PAREN, eof, T_COMMA, eof, T_R_PAREN}
-        );
-        if (flag) {
-            // #pragma pack(push, #)
-            if ((it + 1)->m_text == "push") {
-                int pack = std::strtol((it + 3)->m_text.data(), NULL, 0);
-                assert(pack != 0);
-                base.packing().push_pack(pack);
-                it += 5;
-                return CR_ErrorInfo::NOTHING;
-            }
-        }
-        flag = token_pattern_match(it, end,
-            {T_L_PAREN, eof, T_COMMA, eof, T_COMMA, eof, T_R_PAREN}
-        );
-        if (flag) {
-            // #pragma pack(push, #, #)
-            if ((it + 1)->m_text == "push") {
-                // TODO & FIXME
-                return CR_ErrorInfo::NOTICE;
-            }
-        }
+        return parse_pack(base, it, end);
     }
     if (name == "comment") {
-        bool flag = token_pattern_match(it, end,
+        flag = token_pattern_match(base, it, end,
             {T_L_PAREN, eof, T_COMMA, eof, T_R_PAREN}
         );
         if (flag) {
@@ -651,7 +1487,7 @@ cparser::Scanner::parse_pragma(
             return CR_ErrorInfo::NOTHING;
         }
     }
-    return CR_ErrorInfo::ERR;
+    return CR_ErrorInfo::WARN;
 } // parse_pragma
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1386,7 +2222,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 continue;
 
             case Declor::BITS:
-                assert(ls.m_struct_or_union);   // must be struct
+                assert(ls.m_is_struct);   // must be struct
                 assert(d->m_const_expr);
                 bits = CrCalcConstIntCondExpr(namescope, d->m_const_expr.get());
                 d = d->m_declor.get();
@@ -2027,7 +2863,6 @@ int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {
             break;
         }
     }
-
     return cr_exit_ok;   // success
 }
 
@@ -2047,7 +2882,7 @@ void CrDumpSemantic(
             const auto& name = namescope.MapTypeIDToName()[tid];
             const auto& type = namescope.LogType(tid);
             if (namescope.IsCrExtendedType(tid)) {
-                #ifdef _DEBUG
+                #if 0
                     size_t size = namescope.SizeOfType(tid);
                     fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(cr_extended)\t0\t(cr_extended)\n",
                         static_cast<int>(tid), name.data(), type.m_flags,
@@ -2089,41 +2924,33 @@ void CrDumpSemantic(
 
     fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(type_id)\t(name)\t(struct_id)\t(struct_or_union)\t(size)\t(count)\t(pack)\t(align)\t(file)\t(line)\t(definition)\t(item_1_name)\t(item_1_type_id)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
-        for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
+        fprintf(fp, "(struct_id)\t(name)\t(type_id)\t(is_struct)\t(size)\t(count)\t(pack)\t(align)\t(file)\t(line)\t(definition)\t(item_1_name)\t(item_1_type_id)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
+        for (CR_TypeID sid = 0; sid < namescope.LogStructs().size(); ++sid) {
+            const auto& ls = namescope.LogStruct(sid);
+            auto tid = ls.m_tid;
             const auto& type = namescope.LogType(tid);
-            if (!(type.m_flags & (TF_STRUCT | TF_UNION))) {
-                continue;
-            }
+            const auto& location = type.location();
             const auto& name = namescope.MapTypeIDToName()[tid];
             auto strDef = namescope.StringOfType(tid, "");
-            assert(!strDef.empty());
-            const auto& location = type.location();
+            if (name.empty()) {
+                strDef.clear();
+            }
             size_t size = namescope.SizeOfType(tid);
-            auto sid = type.m_sub_id;
-            const auto& ls = namescope.LogStruct(sid);
             assert(ls.m_type_list.size() == ls.m_name_list.size());
             fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
-                static_cast<int>(tid), name.data(), 
-                static_cast<int>(sid), static_cast<int>(ls.m_struct_or_union),
+                static_cast<int>(sid), name.data(), static_cast<int>(tid), 
+                static_cast<int>(ls.m_is_struct),
                 static_cast<int>(size), static_cast<int>(ls.m_type_list.size()),
                 static_cast<int>(ls.m_pack), static_cast<int>(ls.m_align),
                 location.m_file.data(), location.m_line, strDef.data());
-            if (type.m_flags & TF_UNION) {
-                for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
-                    fprintf(fp, "\t%s\t%d\t0\t0",
-                        ls.m_name_list[i].data(),
-                        static_cast<int>(ls.m_type_list[i]));
-                }
-            } else {
-                assert(ls.m_type_list.size() == ls.m_offset_list.size());
-                for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
-                    fprintf(fp, "\t%s\t%d\t%d\t%d",
-                        ls.m_name_list[i].data(),
-                        static_cast<int>(ls.m_type_list[i]),
-                        static_cast<int>(ls.m_offset_list[i]),
-                        static_cast<int>(ls.m_bits_list[i]));
-                }
+            assert(ls.m_type_list.size() == ls.m_offset_list.size());
+            assert(ls.m_type_list.size() == ls.m_bits_list.size());
+            for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
+                fprintf(fp, "\t%s\t%d\t%d\t%d",
+                    ls.m_name_list[i].data(),
+                    static_cast<int>(ls.m_type_list[i]),
+                    static_cast<int>(ls.m_offset_list[i]),
+                    static_cast<int>(ls.m_bits_list[i]));
             }
             fprintf(fp, "\n");
         }
@@ -2155,7 +2982,7 @@ void CrDumpSemantic(
 
     fp = fopen((strPrefix + "enumitems" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(name)\t(enum_type_id)\t(value)\t(enum_name)\t(file)\t(line)\n");
+        fprintf(fp, "(enum_type_id)\t(name)\t(value)\t(enum_name)\t(file)\t(line)\n");
         const auto& vars = namescope.Vars();
         for (CR_VarID i = 0; i < vars.size(); ++i) {
             const auto& var = vars[i];
@@ -2164,8 +2991,8 @@ void CrDumpSemantic(
                 const auto& name = namescope.MapVarIDToName()[i];
                 const auto& enum_name = namescope.MapTypeIDToName()[var.m_enum_type_id];
                 const auto& location = var.location();
-                fprintf(fp, "%s\t%d\t%d\t%s\t%s\t%d\n",
-                    name.data(), static_cast<int>(var.m_enum_type_id), var.m_int_value,
+                fprintf(fp, "%d\t%s\t%d\t%s\t%s\t%d\n",
+                    static_cast<int>(var.m_enum_type_id), name.data(), var.m_int_value,
                     enum_name.data(), location.m_file.data(), location.m_line);
             }
         }
