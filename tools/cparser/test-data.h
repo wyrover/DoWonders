@@ -1,6 +1,6 @@
-int a = (2 >> 1);
 
 #include <pshpack2.h>
+__attribute__((__aligned__(1)))
 union __mingw_ldbl_type_t {
 	long double x;
 #include <pshpack4.h>

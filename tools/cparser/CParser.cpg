@@ -216,7 +216,6 @@ type_qualifier<TypeQual>
     : [DoTypeQual1] T_CONST
     | [DoTypeQual2] T_RESTRICT
     | [DoTypeQual3] T_VOLATILE
-    | [DoTypeQual4] T_UNALIGNED     // fixup
     ;
 
 struct_specifier<TypeSpec>
@@ -331,10 +330,7 @@ pointer<Pointers>
     ;
 
 asterisk_company<AstCom>
-    : [DoAstCom1] T_UNALIGNED T_ASTERISK(0) T_PTR64 
-    | [DoAstCom2] T_UNALIGNED T_ASTERISK(0) T_PTR32
-    | [DoAstCom3] T_UNALIGNED T_ASTERISK(0)
-    | [DoAstCom4] T_ASTERISK(0) T_PTR64
+    : [DoAstCom4] T_ASTERISK(0) T_PTR64
     | [DoAstCom5] T_ASTERISK(0) T_PTR32
     | [DoAstCom6] T_ASTERISK(0)
     ;

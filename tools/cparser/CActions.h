@@ -676,15 +676,6 @@ namespace cparser
             return shared_ptr<TypeQual>(tq);
         }
 
-        shared_ptr<TypeQual> DoTypeQual4() {
-            #ifdef DEEPDEBUG
-                std::printf("DoTypeQual4\n");
-            #endif
-            TypeQual *tq = new TypeQual;
-            tq->m_flag = 0;     // __unaligned is ignored
-            return shared_ptr<TypeQual>(tq);
-        }
-
         shared_ptr<TypeSpec> DoStructSpec1(shared_ptr<CR_TokenNode>& keyword, 
             shared_ptr<CR_TokenNode>& tag, shared_ptr<DeclList>& decl_list)
         {
@@ -1304,33 +1295,6 @@ namespace cparser
             Pointers *p = new Pointers;
             p->push_back(ac);
             return shared_ptr<Pointers>(p);
-        }
-
-        shared_ptr<AstCom> DoAstCom1(shared_ptr<CR_TokenNode>& asterisk) {
-            #ifdef DEEPDEBUG
-                std::printf("DoAstCom1\n");
-            #endif
-            AstCom *ac = new AstCom;
-            ac->m_flags = asterisk->m_flags;
-            return shared_ptr<AstCom>(ac);
-        }
-
-        shared_ptr<AstCom> DoAstCom2(shared_ptr<CR_TokenNode>& asterisk) {
-            #ifdef DEEPDEBUG
-                std::printf("DoAstCom2\n");
-            #endif
-            AstCom *ac = new AstCom;
-            ac->m_flags = asterisk->m_flags;
-            return shared_ptr<AstCom>(ac);
-        }
-
-        shared_ptr<AstCom> DoAstCom3(shared_ptr<CR_TokenNode>& asterisk) {
-            #ifdef DEEPDEBUG
-                std::printf("DoAstCom3\n");
-            #endif
-            AstCom *ac = new AstCom;
-            ac->m_flags = asterisk->m_flags;
-            return shared_ptr<AstCom>(ac);
         }
 
         shared_ptr<AstCom> DoAstCom4(shared_ptr<CR_TokenNode>& asterisk) {

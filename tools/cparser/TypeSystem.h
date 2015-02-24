@@ -23,7 +23,7 @@ enum {
     TF_DOUBLE       = 0x00000100,
     TF_SIGNED       = 0,
     TF_UNSIGNED     = 0x00000200,
-    TF_UNALIGNED    = 0x00000400,
+    //                0x00000400 is absent
     TF_STRUCT       = 0x00000800,
     TF_UNION        = 0x00001000,
     TF_ENUM         = 0x00002000,
@@ -143,10 +143,10 @@ struct CR_LogType {
     // For TF_ENUMITEM:             An enum ID (CR_EnumID)
     // otherwise: zero
 
-    size_t       m_count;           // for TF_ARRAY, TF_STRUCT, TF_UNION
-    size_t       m_size;            // the size of type
-    size_t       m_align;           // alignment requirement of type
-    CR_Location  m_loc;             // the location
+    size_t          m_count;        // for TF_ARRAY, TF_STRUCT, TF_UNION
+    int             m_size;         // the size of type
+    int             m_align;        // alignment requirement of type
+    CR_Location     m_loc;          // the location
 
     CR_LogType() : m_flags(0), m_sub_id(0), m_count(0), m_size(0), m_align(1) { }
 
@@ -184,10 +184,10 @@ struct CR_LogStruct {
     bool                    m_is_struct;        // it's not union if true
     CR_TypeSet              m_type_list;        // list of type IDs
     CR_StringSet            m_name_list;        // list of names
-    CR_DeqSet<size_t>       m_offset_list;      // list of offset
-    CR_DeqSet<size_t>       m_bits_list;        // list of bits
-    size_t                  m_pack;             // pack
-    size_t                  m_align;            // alignment requirement
+    CR_DeqSet<int>          m_offset_list;      // list of offset
+    CR_DeqSet<int>          m_bits_list;        // list of bits
+    int                     m_pack;             // pack
+    int                     m_align;            // alignment requirement
 
     CR_LogStruct(bool is_struct = true) :
         m_is_struct(is_struct), m_pack(8), m_align(1) { }
@@ -619,8 +619,8 @@ public:
         auto& ls = LogStruct(sid);
         ls.m_offset_list.clear();
 
-        size_t offset = 0, prev_item_size = 0, bits_remain = 0;
-        size_t max_align = 1;
+        int offset = 0, prev_item_size = 0, bits_remain = 0;
+        int max_align = 1;
         const size_t siz = ls.m_type_list.size();
         bool is_complete = true;
         // for each field
@@ -639,9 +639,9 @@ public:
         for (std::size_t i = 0; i < siz; ++i) {
             auto tid2 = ls.m_type_list[i];
             auto& type2 = LogType(tid2);
-            size_t item_size = type2.m_size;            // size of type
-            size_t item_align = type2.m_align;          // alignment requirement
-            size_t bits = ls.m_bits_list[i];            // bits of bitfield
+            int item_size = type2.m_size;            // size of type
+            int item_align = type2.m_align;          // alignment requirement
+            int bits = ls.m_bits_list[i];            // bits of bitfield
             if (bits) { // the bits specified on bitfield
                 assert(bits <= item_size * 8);
                 ls.m_offset_list.push_back(offset);
@@ -703,7 +703,7 @@ public:
         ls.m_offset_list.assign(ls.m_type_list.size(), 0);
         assert(ls.m_offset_list.size() == ls.m_type_list.size());
 
-        size_t item_size, item_align, max_size = 0, max_align = 1;
+        int item_size, item_align, max_size = 0, max_align = 1;
         const size_t siz = ls.m_type_list.size();
         bool is_complete = true;
         // for each field
@@ -819,7 +819,7 @@ public:
     //
 
     // get size of type
-    size_t SizeOfType(CR_TypeID tid) const {
+    int SizeOfType(CR_TypeID tid) const {
         assert(tid != cr_invalid_id);
         if (tid == cr_invalid_id)
             return 0;

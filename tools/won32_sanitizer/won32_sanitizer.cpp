@@ -141,8 +141,11 @@ bool WsJustDoIt(
             //auto sub_id = atoi(fields[3].data());
             //auto count = atoi(fields[4].data());
             auto size = atoi(fields[5].data());
+            auto align = atoi(fields[6].data());
             if (size && name.size() && name.find("*") == std::string::npos) {
                 if (!(flags & (TF_STRUCT | TF_UNION | TF_ENUM | TF_ENUMITEM | TF_CONST))) {
+                    out << "\tcheck_align(" << name << ", " << align << ");" <<
+                           std::endl;
                     out << "\tcheck_size(" << name << ", " << size << ");" <<
                            std::endl;
                 }
@@ -168,22 +171,15 @@ bool WsJustDoIt(
             //auto type_id = atoi(fields[0].data());
             auto name = fields[1];
             //auto struct_id = atoi(fields[2].data());
-            auto struct_or_union = atoi(fields[3].data());
+            //auto struct_or_union = atoi(fields[3].data());
             auto size = atoi(fields[4].data());
             auto count = atoi(fields[5].data());
             auto align = atoi(fields[7].data());
             if (size && name.size() && count) {
-                if (struct_or_union) {
-                    out << "\tcheck_align(struct " << name << ", " << align << ");" <<
-                           std::endl;
-                    out << "\tcheck_size(struct " << name << ", " << size << ");" <<
-                           std::endl;
-                } else {
-                    out << "\tcheck_align(union " << name << ", " << align << ");" <<
-                           std::endl;
-                    out << "\tcheck_size(union " << name << ", " << size << ");" <<
-                           std::endl;
-                }
+                out << "\tcheck_align(" << name << ", " << align << ");" <<
+                       std::endl;
+                out << "\tcheck_size(" << name << ", " << size << ");" <<
+                       std::endl;
             }
         }
     } else {

@@ -807,6 +807,10 @@ void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
     resynth5(c.begin(), c.end());
 }
 
+// 1. Delete all T_UNALIGNED's.
+// 2. Delete and warn all invalid characters.
+// 3. Process all pragmas and delete them.
+// 4. Count all T_NEWLINE's and delete them.
 void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
     node_container     newc;
     newc.reserve(c.size());
@@ -817,6 +821,7 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
         it->location() = base.location();
         it->m_pack = base.packing();
 
+        // invalid character
         if (it->m_token == T_INVALID_CHAR) {
             std::string text = "unexpected character '";
             text += it->m_text + "'";
@@ -824,13 +829,19 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
             continue;
         }
 
+        // NOTE: Itanium not supported yet.
+        if (it->m_token == T_UNALIGNED) {
+            continue;
+        }
+
+        // found '#'
         if (it->m_token == T_SHARP) {
             if (!line_top) {
                 add_error(base.location(), "invalid character '#'");
                 continue;
             }
 
-            // #
+            // #...
             bool is_lineno_directive = false;
             ++it;
 
@@ -872,6 +883,8 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
             }
             continue;
         }
+
+        // is it '\n' ?
         if (it->m_token == T_NEWLINE) {
             line_top = true;
             ++base.location();
@@ -1547,7 +1560,7 @@ int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
 
 CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
 
-size_t CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
+int CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
     CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
     if (tn->m_declor) {
         switch (tn->m_declor->m_declor_type) {
@@ -2681,7 +2694,7 @@ int CrInputCSrc(
         static char filename[MAX_PATH];
         ::GetTempFileNameA(".", "cpa", 0, filename);
         cr_tmpfile = filename;
-        #if 1
+        #if 0
             atexit(CrDeleteTempFileAtExit);
         #endif
 
@@ -2839,8 +2852,7 @@ int CrSemanticAnalysis(
 
 void CrDumpSemantic(
     CR_NameScope& namescope,
-    const CR_String& strPrefix,
-    const CR_String& strSuffix)
+    const CR_String& strPrefix, const CR_String& strSuffix)
 {
     FILE *fp;
 
@@ -2857,27 +2869,27 @@ void CrDumpSemantic(
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t(predefined)\t0\t(predefined)\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
                     static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
-                    static_cast<int>(type.m_size), static_cast<int>(type.m_align));
+                    type.m_size, type.m_align);
             } else if (type.m_flags & (TF_STRUCT | TF_UNION | TF_ENUM)) {
                 auto strDef = namescope.StringOfType(tid, "", true);
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\t%s;\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
                     static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
-                    static_cast<int>(type.m_size), static_cast<int>(type.m_align),
+                    type.m_size, type.m_align,
                     location.m_file.data(), location.m_line, strDef.data());
             } else if (type.m_flags & (TF_POINTER | TF_FUNCTION | TF_ARRAY)) {
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\t\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
                     static_cast<int>(type.m_sub_id),
-                    static_cast<int>(type.m_count), static_cast<int>(type.m_size),
-                    static_cast<int>(type.m_align),
+                    static_cast<int>(type.m_count),
+                    type.m_size, type.m_align,
                     location.m_file.data(), location.m_line);
             } else {
                 auto strDef = namescope.StringOfType(tid, name, true);
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\ttypedef %s;\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
                     static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
-                    static_cast<int>(type.m_size), static_cast<int>(type.m_align),
+                    type.m_size, type.m_align,
                     location.m_file.data(), location.m_line, strDef.data());
             }
         }
@@ -2894,25 +2906,19 @@ void CrDumpSemantic(
             const auto& location = type.location();
             const auto& name = namescope.MapTypeIDToName()[tid];
             auto strDef = namescope.StringOfType(tid, "");
-            if (name.empty()) {
-                strDef.clear();
-            }
-            size_t size = namescope.SizeOfType(tid);
             assert(ls.m_type_list.size() == ls.m_name_list.size());
             fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
                 static_cast<int>(sid), name.data(), static_cast<int>(tid), 
-                static_cast<int>(ls.m_is_struct),
-                static_cast<int>(size), static_cast<int>(ls.m_type_list.size()),
-                static_cast<int>(ls.m_pack), static_cast<int>(ls.m_align),
-                location.m_file.data(), location.m_line, strDef.data());
+                ls.m_is_struct, type.m_size, static_cast<int>(ls.m_type_list.size()),
+                ls.m_pack, ls.m_align, location.m_file.data(), location.m_line, strDef.data());
             assert(ls.m_type_list.size() == ls.m_offset_list.size());
             assert(ls.m_type_list.size() == ls.m_bits_list.size());
             for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
                 fprintf(fp, "\t%s\t%d\t%d\t%d",
                     ls.m_name_list[i].data(),
                     static_cast<int>(ls.m_type_list[i]),
-                    static_cast<int>(ls.m_offset_list[i]),
-                    static_cast<int>(ls.m_bits_list[i]));
+                    ls.m_offset_list[i],
+                    ls.m_bits_list[i]);
             }
             fprintf(fp, "\n");
         }
@@ -2933,8 +2939,7 @@ void CrDumpSemantic(
                     static_cast<int>(tid), name.data(), static_cast<int>(num_items),
                     location.m_file.data(), location.m_line);
                 for (const auto& item : le.MapNameToValue()) {
-                    fprintf(fp, "\t%s\t%d",
-                        item.first.data(), item.second);
+                    fprintf(fp, "\t%s\t%d", item.first.data(), item.second);
                 }
                 fprintf(fp, "\n");
             }
