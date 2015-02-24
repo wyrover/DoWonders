@@ -7,21 +7,21 @@ const char * const cr_logo =
     "///////////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser sample 0.2.3 (64-bit) for gcc     //\n"
+    "// CParser sample 0.2.4 (64-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.3 (64-bit) for clang    //\n"
+    "// CParser sample 0.2.4 (64-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.3 (64-bit) for cl      //\n"
+    "// CParser sample 0.2.4 (64-bit) for cl      //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser sample 0.2.3 (32-bit) for gcc     //\n"
+    "// CParser sample 0.2.4 (32-bit) for gcc     //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.3 (32-bit) for clang    //\n"
+    "// CParser sample 0.2.4 (32-bit) for clang    //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.3 (32-bit) for cl      //\n"
+    "// CParser sample 0.2.4 (32-bit) for cl      //\n"
 # else
 #  error You lose!
 # endif
@@ -783,7 +783,7 @@ label_default:
 } // get_tokens
 
 void cparser::Lexer::resynth(LexerBase& base, token_container& c) {
-    const bool c_show_tokens = true;
+    const bool c_show_tokens = false;
 
     if (c_show_tokens) {
         std::printf("\n#0\n");
@@ -1309,7 +1309,6 @@ void cparser::Lexer::init_symbol_table() {
     st.emplace("void", T_VOID);
     st.emplace("volatile", T_VOLATILE);
     st.emplace("while", T_WHILE);
-    st.emplace("xsigned", T_XSIGNED);
 }
 
 cparser::Token
@@ -2871,6 +2870,9 @@ int CrSemanticAnalysis(
             break;
         }
     }
+
+    namescope.CompleteTypeInfo();
+
     return cr_exit_ok;   // success
 }
 
@@ -2885,45 +2887,38 @@ void CrDumpSemantic(
 
     fp = fopen((strPrefix + "types" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(type_id)\t(name)\t(flags)\t(sub_id)\t(count)\t(size)\t(file)\t(line)\t(definition)\n");
+        fprintf(fp, "(type_id)\t(name)\t(flags)\t(sub_id)\t(count)\t(size)\t(align)\t(file)\t(line)\t(definition)\n");
         for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& name = namescope.MapTypeIDToName()[tid];
             const auto& type = namescope.LogType(tid);
+            const auto& location = type.location();
             if (namescope.IsCrExtendedType(tid)) {
-                #if 0
-                    size_t size = namescope.SizeOfType(tid);
-                    fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(cr_extended)\t0\t(cr_extended)\n",
-                        static_cast<int>(tid), name.data(), type.m_flags,
-                        static_cast<int>(type.m_sub_id), 0, static_cast<int>(size));
-                #endif
+                ;
             } else if (namescope.IsPredefinedType(tid)) {
-                size_t size = namescope.SizeOfType(tid);
-                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t(predefined)\t0\t(predefined)\n",
+                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t(predefined)\t0\t(predefined)\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_sub_id), 0, static_cast<int>(size));
+                    static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
+                    static_cast<int>(type.m_size), static_cast<int>(type.m_align));
             } else if (type.m_flags & (TF_STRUCT | TF_UNION | TF_ENUM)) {
                 auto strDef = namescope.StringOfType(tid, "", true);
-                const auto& location = type.location();
-                size_t size = type.m_size;
-                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\t%s;\n",
+                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\t%s;\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_sub_id), 0, static_cast<int>(size),
+                    static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
+                    static_cast<int>(type.m_size), static_cast<int>(type.m_align),
                     location.m_file.data(), location.m_line, strDef.data());
             } else if (type.m_flags & (TF_POINTER | TF_FUNCTION | TF_ARRAY)) {
-                const auto& location = type.location();
-                size_t size = type.m_size;
-                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\n",
+                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\t\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
                     static_cast<int>(type.m_sub_id),
-                    static_cast<int>(type.m_count), static_cast<int>(size),
+                    static_cast<int>(type.m_count), static_cast<int>(type.m_size),
+                    static_cast<int>(type.m_align),
                     location.m_file.data(), location.m_line);
             } else {
                 auto strDef = namescope.StringOfType(tid, name, true);
-                const auto& location = type.location();
-                size_t size = namescope.SizeOfType(tid);
-                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%s\t%d\ttypedef %s;\n",
+                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\ttypedef %s;\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_sub_id), 0, static_cast<int>(size),
+                    static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
+                    static_cast<int>(type.m_size), static_cast<int>(type.m_align),
                     location.m_file.data(), location.m_line, strDef.data());
             }
         }
@@ -3156,7 +3151,7 @@ int main(int argc, char **argv) {
     if (tu) {
         fprintf(stderr, "Semantic analysis...\n");
         if (is_64bit) {
-            CR_NameScope namescope(true);
+            CR_NameScope namescope(error_info, true);
 
             result = CrSemanticAnalysis(error_info, namescope, tu);
             tu = shared_ptr<TransUnit>();
@@ -3164,7 +3159,7 @@ int main(int argc, char **argv) {
                 CrDumpSemantic(namescope, strPrefix, strSuffix);
             }
         } else {
-            CR_NameScope namescope(false);
+            CR_NameScope namescope(error_info, false);
 
             result = CrSemanticAnalysis(error_info, namescope, tu);
             tu = shared_ptr<TransUnit>();

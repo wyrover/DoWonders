@@ -120,7 +120,6 @@
 %token T_W64<CR_TokenInfo>;
 %token T_XOR_ASSIGN<CR_TokenInfo>;
 %token T_XOR<CR_TokenInfo>;
-%token T_XSIGNED<CR_TokenInfo>;
 
 %namespace cparser;
 
@@ -207,7 +206,6 @@ type_specifier<TypeSpec>
     | [DoTypeSpec18] atomic_type_specifier(0)
     | [DoTypeSpec19] T_COMPLEX
     | [DoTypeSpec20] T_IMAGINARY
-    | [DoTypeSpec21] T_XSIGNED    // CodeReverse extension
     ;
 
 atomic_type_specifier<AtomicTypeSpec>

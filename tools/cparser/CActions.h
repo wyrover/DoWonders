@@ -640,15 +640,6 @@ namespace cparser
             return shared_ptr<TypeSpec>();
         }
 
-        shared_ptr<TypeSpec> DoTypeSpec21() {
-            #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec21\n");
-            #endif
-            TypeSpec *ts = new TypeSpec;
-            ts->m_flag = TF_XSIGNED;
-            return shared_ptr<TypeSpec>(ts);
-        }
-
         shared_ptr<AtomicTypeSpec> DoAtomicTypeSpec1(shared_ptr<TypeName>& tn) {
             #ifdef DEEPDEBUG
                 std::printf("DoAtomicTypeSpec1\n");
