@@ -157,6 +157,8 @@ namespace cparser
             LexerBase& base, node_iterator it, node_iterator end,
             const std::vector<Token>& tokens) const;
 
+        void skip_paren_block(node_iterator& begin, node_iterator end);
+
     protected:
         //
         // resynth
@@ -171,12 +173,6 @@ namespace cparser
         resynth_typedef(node_iterator begin, node_iterator end);
 
         node_iterator resynth_parameter_list(
-            node_iterator begin, node_iterator end);
-
-        node_iterator skip_gnu_attribute(
-            node_iterator begin, node_iterator end);
-
-        node_iterator skip_asm_for_fn_decl(
             node_iterator begin, node_iterator end);
 
         void resynth4(node_container& c);

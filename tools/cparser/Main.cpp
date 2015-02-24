@@ -889,27 +889,16 @@ void cparser::Lexer::resynth2(node_container& c) {
     for (it = c.begin(); it != end; ++it) {
         if (it->m_token == T_R_PAREN && (it + 1)->m_token == T_ASM) {
             // int func() __asm__("..." "...");
-            it = skip_asm_for_fn_decl(it + 1, end);
+            newc.push_back(*it);
+            ++it;
+            skip_paren_block(it, end);
             if (it == end)
                 break;
         }
 
         if (it->m_token == T_GNU_ATTRIBUTE) {
-            it2 = it;
-            it = skip_gnu_attribute(it, end);
-            if (it != end) {
-                ++it2;  // T_GNU_ATTRIBUTE
-                ++it2;  // T_L_PAREN
-                ++it2;  // T_L_PAREN
-                switch (it2->m_token) {
-                case T_CDECL: case T_STDCALL: case T_FASTCALL:
-                    newc.push_back(*it2);
-                    break;
-
-                default:
-                    break;
-                }
-            }
+            ++it;
+            skip_paren_block(it, end);
         } else if (it->m_token == T_DECLSPEC || it->m_token == T_PRAGMA) {
             it2 = it;
             ++it2;
@@ -1066,53 +1055,23 @@ cparser::Lexer::resynth_parameter_list(
     return it;
 } // resynth_parameter_list
 
-cparser::node_iterator
-cparser::Lexer::skip_gnu_attribute(
-    node_iterator begin, node_iterator end)
+void cparser::Lexer::skip_paren_block(
+    node_iterator& begin, node_iterator end)
 {
-    node_iterator it = begin;
-    if (it != end && it->m_token == T_GNU_ATTRIBUTE)
-        ++it;
-
-    if (it != end && it->m_token == T_L_PAREN) {
-        ++it;
+    if (begin != end && begin->m_token == T_L_PAREN) {
+        ++begin;
         int paren_nest = 1;
-        for (; it != end; ++it) {
-            if (it->m_token == T_L_PAREN) {
+        for (; begin != end; ++begin) {
+            if (begin->m_token == T_L_PAREN) {
                 paren_nest++;
-            } else if (it->m_token == T_R_PAREN) {
+            } else if (begin->m_token == T_R_PAREN) {
                 paren_nest--;
                 if (paren_nest == 0)
                     break;
             }
         }
     }
-    return it;
-} // skip_gnu_attribute
-
-cparser::node_iterator
-cparser::Lexer::skip_asm_for_fn_decl(
-    node_iterator begin, node_iterator end)
-{
-    node_iterator it = begin;
-    if (it != end && it->m_token == T_ASM)
-        ++it;
-
-    if (it != end && it->m_token == T_L_PAREN) {
-        ++it;
-        int paren_nest = 1;
-        for (; it != end; ++it) {
-            if (it->m_token == T_L_PAREN) {
-                paren_nest++;
-            } else if (it->m_token == T_R_PAREN) {
-                paren_nest--;
-                if (paren_nest == 0)
-                    break;
-            }
-        }
-    }
-    return it;
-} // skip_asm_for_fn_decl
+}
 
 void cparser::Lexer::resynth4(node_container& c) {
     node_container newc;
