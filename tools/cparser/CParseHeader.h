@@ -11,9 +11,9 @@ namespace cparser
 {
     typedef std::istreambuf_iterator<char>  scanner_iterator;
     typedef std::string::iterator           str_iterator;
-    typedef TokenInfo<Token>                token_type;
-    typedef std::vector<token_type>         token_container;
-    typedef token_container::iterator       token_iterator;
+    typedef TokenNode<Token>                node_type;
+    typedef std::vector<node_type>          node_container;
+    typedef node_container::iterator        node_iterator;
 }
 
 #include "CLexer.h"       // for cparser::Lexer
@@ -31,7 +31,7 @@ namespace cparser
         Actions as;
         Lexer lexer(error_info, is_64bit);
 
-        std::vector<CR_TokenInfo> infos;
+        std::vector<CR_TokenNode> infos;
         lexer.just_do_it(infos, begin, end);
         #if 0
             std::printf("\n#2\n");
@@ -43,7 +43,7 @@ namespace cparser
         Parser<shared_ptr<Node>, Actions> parser(as);
         auto infos_end = infos.end();
         for (auto it = infos.begin(); it != infos_end; ++it) {
-            if (parser.post(it->m_token, make_shared<CR_TokenInfo>(*it))) {
+            if (parser.post(it->m_token, make_shared<CR_TokenNode>(*it))) {
                 if (parser.error()) {
                     // show around tokens
                     std::string around;
@@ -57,7 +57,7 @@ namespace cparser
                     }
                     for (int i = 0; i < count; ++i) {
                         if (infos_end != it) {
-                            around += lexer.token_to_string(*it);
+                            around += lexer.node_to_string(*it);
                             around += " ";
                             ++it;
                         }
@@ -66,7 +66,7 @@ namespace cparser
                     }
                     error_info.get()->add_error(
                         it_save->location(),
-                        "Syntax error near " + lexer.token_to_string(*it_save) +
+                        "Syntax error near " + lexer.node_to_string(*it_save) +
                         "\n" + "around: " + around
                     );
                     error_info->emit_all();

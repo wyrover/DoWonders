@@ -1,5 +1,5 @@
-#ifndef CSCANNER_H_
-#define CSCANNER_H_
+#ifndef CLEXER_H_
+#define CLEXER_H_
 
 namespace cparser
 {
@@ -116,23 +116,23 @@ namespace cparser
         bool is_in_block_comment() const { return m_in_c_comment; }
         bool is_in_line_comment() const { return m_in_cxx_comment; }
 
-        void just_do_it(token_container& infos,
+        void just_do_it(node_container& infos,
                         scanner_iterator begin, scanner_iterator end);
 
-        void show_tokens(token_iterator begin, token_iterator end) const {
+        void show_tokens(node_iterator begin, node_iterator end) const {
             for (auto it = begin; it != end; ++it) {
-                std::printf("%s ", token_to_string(*it).data());
+                std::printf("%s ", node_to_string(*it).data());
             }
         }
 
-        std::string token_to_string(const token_type& info) const;
+        std::string node_to_string(const node_type& node) const;
 
-        void newline(token_container& infos) {
+        void newline(node_container& infos) {
             infos.emplace_back(T_NEWLINE, "\\n");
         }
 
-        void skip_block_comment(LexerBase& base, token_container& infos);
-        void skip_line_comment(LexerBase& base, token_container& infos);
+        void skip_block_comment(LexerBase& base, node_container& infos);
+        void skip_line_comment(LexerBase& base, node_container& infos);
 
         std::string guts_escape_sequence(str_iterator& it, str_iterator end) const;
         std::string guts_string(str_iterator& it, str_iterator end) const;
@@ -152,43 +152,43 @@ namespace cparser
         bool lexeme(str_iterator& it, str_iterator end, const std::string& str);
 
         std::string get_line(LexerBase& base);
-        bool get_tokens(LexerBase& base, token_container& infos);
+        bool get_tokens(LexerBase& base, node_container& infos);
         bool token_pattern_match(
-            LexerBase& base, token_iterator it, token_iterator end,
+            LexerBase& base, node_iterator it, node_iterator end,
             const std::vector<Token>& tokens) const;
 
     protected:
         //
         // resynth
         //
-        void resynth(LexerBase& base, token_container& c);
+        void resynth(LexerBase& base, node_container& c);
 
-        void resynth1(LexerBase& base, token_container& c);
-        void resynth2(token_container& c);
-        void resynth3(token_iterator begin, token_iterator end);
+        void resynth1(LexerBase& base, node_container& c);
+        void resynth2(node_container& c);
+        void resynth3(node_iterator begin, node_iterator end);
 
-        token_iterator
-        resynth_typedef(token_iterator begin, token_iterator end);
+        node_iterator
+        resynth_typedef(node_iterator begin, node_iterator end);
 
-        token_iterator resynth_parameter_list(
-            token_iterator begin, token_iterator end);
+        node_iterator resynth_parameter_list(
+            node_iterator begin, node_iterator end);
 
-        token_iterator skip_gnu_attribute(
-            token_iterator begin, token_iterator end);
+        node_iterator skip_gnu_attribute(
+            node_iterator begin, node_iterator end);
 
-        token_iterator skip_asm_for_fn_decl(
-            token_iterator begin, token_iterator end);
+        node_iterator skip_asm_for_fn_decl(
+            node_iterator begin, node_iterator end);
 
-        void resynth4(token_container& c);
-        void resynth5(token_iterator begin, token_iterator end);
+        void resynth4(node_container& c);
+        void resynth5(node_iterator begin, node_iterator end);
 
         Token parse_identifier(const std::string& text) const;
 
         CR_ErrorInfo::Type
-        parse_pragma(LexerBase& base, token_iterator it, token_iterator end);
+        parse_pragma(LexerBase& base, node_iterator it, node_iterator end);
 
         CR_ErrorInfo::Type
-        parse_pack(LexerBase& base, token_iterator it, token_iterator end);
+        parse_pack(LexerBase& base, node_iterator it, node_iterator end);
 
     protected:
         shared_ptr<CR_ErrorInfo>    m_error_info;
@@ -234,4 +234,4 @@ namespace cparser
     }; // class Lexer
 } // namespace cparser
 
-#endif  // ndef CSCANNER_H_
+#endif  // ndef CLEXER_H_

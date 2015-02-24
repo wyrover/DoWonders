@@ -435,10 +435,10 @@ namespace cparser
     };
 
     //
-    // TokenInfo<TokenType>
+    // TokenNode<TokenType>
     //
     template <typename TokenType>
-    struct TokenInfo : Node {
+    struct TokenNode : Node {
         typedef TokenType token_type;
 
         token_type      m_token;
@@ -456,22 +456,22 @@ namespace cparser
         };
 
     public:
-        TokenInfo() : m_pack(0), m_flags(0), m_long_long_value(0) { }
+        TokenNode() : m_pack(0), m_flags(0), m_long_long_value(0) { }
 
-        TokenInfo(token_type token) :
+        TokenNode(token_type token) :
             m_token(token), m_pack(0), m_flags(0),
             m_long_long_value(0) { }
 
-        TokenInfo(token_type token, const std::string& text) :
+        TokenNode(token_type token, const std::string& text) :
             m_token(token), m_text(text), m_pack(0),
             m_flags(0), m_long_long_value(0) { }
 
-        TokenInfo(token_type token, 
+        TokenNode(token_type token, 
                   const std::string& text, const std::string& extra) :
             m_token(token), m_text(text),
             m_extra(extra), m_pack(0), m_flags(0), m_long_long_value(0) { }
 
-        TokenInfo(token_type token,  const std::string& text,
+        TokenNode(token_type token,  const std::string& text,
                   const std::string& extra, CR_TypeFlags flags) :
             m_token(token), m_text(text), m_extra(extra),
             m_pack(0), m_flags(flags), m_long_long_value(0) { }
@@ -479,12 +479,12 @@ namespace cparser
         void set_token(token_type token) {
             m_token = token;
         }
-    }; // struct TokenInfo
+    }; // struct TokenNode
 
     //
-    // CR_TokenInfo
+    // CR_TokenNode
     //
-    #define CR_TokenInfo TokenInfo<Token>
+    #define CR_TokenNode TokenNode<Token>
 } // namespace cparser
 
 #endif  // ndef CPARSER_AST_H_

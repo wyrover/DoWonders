@@ -52,18 +52,18 @@ using namespace cparser;
 ////////////////////////////////////////////////////////////////////////////
 // cparser::Lexer
 
-std::string cparser::Lexer::token_to_string(const token_type& info) const {
-    std::string str = token_label(info.m_token);
-    if (info.m_text.size()) {
+std::string cparser::Lexer::node_to_string(const node_type& node) const {
+    std::string str = token_label(node.m_token);
+    if (node.m_text.size()) {
         str += "(";
-        str += info.m_text;
+        str += node.m_text;
         str += ")";
     }
     return str;
 }
 
 void cparser::Lexer::skip_block_comment(
-    LexerBase& base, token_container& infos)
+    LexerBase& base, node_container& infos)
 {
     char c;
     do {
@@ -82,7 +82,7 @@ void cparser::Lexer::skip_block_comment(
 } // skip_block_comment
 
 void cparser::Lexer::skip_line_comment(
-    LexerBase& base, token_container& infos)
+    LexerBase& base, node_container& infos)
 {
     char c;
     do {
@@ -96,10 +96,10 @@ void cparser::Lexer::skip_line_comment(
 } // skip_line_comment
 
 bool cparser::Lexer::token_pattern_match(
-    LexerBase& base, token_iterator it, token_iterator end,
+    LexerBase& base, node_iterator it, node_iterator end,
     const std::vector<Token>& tokens) const
 {
-    token_iterator saved = it;
+    node_iterator saved = it;
     for (const auto& token : tokens) {
         if (it == end) {
             it = saved;
@@ -379,13 +379,13 @@ bool cparser::Lexer::lexeme(
 } // lexeme
 
 void cparser::Lexer::just_do_it(
-    token_container& infos,
+    node_container& infos,
     scanner_iterator begin, scanner_iterator end)
 {
     LexerBase base(begin, end);
 
     // get tokens
-    token_container read_infos;
+    node_container read_infos;
     while (get_tokens(base, read_infos)) {
         infos.insert(infos.end(), read_infos.begin(), read_infos.end());
         read_infos.clear();
@@ -417,7 +417,7 @@ std::string cparser::Lexer::get_line(LexerBase& base) {
 }
 
 bool
-cparser::Lexer::get_tokens(LexerBase& base, token_container& infos) {
+cparser::Lexer::get_tokens(LexerBase& base, node_container& infos) {
 retry:
     if (base.is_eof()) {
         return false;
@@ -782,7 +782,7 @@ label_default:
     return true;
 } // get_tokens
 
-void cparser::Lexer::resynth(LexerBase& base, token_container& c) {
+void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
     const bool c_show_tokens = false;
 
     if (c_show_tokens) {
@@ -807,8 +807,8 @@ void cparser::Lexer::resynth(LexerBase& base, token_container& c) {
     resynth5(c.begin(), c.end());
 }
 
-void cparser::Lexer::resynth1(LexerBase& base, token_container& c) {
-    token_container     newc;
+void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
+    node_container     newc;
     newc.reserve(c.size());
 
     bool    line_top = true;
@@ -883,9 +883,9 @@ void cparser::Lexer::resynth1(LexerBase& base, token_container& c) {
     std::swap(c, newc);
 }
 
-void cparser::Lexer::resynth2(token_container& c) {
-    token_container newc;
-    token_iterator it, it2, end = c.end();
+void cparser::Lexer::resynth2(node_container& c) {
+    node_container newc;
+    node_iterator it, it2, end = c.end();
     for (it = c.begin(); it != end; ++it) {
         if (it->m_token == T_R_PAREN && (it + 1)->m_token == T_ASM) {
             // int func() __asm__("..." "...");
@@ -934,7 +934,7 @@ void cparser::Lexer::resynth2(token_container& c) {
     std::swap(c, newc);
 } // resynth2
 
-void cparser::Lexer::resynth3(token_iterator begin, token_iterator end) {
+void cparser::Lexer::resynth3(node_iterator begin, node_iterator end) {
     m_type_names.clear();
     #ifdef __GNUC__
         m_type_names.insert("__builtin_va_list");   // fixup
@@ -943,7 +943,7 @@ void cparser::Lexer::resynth3(token_iterator begin, token_iterator end) {
         m_type_names.insert("SOCKADDR_STORAGE");    // fixup
     #endif
 
-    for (token_iterator it = begin; it != end; ++it) {
+    for (node_iterator it = begin; it != end; ++it) {
         if (it->m_token == T_ENUM || it->m_token == T_STRUCT ||
             it->m_token == T_UNION)
         {
@@ -958,7 +958,7 @@ void cparser::Lexer::resynth3(token_iterator begin, token_iterator end) {
         }
     }
 
-    for (token_iterator it = begin; it != end; ++it) {
+    for (node_iterator it = begin; it != end; ++it) {
         if (it->m_token == T_TYPEDEF) {
             it = resynth_typedef(++it, end);
         } else if (it->m_token == T_IDENTIFIER) {
@@ -969,10 +969,10 @@ void cparser::Lexer::resynth3(token_iterator begin, token_iterator end) {
     }
 } // resynth3
 
-cparser::token_iterator
-cparser::Lexer::resynth_typedef(token_iterator begin, token_iterator end) {
+cparser::node_iterator
+cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
     int paren_nest = 0, brace_nest = 0, bracket_nest = 0;
-    token_iterator it;
+    node_iterator it;
     for (it = begin; it != end; ++it) {
         if (brace_nest == 0 && it->m_token == T_SEMICOLON)
             break;
@@ -1025,13 +1025,13 @@ cparser::Lexer::resynth_typedef(token_iterator begin, token_iterator end) {
     return it;
 } // resynth_typedef
 
-cparser::token_iterator
+cparser::node_iterator
 cparser::Lexer::resynth_parameter_list(
-    token_iterator begin, token_iterator end)
+    node_iterator begin, node_iterator end)
 {
     int paren_nest = 1;
     bool fresh = true;
-    token_iterator it;
+    node_iterator it;
     for (it = begin; it != end; ++it) {
         if (it->m_token == T_SEMICOLON)
             break;
@@ -1066,11 +1066,11 @@ cparser::Lexer::resynth_parameter_list(
     return it;
 } // resynth_parameter_list
 
-cparser::token_iterator
+cparser::node_iterator
 cparser::Lexer::skip_gnu_attribute(
-    token_iterator begin, token_iterator end)
+    node_iterator begin, node_iterator end)
 {
-    token_iterator it = begin;
+    node_iterator it = begin;
     if (it != end && it->m_token == T_GNU_ATTRIBUTE)
         ++it;
 
@@ -1090,11 +1090,11 @@ cparser::Lexer::skip_gnu_attribute(
     return it;
 } // skip_gnu_attribute
 
-cparser::token_iterator
+cparser::node_iterator
 cparser::Lexer::skip_asm_for_fn_decl(
-    token_iterator begin, token_iterator end)
+    node_iterator begin, node_iterator end)
 {
-    token_iterator it = begin;
+    node_iterator it = begin;
     if (it != end && it->m_token == T_ASM)
         ++it;
 
@@ -1114,9 +1114,9 @@ cparser::Lexer::skip_asm_for_fn_decl(
     return it;
 } // skip_asm_for_fn_decl
 
-void cparser::Lexer::resynth4(token_container& c) {
-    token_container newc;
-    token_iterator it, it2, end = c.end();
+void cparser::Lexer::resynth4(node_container& c) {
+    node_container newc;
+    node_iterator it, it2, end = c.end();
     for (it = c.begin(); it != end; ++it) {
         switch (it->m_token) {
         case T_CDECL: case T_STDCALL: case T_FASTCALL:
@@ -1192,8 +1192,8 @@ void cparser::Lexer::resynth4(token_container& c) {
     std::swap(c, newc);
 } // resynth4
 
-void cparser::Lexer::resynth5(token_iterator begin, token_iterator end) {
-    token_iterator it, paren_it, it2;
+void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
+    node_iterator it, paren_it, it2;
     int paren_nest = 0;
     for (it = begin; it != end; ++it) {
         if (it->m_token == T_L_PAREN) {
@@ -1325,7 +1325,7 @@ cparser::Lexer::parse_identifier(const std::string& text) const {
 
 CR_ErrorInfo::Type
 cparser::Lexer::parse_pack(
-    LexerBase& base, token_iterator it, token_iterator end)
+    LexerBase& base, node_iterator it, node_iterator end)
 {
     const bool c_show_pack = false;
     bool flag;
@@ -1447,7 +1447,7 @@ cparser::Lexer::parse_pack(
 
 CR_ErrorInfo::Type
 cparser::Lexer::parse_pragma(
-    LexerBase& base, token_iterator it, token_iterator end)
+    LexerBase& base, node_iterator it, node_iterator end)
 {
     if (it == end) {
         return CR_ErrorInfo::NOTHING;

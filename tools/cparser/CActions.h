@@ -169,7 +169,7 @@ namespace cparser
         }
 
         shared_ptr<Decl> DoDecl1(
-            shared_ptr<CR_TokenInfo>& def,
+            shared_ptr<CR_TokenNode>& def,
             shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
         {
             #ifdef DEEPDEBUG
@@ -184,7 +184,7 @@ namespace cparser
         }
 
         shared_ptr<Decl> DoDecl7(
-            shared_ptr<CR_TokenInfo>& def,
+            shared_ptr<CR_TokenNode>& def,
             shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
@@ -581,7 +581,7 @@ namespace cparser
             return shared_ptr<TypeSpec>(ts);
         }
 
-        shared_ptr<TypeSpec> DoTypeSpec14(shared_ptr<CR_TokenInfo>& info) {
+        shared_ptr<TypeSpec> DoTypeSpec14(shared_ptr<CR_TokenNode>& info) {
             #ifdef DEEPDEBUG
                 std::printf("DoTypeSpec14\n");
             #endif
@@ -685,8 +685,8 @@ namespace cparser
             return shared_ptr<TypeQual>(tq);
         }
 
-        shared_ptr<TypeSpec> DoStructSpec1(shared_ptr<CR_TokenInfo>& keyword, 
-            shared_ptr<CR_TokenInfo>& tag, shared_ptr<DeclList>& decl_list)
+        shared_ptr<TypeSpec> DoStructSpec1(shared_ptr<CR_TokenNode>& keyword, 
+            shared_ptr<CR_TokenNode>& tag, shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoStructSpec1\n");
@@ -702,7 +702,7 @@ namespace cparser
         }
 
         shared_ptr<TypeSpec> DoStructSpec2(
-            shared_ptr<CR_TokenInfo>& keyword, shared_ptr<DeclList>& decl_list)
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoStructSpec2\n");
@@ -717,7 +717,7 @@ namespace cparser
         }
 
         shared_ptr<TypeSpec> DoStructSpec3(
-            shared_ptr<CR_TokenInfo>& keyword, shared_ptr<CR_TokenInfo>& tag)
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<CR_TokenNode>& tag)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoStructSpec3\n");
@@ -731,8 +731,8 @@ namespace cparser
             return shared_ptr<TypeSpec>(ts);
         }
 
-        shared_ptr<TypeSpec> DoUnionSpec1(shared_ptr<CR_TokenInfo>& keyword, 
-            shared_ptr<CR_TokenInfo>& tag, shared_ptr<DeclList>& decl_list)
+        shared_ptr<TypeSpec> DoUnionSpec1(shared_ptr<CR_TokenNode>& keyword, 
+            shared_ptr<CR_TokenNode>& tag, shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoUnionSpec1\n");
@@ -746,7 +746,7 @@ namespace cparser
         }
 
         shared_ptr<TypeSpec> DoUnionSpec2(
-            shared_ptr<CR_TokenInfo>& keyword, shared_ptr<DeclList>& decl_list)
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoUnionSpec2\n");
@@ -759,7 +759,7 @@ namespace cparser
         }
 
         shared_ptr<TypeSpec> DoUnionSpec3(
-            shared_ptr<CR_TokenInfo>& keyword, shared_ptr<CR_TokenInfo>& tag)
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<CR_TokenNode>& tag)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoUnionSpec3\n");
@@ -965,7 +965,7 @@ namespace cparser
         }
 
         shared_ptr<Declor> DoStructDeclor3(
-            shared_ptr<CR_TokenInfo>& token, shared_ptr<CondExpr>& ce)
+            shared_ptr<CR_TokenNode>& token, shared_ptr<CondExpr>& ce)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoStructDeclor3\n");
@@ -977,8 +977,8 @@ namespace cparser
             return shared_ptr<Declor>(declor);
         }
 
-        shared_ptr<TypeSpec> DoEnumSpec1(shared_ptr<CR_TokenInfo>& keyword, 
-            shared_ptr<CR_TokenInfo>& tag, shared_ptr<EnumorList>& el)
+        shared_ptr<TypeSpec> DoEnumSpec1(shared_ptr<CR_TokenNode>& keyword, 
+            shared_ptr<CR_TokenNode>& tag, shared_ptr<EnumorList>& el)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoEnumSpec1\n");
@@ -991,8 +991,8 @@ namespace cparser
             return shared_ptr<TypeSpec>(ts);
         }
 
-        shared_ptr<TypeSpec> DoEnumSpec2(shared_ptr<CR_TokenInfo>& keyword, 
-            shared_ptr<CR_TokenInfo>& tag, shared_ptr<EnumorList>& el)
+        shared_ptr<TypeSpec> DoEnumSpec2(shared_ptr<CR_TokenNode>& keyword, 
+            shared_ptr<CR_TokenNode>& tag, shared_ptr<EnumorList>& el)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoEnumSpec2\n");
@@ -1006,7 +1006,7 @@ namespace cparser
         }
 
         shared_ptr<TypeSpec> DoEnumSpec3(
-            shared_ptr<CR_TokenInfo>& keyword, shared_ptr<EnumorList>& el)
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<EnumorList>& el)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoEnumSpec3\n");
@@ -1019,7 +1019,7 @@ namespace cparser
         }
 
         shared_ptr<TypeSpec> DoEnumSpec4(
-            shared_ptr<CR_TokenInfo>& keyword, shared_ptr<EnumorList>& el)
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<EnumorList>& el)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoEnumSpec4\n");
@@ -1032,7 +1032,7 @@ namespace cparser
         }
 
         shared_ptr<TypeSpec> DoEnumSpec5(
-            shared_ptr<CR_TokenInfo>& keyword, shared_ptr<CR_TokenInfo>& tag)
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<CR_TokenNode>& tag)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoEnumSpec5\n");
@@ -1064,7 +1064,7 @@ namespace cparser
         }
 
         shared_ptr<Enumor> DoEnumor1(
-            shared_ptr<CR_TokenInfo>& info, shared_ptr<CondExpr>& ce)
+            shared_ptr<CR_TokenNode>& info, shared_ptr<CondExpr>& ce)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoEnumor1\n");
@@ -1075,7 +1075,7 @@ namespace cparser
             return shared_ptr<Enumor>(e);
         }
 
-        shared_ptr<Enumor> DoEnumor2(shared_ptr<CR_TokenInfo>& info) {
+        shared_ptr<Enumor> DoEnumor2(shared_ptr<CR_TokenNode>& info) {
             #ifdef DEEPDEBUG
                 std::printf("DoEnumor2\n");
             #endif
@@ -1126,7 +1126,7 @@ namespace cparser
             return d;
         }
 
-        shared_ptr<Declor> DoTypedefDirDeclor1(shared_ptr<CR_TokenInfo>& token) {
+        shared_ptr<Declor> DoTypedefDirDeclor1(shared_ptr<CR_TokenNode>& token) {
             #ifdef DEEPDEBUG
                 std::printf("DoTypedefDirDeclor1\n");
             #endif
@@ -1194,7 +1194,7 @@ namespace cparser
             return shared_ptr<Declor>(declor);
         }
 
-        shared_ptr<Declor> DoDirDeclor1(shared_ptr<CR_TokenInfo>& token) {
+        shared_ptr<Declor> DoDirDeclor1(shared_ptr<CR_TokenNode>& token) {
             #ifdef DEEPDEBUG
                 std::printf("DoDirDeclor1\n");
             #endif
@@ -1306,7 +1306,7 @@ namespace cparser
             return shared_ptr<Pointers>(p);
         }
 
-        shared_ptr<AstCom> DoAstCom1(shared_ptr<CR_TokenInfo>& asterisk) {
+        shared_ptr<AstCom> DoAstCom1(shared_ptr<CR_TokenNode>& asterisk) {
             #ifdef DEEPDEBUG
                 std::printf("DoAstCom1\n");
             #endif
@@ -1315,7 +1315,7 @@ namespace cparser
             return shared_ptr<AstCom>(ac);
         }
 
-        shared_ptr<AstCom> DoAstCom2(shared_ptr<CR_TokenInfo>& asterisk) {
+        shared_ptr<AstCom> DoAstCom2(shared_ptr<CR_TokenNode>& asterisk) {
             #ifdef DEEPDEBUG
                 std::printf("DoAstCom2\n");
             #endif
@@ -1324,7 +1324,7 @@ namespace cparser
             return shared_ptr<AstCom>(ac);
         }
 
-        shared_ptr<AstCom> DoAstCom3(shared_ptr<CR_TokenInfo>& asterisk) {
+        shared_ptr<AstCom> DoAstCom3(shared_ptr<CR_TokenNode>& asterisk) {
             #ifdef DEEPDEBUG
                 std::printf("DoAstCom3\n");
             #endif
@@ -1333,7 +1333,7 @@ namespace cparser
             return shared_ptr<AstCom>(ac);
         }
 
-        shared_ptr<AstCom> DoAstCom4(shared_ptr<CR_TokenInfo>& asterisk) {
+        shared_ptr<AstCom> DoAstCom4(shared_ptr<CR_TokenNode>& asterisk) {
             #ifdef DEEPDEBUG
                 std::printf("DoAstCom4\n");
             #endif
@@ -1342,7 +1342,7 @@ namespace cparser
             return shared_ptr<AstCom>(ac);
         }
 
-        shared_ptr<AstCom> DoAstCom5(shared_ptr<CR_TokenInfo>& asterisk) {
+        shared_ptr<AstCom> DoAstCom5(shared_ptr<CR_TokenNode>& asterisk) {
             #ifdef DEEPDEBUG
                 std::printf("DoAstCom5\n");
             #endif
@@ -1351,7 +1351,7 @@ namespace cparser
             return shared_ptr<AstCom>(ac);
         }
 
-        shared_ptr<AstCom> DoAstCom6(shared_ptr<CR_TokenInfo>& asterisk) {
+        shared_ptr<AstCom> DoAstCom6(shared_ptr<CR_TokenNode>& asterisk) {
             #ifdef DEEPDEBUG
                 std::printf("DoAstCom6\n");
             #endif
@@ -1732,7 +1732,7 @@ namespace cparser
         }
 
         shared_ptr<LabeledStmt> DoLabeledStmt1(
-            shared_ptr<CR_TokenInfo>& id, shared_ptr<Stmt>& s)
+            shared_ptr<CR_TokenNode>& id, shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoLabeledStmt1\n");
@@ -1995,7 +1995,7 @@ namespace cparser
             return shared_ptr<IterStmt>(is);
         }
 
-        shared_ptr<JumpStmt> DoJumpStmt1(shared_ptr<CR_TokenInfo>& id) {
+        shared_ptr<JumpStmt> DoJumpStmt1(shared_ptr<CR_TokenNode>& id) {
             #ifdef DEEPDEBUG
                 std::printf("DoJumpStmt1\n");
             #endif
@@ -2810,7 +2810,7 @@ namespace cparser
             return shared_ptr<PostfixExpr>(newpe);
         }
 
-        shared_ptr<PrimExpr> DoPrimExpr1(shared_ptr<CR_TokenInfo>& token) {
+        shared_ptr<PrimExpr> DoPrimExpr1(shared_ptr<CR_TokenNode>& token) {
             #ifdef DEEPDEBUG
                 std::printf("DoPrimExpr1\n");
             #endif
@@ -2820,7 +2820,7 @@ namespace cparser
             return shared_ptr<PrimExpr>(newpe);
         }
 
-        shared_ptr<PrimExpr> DoPrimExpr2(shared_ptr<CR_TokenInfo>& token) {
+        shared_ptr<PrimExpr> DoPrimExpr2(shared_ptr<CR_TokenNode>& token) {
             #ifdef DEEPDEBUG
                 std::printf("DoPrimExpr2\n");
             #endif
@@ -2834,7 +2834,7 @@ namespace cparser
             return shared_ptr<PrimExpr>(newpe);
         }
 
-        shared_ptr<PrimExpr> DoPrimExpr3(shared_ptr<CR_TokenInfo>& token) {
+        shared_ptr<PrimExpr> DoPrimExpr3(shared_ptr<CR_TokenNode>& token) {
             #ifdef DEEPDEBUG
                 std::printf("DoPrimExpr3\n");
             #endif
@@ -2985,7 +2985,7 @@ namespace cparser
         }
 
         shared_ptr<StaticAssertDecl> DoStaticAssertDecl1(
-            shared_ptr<CondExpr>& ce, shared_ptr<CR_TokenInfo>& str)
+            shared_ptr<CondExpr>& ce, shared_ptr<CR_TokenNode>& str)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoStaticAssertDecl1\n");
@@ -3063,7 +3063,7 @@ namespace cparser
             return shared_ptr<AsmOperands>(aos);
         }
 
-        shared_ptr<AsmOperand> DoAsmOperand1(shared_ptr<CR_TokenInfo>& value)
+        shared_ptr<AsmOperand> DoAsmOperand1(shared_ptr<CR_TokenNode>& value)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoAsmOperand1\n");
@@ -3074,7 +3074,7 @@ namespace cparser
             return shared_ptr<AsmOperand>(ao);
         }
 
-        shared_ptr<AsmOperand> DoAsmOperand2(shared_ptr<CR_TokenInfo>& value)
+        shared_ptr<AsmOperand> DoAsmOperand2(shared_ptr<CR_TokenNode>& value)
         {
             #ifdef DEEPDEBUG
                 std::printf("DoAsmOperand2\n");
