@@ -903,6 +903,8 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
 // 2. Convert __attribute__((__aligned__(#))) to _Alignas(#).
 void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
     node_container newc;
+    newc.reserve(c.size());
+
     node_iterator it, it2, end = c.end();
     bool flag;
     for (it = c.begin(); it != end; ++it) {
@@ -953,6 +955,8 @@ void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
 //    (to say it simply, move _Alignas(#) to left side)
 void cparser::Lexer::resynth3(LexerBase& base, node_container& c) {
     node_container newc;
+    newc.reserve(c.size());
+
     node_iterator it, it2, end = c.end();
     bool flag;
     for (it = c.begin(); it != end; ++it) {
@@ -988,6 +992,8 @@ void cparser::Lexer::resynth3(LexerBase& base, node_container& c) {
 // 3. Delete all __declspec(...) and/or __pragma(...)
 void cparser::Lexer::resynth4(node_container& c) {
     node_container newc;
+    newc.reserve(c.size());
+
     node_iterator it, it2, end = c.end();
     for (it = c.begin(); it != end; ++it) {
         if (it->m_token == T_R_PAREN && (it + 1)->m_token == T_ASM) {
@@ -1188,6 +1194,8 @@ void cparser::Lexer::skip_paren_block(
 // 3. Delete all T_GNU_EXTENSION nodes
 void cparser::Lexer::resynth6(node_container& c) {
     node_container newc;
+    newc.reserve(c.size());
+
     node_iterator it, it2, end = c.end();
     for (it = c.begin(); it != end; ++it) {
         switch (it->m_token) {
