@@ -126,6 +126,7 @@ namespace cparser
         shared_ptr<CompStmt>            m_comp_stmt;            // can be NULL
         shared_ptr<AsmSpec>             m_asm_spec;             // can be NULL
         shared_ptr<AsmBlock>            m_asm_block;            // can be NULL
+        shared_ptr<AlignSpec>           m_align_spec;           // can be NULL
     };
 
     struct DeclList : Node, std::vector<shared_ptr<Decl>> {
@@ -147,9 +148,10 @@ namespace cparser
         int                         m_pack;
         // struct/union/enum tag name or typedef name
         CR_String                   m_name;
-        shared_ptr<DeclList>        m_decl_list;    // for struct, union or enum
+        shared_ptr<DeclList>        m_decl_list;            // for struct, union or enum
         shared_ptr<EnumorList>      m_enumor_list;
         shared_ptr<AtomicTypeSpec>  m_atomic_type_spec;
+        shared_ptr<AlignSpec>       m_align_spec;           // can be NULL
         TypeSpec() : m_flag(0), m_pack(0) { }
     };
 
@@ -175,14 +177,13 @@ namespace cparser
 
     struct DeclSpecs : Node {
         enum {
-            STORCLSSPEC, FUNCSPEC, TYPESPEC, TYPEQUAL, ALIGNSPEC
+            STORCLSSPEC, FUNCSPEC, TYPESPEC, TYPEQUAL
         } m_spec_type;
         shared_ptr<StorClsSpec> m_stor_cls_spec;    // can be NULL
         shared_ptr<FuncSpec>    m_func_spec;        // can be NULL
         shared_ptr<DeclSpecs>   m_decl_specs;       // can be NULL
         shared_ptr<TypeSpec>    m_type_spec;        // can be NULL
         shared_ptr<TypeQual>    m_type_qual;        // can be NULL
-        shared_ptr<AlignSpec>   m_align_spec;       // can be NULL
     };
 
     struct Pointers : Node, std::vector<shared_ptr<AstCom>> {

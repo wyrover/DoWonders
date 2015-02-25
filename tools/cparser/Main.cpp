@@ -803,7 +803,6 @@ void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
     }
 
     resynth2(base, c);
-    resynth3(base, c);
     resynth4(c);
     resynth5(c.begin(), c.end());
     resynth6(c);
@@ -949,43 +948,6 @@ void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
     }
     std::swap(c, newc);
 } // resynth2
-
-// 1. Convert struct/union/enum _Alignas(#) to
-//    _Alignas(#) struct/union/enum.
-//    (to say it simply, move _Alignas(#) to left side)
-void cparser::Lexer::resynth3(LexerBase& base, node_container& c) {
-    node_container newc;
-    newc.reserve(c.size());
-
-    node_iterator it, it2, end = c.end();
-    bool flag;
-    for (it = c.begin(); it != end; ++it) {
-        switch (it->m_token) {
-        case T_STRUCT: case T_UNION: case T_ENUM:
-            it2 = it;
-            ++it;
-            flag = token_pattern_match(base, it, end,
-                {T_ALIGNAS, T_L_PAREN, eof, T_R_PAREN}
-            );
-            if (flag) {
-                newc.push_back(*(it + 0));  // T_ALIGNAS
-                newc.push_back(*(it + 1));  // T_L_PAREN
-                newc.push_back(*(it + 2));  // #
-                newc.push_back(*(it + 3));  // T_R_PAREN
-                newc.push_back(*it2);       // struct/union/enum
-                it += 4 - 1;
-            } else {
-                --it;
-                newc.push_back(*it);
-            }
-            break;
-
-        default:
-            newc.push_back(*it);
-        }
-    }
-    std::swap(c, newc);
-}
 
 // 1. Delete __asm__("..." "...") of all function prototypes.
 // 2. Delete all __attribute__(...).
@@ -2714,12 +2676,6 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 continue;
             }
             break;
-
-        case DeclSpecs::ALIGNSPEC:
-            if (ds->m_decl_specs) {
-                ds = ds->m_decl_specs.get();
-                continue;
-            }
         }
         break;
     }

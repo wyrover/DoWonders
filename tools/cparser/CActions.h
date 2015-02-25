@@ -168,6 +168,22 @@ namespace cparser
             return shared_ptr<DeclList>(dl);
         }
 
+        shared_ptr<Decl> DoDecl1a(
+            shared_ptr<CR_TokenNode>& def, shared_ptr<AlignSpec>& align_spec,
+            shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoDecl1a\n");
+            #endif
+            Decl *decl = new Decl;
+            decl->location() = def->location();
+            decl->m_decl_type = Decl::TYPEDEF;
+            decl->m_decl_specs = ds;
+            decl->m_declor_list = dl;
+            decl->m_align_spec = align_spec;
+            return shared_ptr<Decl>(decl);
+        }
+
         shared_ptr<Decl> DoDecl1(
             shared_ptr<CR_TokenNode>& def,
             shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
@@ -183,17 +199,47 @@ namespace cparser
             return shared_ptr<Decl>(decl);
         }
 
-        shared_ptr<Decl> DoDecl7(
-            shared_ptr<CR_TokenNode>& def,
+        shared_ptr<Decl> DoDecl7a(
+            shared_ptr<CR_TokenNode>& def, shared_ptr<AlignSpec>& align_spec,
             shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl1\n");
+                std::printf("DoDecl7a\n");
             #endif
             Decl *decl = new Decl;
             decl->location() = def->location();
             decl->m_decl_type = Decl::TYPEDEF;
             decl->m_decl_specs = ds;
+            decl->m_align_spec = align_spec;
+            return shared_ptr<Decl>(decl);
+        }
+
+        shared_ptr<Decl> DoDecl7(
+            shared_ptr<CR_TokenNode>& def,
+            shared_ptr<DeclSpecs>& ds)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoDecl7\n");
+            #endif
+            Decl *decl = new Decl;
+            decl->location() = def->location();
+            decl->m_decl_type = Decl::TYPEDEF;
+            decl->m_decl_specs = ds;
+            return shared_ptr<Decl>(decl);
+        }
+
+        shared_ptr<Decl> DoDecl2a(
+            shared_ptr<AlignSpec>& align_spec, shared_ptr<DeclSpecs>& ds,
+            shared_ptr<DeclorList>& dl)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoDecl2a\n");
+            #endif
+            Decl *decl = new Decl;
+            decl->m_decl_type = Decl::DECLORLIST;
+            decl->m_decl_specs = ds;
+            decl->m_declor_list = dl;
+            decl->m_align_spec = align_spec;
             return shared_ptr<Decl>(decl);
         }
 
@@ -207,6 +253,19 @@ namespace cparser
             decl->m_decl_type = Decl::DECLORLIST;
             decl->m_decl_specs = ds;
             decl->m_declor_list = dl;
+            return shared_ptr<Decl>(decl);
+        }
+
+        shared_ptr<Decl> DoDecl3a(
+            shared_ptr<AlignSpec>& align_spec, shared_ptr<DeclSpecs>& ds)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoDecl3a\n");
+            #endif
+            Decl *decl = new Decl;
+            decl->m_decl_type = Decl::SINGLE;
+            decl->m_decl_specs = ds;
+            decl->m_align_spec = align_spec;
             return shared_ptr<Decl>(decl);
         }
 
@@ -339,30 +398,6 @@ namespace cparser
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPEQUAL;
             decl_specs->m_type_qual = tq;
-            return shared_ptr<DeclSpecs>(decl_specs);
-        }
-
-        shared_ptr<DeclSpecs> DoDeclSpecs9(
-            shared_ptr<AlignSpec>& as, shared_ptr<DeclSpecs>& ds)
-        {
-            #ifdef DEEPDEBUG
-                std::printf("DoDeclSpecs9\n");
-            #endif
-            DeclSpecs *decl_specs = new DeclSpecs;
-            decl_specs->m_spec_type = DeclSpecs::ALIGNSPEC;
-            decl_specs->m_decl_specs = ds;
-            decl_specs->m_align_spec = as;
-            return shared_ptr<DeclSpecs>(decl_specs);
-        }
-
-        shared_ptr<DeclSpecs> DoDeclSpecs10(shared_ptr<AlignSpec>& as)
-        {
-            #ifdef DEEPDEBUG
-                std::printf("DoDeclSpecs10\n");
-            #endif
-            DeclSpecs *decl_specs = new DeclSpecs;
-            decl_specs->m_spec_type = DeclSpecs::ALIGNSPEC;
-            decl_specs->m_align_spec = as;
             return shared_ptr<DeclSpecs>(decl_specs);
         }
 
@@ -676,6 +711,24 @@ namespace cparser
             return shared_ptr<TypeQual>(tq);
         }
 
+        shared_ptr<TypeSpec> DoStructSpec1a(shared_ptr<CR_TokenNode>& keyword, 
+            shared_ptr<AlignSpec>& align_spec,
+            shared_ptr<CR_TokenNode>& tag, shared_ptr<DeclList>& decl_list)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoStructSpec1a\n");
+            #endif
+            TypeSpec *ts = new TypeSpec;
+            ts->m_flag = TF_STRUCT;
+            ts->m_name = tag->m_text;
+            ts->m_decl_list = decl_list;
+            ts->location() = keyword->location();
+            ts->m_pack = keyword->m_pack;
+            ts->m_align_spec = align_spec;
+            assert(ts->m_pack >= 1);
+            return shared_ptr<TypeSpec>(ts);
+        }
+
         shared_ptr<TypeSpec> DoStructSpec1(shared_ptr<CR_TokenNode>& keyword, 
             shared_ptr<CR_TokenNode>& tag, shared_ptr<DeclList>& decl_list)
         {
@@ -688,6 +741,23 @@ namespace cparser
             ts->m_decl_list = decl_list;
             ts->location() = keyword->location();
             ts->m_pack = keyword->m_pack;
+            assert(ts->m_pack >= 1);
+            return shared_ptr<TypeSpec>(ts);
+        }
+
+        shared_ptr<TypeSpec> DoStructSpec2a(
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<AlignSpec>& align_spec,
+            shared_ptr<DeclList>& decl_list)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoStructSpec2a\n");
+            #endif
+            TypeSpec *ts = new TypeSpec;
+            ts->m_flag = TF_STRUCT;
+            ts->m_decl_list = decl_list;
+            ts->location() = keyword->location();
+            ts->m_pack = keyword->m_pack;
+            ts->m_align_spec = align_spec;
             assert(ts->m_pack >= 1);
             return shared_ptr<TypeSpec>(ts);
         }
@@ -707,6 +777,23 @@ namespace cparser
             return shared_ptr<TypeSpec>(ts);
         }
 
+        shared_ptr<TypeSpec> DoStructSpec3a(
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<AlignSpec>& align_spec,
+            shared_ptr<CR_TokenNode>& tag)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoStructSpec3a\n");
+            #endif
+            TypeSpec *ts = new TypeSpec;
+            ts->m_flag = TF_STRUCT;
+            ts->m_name = tag->m_text;
+            ts->location() = keyword->location();
+            ts->m_pack = keyword->m_pack;
+            ts->m_align_spec = align_spec;
+            assert(ts->m_pack >= 1);
+            return shared_ptr<TypeSpec>(ts);
+        }
+
         shared_ptr<TypeSpec> DoStructSpec3(
             shared_ptr<CR_TokenNode>& keyword, shared_ptr<CR_TokenNode>& tag)
         {
@@ -719,6 +806,22 @@ namespace cparser
             ts->location() = keyword->location();
             ts->m_pack = keyword->m_pack;
             assert(ts->m_pack >= 1);
+            return shared_ptr<TypeSpec>(ts);
+        }
+
+        shared_ptr<TypeSpec> DoUnionSpec1a(shared_ptr<CR_TokenNode>& keyword, 
+            shared_ptr<AlignSpec>& align_spec, shared_ptr<CR_TokenNode>& tag,
+            shared_ptr<DeclList>& decl_list)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoUnionSpec1a\n");
+            #endif
+            TypeSpec *ts = new TypeSpec;
+            ts->m_flag = TF_UNION;
+            ts->m_name = tag->m_text;
+            ts->m_decl_list = decl_list;
+            ts->location() = keyword->location();
+            ts->m_align_spec = align_spec;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -736,6 +839,21 @@ namespace cparser
             return shared_ptr<TypeSpec>(ts);
         }
 
+        shared_ptr<TypeSpec> DoUnionSpec2a(
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<AlignSpec>& align_spec,
+            shared_ptr<DeclList>& decl_list)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoUnionSpec2a\n");
+            #endif
+            TypeSpec *ts = new TypeSpec;
+            ts->m_flag = TF_UNION;
+            ts->m_decl_list = decl_list;
+            ts->location() = keyword->location();
+            ts->m_align_spec = align_spec;
+            return shared_ptr<TypeSpec>(ts);
+        }
+
         shared_ptr<TypeSpec> DoUnionSpec2(
             shared_ptr<CR_TokenNode>& keyword, shared_ptr<DeclList>& decl_list)
         {
@@ -746,6 +864,21 @@ namespace cparser
             ts->m_flag = TF_UNION;
             ts->m_decl_list = decl_list;
             ts->location() = keyword->location();
+            return shared_ptr<TypeSpec>(ts);
+        }
+
+        shared_ptr<TypeSpec> DoUnionSpec3a(
+            shared_ptr<CR_TokenNode>& keyword, shared_ptr<AlignSpec>& align_spec,
+            shared_ptr<CR_TokenNode>& tag)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoUnionSpec3a\n");
+            #endif
+            TypeSpec *ts = new TypeSpec;
+            ts->m_flag = TF_UNION;
+            ts->m_name = tag->m_text;
+            ts->location() = keyword->location();
+            ts->m_align_spec = align_spec;
             return shared_ptr<TypeSpec>(ts);
         }
 

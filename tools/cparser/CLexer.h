@@ -167,7 +167,7 @@ namespace cparser
 
         void resynth1(LexerBase& base, node_container& c);
         void resynth2(LexerBase& base, node_container& c);
-        void resynth3(LexerBase& base, node_container& c);
+        // resynth3 is absent
         void resynth4(node_container& c);
         void resynth5(node_iterator begin, node_iterator end);
 
