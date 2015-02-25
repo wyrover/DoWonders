@@ -2564,8 +2564,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
             break;
 
         case DeclSpecs::FUNCSPEC:
-            flag = ds->m_func_spec->m_flag;
-            flags |= flag;
+            // TODO: ds->m_func_spec
             if (ds->m_decl_specs) {
                 ds = ds->m_decl_specs.get();
                 continue;

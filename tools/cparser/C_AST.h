@@ -171,8 +171,10 @@ namespace cparser
     };
 
     struct FuncSpec : Node {
-        CR_TypeFlags                m_flag;
-        FuncSpec() : m_flag(0) { }
+        enum {
+            INLINE, DOFORCEINLINE, NORETURN
+        } m_func_spec_type;
+        FuncSpec() { }
     };
 
     struct DeclSpecs : Node {

@@ -3039,7 +3039,7 @@ namespace cparser
                 std::printf("DoFuncSpec1\n");
             #endif
             FuncSpec *fs = new FuncSpec;
-            fs->m_flag = TF_INLINE;
+            fs->m_func_spec_type = FuncSpec::INLINE;
             return shared_ptr<FuncSpec>(fs);
         }
 
@@ -3048,7 +3048,7 @@ namespace cparser
                 std::printf("DoFuncSpec2\n");
             #endif
             FuncSpec *fs = new FuncSpec;
-            fs->m_flag = TF_INLINE;
+            fs->m_func_spec_type = FuncSpec::DOFORCEINLINE;
             return shared_ptr<FuncSpec>(fs);
         }
 
@@ -3057,7 +3057,7 @@ namespace cparser
                 std::printf("DoFuncSpec3\n");
             #endif
             FuncSpec *fs = new FuncSpec;
-            fs->m_flag = 0;
+            fs->m_func_spec_type = FuncSpec::NORETURN;
             return shared_ptr<FuncSpec>(fs);
         }
 

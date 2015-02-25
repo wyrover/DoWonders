@@ -42,7 +42,7 @@ enum {
     TF_EXTERN       = 0x02000000,
     TF_STATIC       = 0x04000000,
     TF_THREADLOCAL  = 0x08000000,
-    TF_INLINE       = 0x10000000,
+    //                0x10000000 is absent
     TF_ALIAS        = 0x20000000,
     TF_ENUMITEM     = 0x40000000,
     TF_INT128       = 0x80000000
@@ -75,7 +75,7 @@ inline CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags) {
     if (flags == 0)
         flags = TF_INT;
     // remove storage class specifiers
-    return flags & ~(TF_EXTERN | TF_STATIC | TF_INLINE | TF_INCOMPLETE);
+    return flags & ~(TF_EXTERN | TF_STATIC | TF_INCOMPLETE);
 } // CrNormalizeTypeFlags
 
 ////////////////////////////////////////////////////////////////////////////
