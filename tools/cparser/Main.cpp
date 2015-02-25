@@ -802,10 +802,12 @@ void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
         fflush(stdout);
     }
 
-    resynth2(c);
-    resynth3(c.begin(), c.end());
+    resynth2(base, c);
+    resynth3(base, c);
     resynth4(c);
     resynth5(c.begin(), c.end());
+    resynth6(c);
+    resynth7(c.begin(), c.end());
 }
 
 // 1. Delete all T_UNALIGNED.
@@ -835,7 +837,7 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
             continue;
         }
 
-        // found '#'
+        // found '#'?
         if (it->m_token == T_SHARP) {
             if (!line_top) {
                 add_error(base.location(), "invalid character '#'");
@@ -897,10 +899,94 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
     std::swap(c, newc);
 }
 
+// 1. Convert __declspec(align(#)) to _Alignas(#).
+// 2. Convert __attribute__((__aligned__(#))) to _Alignas(#).
+void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
+    node_container newc;
+    node_iterator it, it2, end = c.end();
+    bool flag;
+    for (it = c.begin(); it != end; ++it) {
+        // __declspec(align(#))
+        flag = token_pattern_match(base, it, end,
+            {T_DECLSPEC, T_L_PAREN, eof, T_L_PAREN, eof, T_R_PAREN, T_R_PAREN}
+        );
+        if (flag && (it + 2)->m_text == "align") {
+            it += 2;
+            it->m_token = T_ALIGNAS;
+            newc.push_back(*it);    // _Alignas
+            ++it;
+            newc.push_back(*it);    // (
+            ++it;
+            newc.push_back(*it);    // #
+            ++it;
+            newc.push_back(*it);    // )
+            ++it;
+            continue;
+        }
+        // __attribute__((__aligned__(#)))
+        flag = token_pattern_match(base, it, end,
+            {
+                T_ATTRIBUTE, T_L_PAREN, T_L_PAREN,
+                    eof, T_L_PAREN, eof, T_R_PAREN, T_R_PAREN, T_R_PAREN
+            }
+        );
+        if (flag && (it + 3)->m_text == "__aligned__") {
+            it += 3;
+            it->m_token = T_ALIGNAS;
+            newc.push_back(*it);    // _Alignas
+            ++it;
+            newc.push_back(*it);    // (
+            ++it;
+            newc.push_back(*it);    // #
+            ++it;
+            newc.push_back(*it);    // )
+            it += 2;
+            continue;
+        }
+        newc.push_back(*it);
+    }
+    std::swap(c, newc);
+} // resynth2
+
+// 1. Convert struct/union/enum _Alignas(#) to
+//    _Alignas(#) struct/union/enum.
+//    (to say it simply, move _Alignas(#) to left side)
+void cparser::Lexer::resynth3(LexerBase& base, node_container& c) {
+    node_container newc;
+    node_iterator it, it2, end = c.end();
+    bool flag;
+    for (it = c.begin(); it != end; ++it) {
+        switch (it->m_token) {
+        case T_STRUCT: case T_UNION: case T_ENUM:
+            it2 = it;
+            ++it;
+            flag = token_pattern_match(base, it, end,
+                {T_ALIGNAS, T_L_PAREN, eof, T_R_PAREN}
+            );
+            if (flag) {
+                newc.push_back(*(it + 0));  // T_ALIGNAS
+                newc.push_back(*(it + 1));  // T_L_PAREN
+                newc.push_back(*(it + 2));  // #
+                newc.push_back(*(it + 3));  // T_R_PAREN
+                newc.push_back(*it2);       // struct/union/enum
+                it += 4 - 1;
+            } else {
+                --it;
+                newc.push_back(*it);
+            }
+            break;
+
+        default:
+            newc.push_back(*it);
+        }
+    }
+    std::swap(c, newc);
+}
+
 // 1. Delete __asm__("..." "...") of all function prototypes.
 // 2. Delete all __attribute__(...).
 // 3. Delete all __declspec(...) and/or __pragma(...)
-void cparser::Lexer::resynth2(node_container& c) {
+void cparser::Lexer::resynth4(node_container& c) {
     node_container newc;
     node_iterator it, it2, end = c.end();
     for (it = c.begin(); it != end; ++it) {
@@ -913,7 +999,7 @@ void cparser::Lexer::resynth2(node_container& c) {
                 break;
         }
 
-        if (it->m_token == T_GNU_ATTRIBUTE) {
+        if (it->m_token == T_ATTRIBUTE) {
             ++it;
             skip_paren_block(it, end);
         } else if (it->m_token == T_DECLSPEC || it->m_token == T_PRAGMA) {
@@ -924,14 +1010,14 @@ void cparser::Lexer::resynth2(node_container& c) {
         }
     }
     std::swap(c, newc);
-} // resynth2
+} // resynth4
 
 // 1. Convert tag_name of enum tag_name to T_TAGNAME
 // 2. Convert tag_name of struct tag_name to T_TAGNAME
 // 3. Convert tag_name of union tag_name to T_TAGNAME
 // 4. Process typedef ... by resynth_typedef.
-// 5. If a registered type name was found, convert it T_TYPEDEF_NAME.
-void cparser::Lexer::resynth3(node_iterator begin, node_iterator end) {
+// 5. If a registered type name was found, convert it to T_TYPEDEF_NAME.
+void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
     m_type_names.clear();
     #ifdef __GNUC__
         m_type_names.insert("__builtin_va_list");   // fixup
@@ -964,7 +1050,7 @@ void cparser::Lexer::resynth3(node_iterator begin, node_iterator end) {
             }
         }
     }
-} // resynth3
+} // resynth5
 
 // 1. Scan a typedef declaration.
 // 2. If a registered type name (not in brace or bracket) was found,
@@ -1100,7 +1186,7 @@ void cparser::Lexer::skip_paren_block(
 // 1. Add calling convention info to T_ASTERISK node.
 // 2. Delete all SAL markers (the M$ Source Code Annotation Language).
 // 3. Delete all T_GNU_EXTENSION nodes
-void cparser::Lexer::resynth4(node_container& c) {
+void cparser::Lexer::resynth6(node_container& c) {
     node_container newc;
     node_iterator it, it2, end = c.end();
     for (it = c.begin(); it != end; ++it) {
@@ -1163,7 +1249,7 @@ void cparser::Lexer::resynth4(node_container& c) {
         }
     }
     std::swap(c, newc);
-} // resynth4
+} // resynth6
 
 // 1. Scan and check parenthesis nesting.
 // 2. If T_TYPEDEF_NAME followed by T_R_PAREN or T_COMMA, in a pair of
@@ -1172,7 +1258,7 @@ void cparser::Lexer::resynth4(node_container& c) {
 // 3. If the preceding node of the T_TYPEDEF_NAME node is T_VOID, T_CHAR,
 //    T_SHORT, ..., T_TYPEDEF_NAME, T_TAGNAME, or T_ASTERISK, then
 //    convert the T_TYPEDEF_NAME node to T_IDENTIFIER.
-void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
+void cparser::Lexer::resynth7(node_iterator begin, node_iterator end) {
     node_iterator it, paren_it, it2;
     int paren_nest = 0;
     for (it = begin; it != end; ++it) {
@@ -1208,7 +1294,7 @@ void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
             }
         }
     }
-} // resynth5
+} // resynth7
 
 void cparser::Lexer::init_symbol_table() {
     auto& st = m_symbol_table;
@@ -1226,7 +1312,7 @@ void cparser::Lexer::init_symbol_table() {
     st.emplace("_Thread_local", T_THREAD_LOCAL);
     st.emplace("__asm", T_ASM);
     st.emplace("__asm__", T_ASM);
-    st.emplace("__attribute__", T_GNU_ATTRIBUTE);
+    st.emplace("__attribute__", T_ATTRIBUTE);
     st.emplace("__cdecl", T_CDECL);
     st.emplace("__cdecl__", T_CDECL);
     st.emplace("__const__", T_CONST);
@@ -1319,7 +1405,7 @@ cparser::Lexer::parse_pack(
     }
 
     // #pragma pack(...)
-	flag = token_pattern_match(base, it, end, { T_L_PAREN, eof, T_R_PAREN });
+    flag = token_pattern_match(base, it, end, { T_L_PAREN, eof, T_R_PAREN });
     if (flag) {
         if ((it + 1)->m_text == "pop") {
             // #pragma pack(pop)
@@ -1345,7 +1431,7 @@ cparser::Lexer::parse_pack(
     }
 
     // #pragma pack(..., ...)
-	flag = token_pattern_match(base, it, end,
+    flag = token_pattern_match(base, it, end,
         {T_L_PAREN, eof, T_COMMA, eof, T_R_PAREN}
     );
     if (flag) {
@@ -1391,7 +1477,7 @@ cparser::Lexer::parse_pack(
     }
 
     // #pragma pack(..., ..., ...)
-	flag = token_pattern_match(base, it, end,
+    flag = token_pattern_match(base, it, end,
         {T_L_PAREN, eof, T_COMMA, eof, T_COMMA, eof, T_R_PAREN}
     );
     if (flag) {
@@ -1439,8 +1525,8 @@ cparser::Lexer::parse_pragma(
     if (name == "message") {
         // #pragma message("...")
         flag = token_pattern_match(base, it, end, 
-			{ T_L_PAREN, T_STRING, T_R_PAREN }
-		);
+            { T_L_PAREN, T_STRING, T_R_PAREN }
+        );
         if (flag) {
             message(base.location(), (it + 1)->m_text);
             it += 3;

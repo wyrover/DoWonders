@@ -45,7 +45,7 @@
 %token T_FORCEINLINE<CR_TokenNode>;
 %token T_GENERIC<CR_TokenNode>;
 %token T_GE<CR_TokenNode>;
-%token T_GNU_ATTRIBUTE<CR_TokenNode>;
+%token T_ATTRIBUTE<CR_TokenNode>;
 %token T_GNU_EXTENSION<CR_TokenNode>;
 %token T_GOTO<CR_TokenNode>;
 %token T_GT<CR_TokenNode>;

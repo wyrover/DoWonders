@@ -166,8 +166,10 @@ namespace cparser
         void resynth(LexerBase& base, node_container& c);
 
         void resynth1(LexerBase& base, node_container& c);
-        void resynth2(node_container& c);
-        void resynth3(node_iterator begin, node_iterator end);
+        void resynth2(LexerBase& base, node_container& c);
+        void resynth3(LexerBase& base, node_container& c);
+        void resynth4(node_container& c);
+        void resynth5(node_iterator begin, node_iterator end);
 
         node_iterator
         resynth_typedef(node_iterator begin, node_iterator end);
@@ -175,8 +177,8 @@ namespace cparser
         node_iterator resynth_parameter_list(
             node_iterator begin, node_iterator end);
 
-        void resynth4(node_container& c);
-        void resynth5(node_iterator begin, node_iterator end);
+        void resynth6(node_container& c);
+        void resynth7(node_iterator begin, node_iterator end);
 
         Token parse_identifier(const std::string& text) const;
 
