@@ -782,6 +782,7 @@ label_default:
     return true;
 } // get_tokens
 
+// token resynthesization
 void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
     const bool c_show_tokens = false;
 
@@ -807,10 +808,10 @@ void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
     resynth5(c.begin(), c.end());
 }
 
-// 1. Delete all T_UNALIGNED's.
+// 1. Delete all T_UNALIGNED.
 // 2. Delete and warn all invalid characters.
 // 3. Process all pragmas and delete them.
-// 4. Count all T_NEWLINE's and delete them.
+// 4. Count all T_NEWLINE and delete them.
 void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
     node_container     newc;
     newc.reserve(c.size());
@@ -896,6 +897,9 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
     std::swap(c, newc);
 }
 
+// 1. Delete __asm__("..." "...") of all function prototypes.
+// 2. Delete all __attribute__(...).
+// 3. Delete all __declspec(...) and/or __pragma(...)
 void cparser::Lexer::resynth2(node_container& c) {
     node_container newc;
     node_iterator it, it2, end = c.end();
@@ -913,22 +917,8 @@ void cparser::Lexer::resynth2(node_container& c) {
             ++it;
             skip_paren_block(it, end);
         } else if (it->m_token == T_DECLSPEC || it->m_token == T_PRAGMA) {
-            it2 = it;
-            ++it2;
-            bool f = false;
-            int paren_nest = 0;
-            for (; it2 != end; ++it2) {
-                if (it2->m_token == T_L_PAREN) {
-                    f = true;
-                    paren_nest++;
-                } else if (it2->m_token == T_R_PAREN) {
-                    paren_nest--;
-                    if (paren_nest == 0)
-                        break;
-                }
-            }
-            if (f)
-                it = it2;
+            ++it;
+            skip_paren_block(it, end);
         } else {
             newc.push_back(*it);
         }
@@ -936,6 +926,11 @@ void cparser::Lexer::resynth2(node_container& c) {
     std::swap(c, newc);
 } // resynth2
 
+// 1. Convert tag_name of enum tag_name to T_TAGNAME
+// 2. Convert tag_name of struct tag_name to T_TAGNAME
+// 3. Convert tag_name of union tag_name to T_TAGNAME
+// 4. Process typedef ... by resynth_typedef.
+// 5. If a registered type name was found, convert it T_TYPEDEF_NAME.
 void cparser::Lexer::resynth3(node_iterator begin, node_iterator end) {
     m_type_names.clear();
     #ifdef __GNUC__
@@ -971,6 +966,12 @@ void cparser::Lexer::resynth3(node_iterator begin, node_iterator end) {
     }
 } // resynth3
 
+// 1. Scan a typedef declaration.
+// 2. If a registered type name (not in brace or bracket) was found,
+//    then convert it to T_TYPEDEF_TAG or T_TYPEDEF_NAME.
+// 3. If an unregistered type name found, register it.
+// NOTE: T_TYPEDEF_NAME can be a type specifier in grammar.
+// NOTE: T_TYPEDEF_TAG will be defined in the typedef declaration.
 cparser::node_iterator
 cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
     int paren_nest = 0, brace_nest = 0, bracket_nest = 0;
@@ -1003,6 +1004,7 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
                     if (it->m_token == T_SEMICOLON || it->m_token == T_R_PAREN ||
                         it->m_token == T_L_BRACKET || it->m_token == T_COMMA)
                     {
+                        // type name followed by ;)[,
                         --it;
                         it->set_token(T_TYPEDEF_TAG);
                     } else {
@@ -1020,6 +1022,7 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
                         --it;
                 }
             } else if (m_type_names.count(it->m_text)) {
+                // found a type name not in brace or bracket
                 it->set_token(T_TYPEDEF_NAME);
             }
         }
@@ -1027,6 +1030,10 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
     return it;
 } // resynth_typedef
 
+// 1. Scan the parameter list of a function.
+// 2. If a "fresh" registered type name was found,
+//    then convert it to T_TYPEDEF_NAME.
+// NOTE: T_TYPEDEF_NAME can be a type specifier in grammar.
 cparser::node_iterator
 cparser::Lexer::resynth_parameter_list(
     node_iterator begin, node_iterator end)
@@ -1039,6 +1046,7 @@ cparser::Lexer::resynth_parameter_list(
             break;
         else if (it->m_token == T_L_PAREN) {
             paren_nest++;
+            // it is "fresh" when T_L_PAREN came
             fresh = true;
         } else if (it->m_token == T_R_PAREN) {
             paren_nest--;
@@ -1060,14 +1068,17 @@ cparser::Lexer::resynth_parameter_list(
                     --it;
                 }
             }
+            // it is not "fresh" when type name came
             fresh = false;
         } else if (it->m_token == T_COMMA) {
+            // it is "fresh" when T_COMMA came
             fresh = true;
         }
     }
     return it;
 } // resynth_parameter_list
 
+// 1. Skip ( ... ) block. ( ... ) are nestable.
 void cparser::Lexer::skip_paren_block(
     node_iterator& begin, node_iterator end)
 {
@@ -1086,13 +1097,16 @@ void cparser::Lexer::skip_paren_block(
     }
 }
 
+// 1. Add calling convention info to T_ASTERISK node.
+// 2. Delete all SAL markers (the M$ Source Code Annotation Language).
+// 3. Delete all T_GNU_EXTENSION nodes
 void cparser::Lexer::resynth4(node_container& c) {
     node_container newc;
     node_iterator it, it2, end = c.end();
     for (it = c.begin(); it != end; ++it) {
         switch (it->m_token) {
         case T_CDECL: case T_STDCALL: case T_FASTCALL:
-            // TODO: do calling convention
+            // add calling convention info to the T_ASTERISK node.
             if ((it + 1)->m_token == T_ASTERISK) {
                 if (it->m_token == T_CDECL)
                     (it + 1)->m_flags |= TF_CDECL;
@@ -1117,6 +1131,7 @@ void cparser::Lexer::resynth4(node_container& c) {
             if (it2->m_token == T_IDENTIFIER ||
                 it2->m_token == T_TYPEDEF_NAME)
             {
+                // a SAL marker?
                 bool f =
                     (it2->m_text == "returnvalue") ||
                     (it2->m_text == "SA_Pre") ||
@@ -1124,27 +1139,13 @@ void cparser::Lexer::resynth4(node_container& c) {
                     (it2->m_text == "SA_FormatString") ||
                     (it2->m_text == "source_annotation_attribute");
                 if (f) {
-                    int paren_nest = 0;
                     f = false;
-                    for (; it2 != end; ++it2) {
-                        if (it2->m_token == T_L_PAREN) {
-                            f = true;
-                            paren_nest++;
-                        } else if (it2->m_token == T_R_PAREN) {
-                            paren_nest--;
-                            if (paren_nest == 0)
-                                break;
-                        }
-                    }
-                    if (f) {
-                        f = false;
-                        if (it2 != end) {
-                            ++it2;
-                            if (it2->m_token == T_R_BRACKET) {
-                                it = it2;
-                                f = true;
-                            }
-                        }
+                    ++it2;
+                    skip_paren_block(it2, end);
+                    ++it2;
+                    if (it2->m_token == T_R_BRACKET) {
+                        it = it2;
+                        f = true;
                     }
                 }
                 if (!f)
@@ -1164,6 +1165,13 @@ void cparser::Lexer::resynth4(node_container& c) {
     std::swap(c, newc);
 } // resynth4
 
+// 1. Scan and check parenthesis nesting.
+// 2. If T_TYPEDEF_NAME followed by T_R_PAREN or T_COMMA, in a pair of
+//    parenthesis, was found, then check the preceding node of it.
+//    (It's node in parameter list of function)
+// 3. If the preceding node of the T_TYPEDEF_NAME node is T_VOID, T_CHAR,
+//    T_SHORT, ..., T_TYPEDEF_NAME, T_TAGNAME, or T_ASTERISK, then
+//    convert the T_TYPEDEF_NAME node to T_IDENTIFIER.
 void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
     node_iterator it, paren_it, it2;
     int paren_nest = 0;
