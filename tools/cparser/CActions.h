@@ -969,6 +969,21 @@ namespace cparser
             return d;
         }
 
+        shared_ptr<Decl> DoStructDecl1a(
+            shared_ptr<AlignSpec>& align_spec,
+            shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoStructDecl1a\n");
+            #endif
+            Decl *d = new Decl;
+            d->m_decl_type = Decl::DECLORLIST;
+            d->m_decl_specs = ds;
+            d->m_declor_list = dl;
+            d->m_align_spec = align_spec;
+            return shared_ptr<Decl>(d);
+        }
+
         shared_ptr<Decl> DoStructDecl1(
             shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
         {
@@ -979,6 +994,19 @@ namespace cparser
             d->m_decl_type = Decl::DECLORLIST;
             d->m_decl_specs = ds;
             d->m_declor_list = dl;
+            return shared_ptr<Decl>(d);
+        }
+
+        shared_ptr<Decl> DoStructDecl2a(
+            shared_ptr<AlignSpec>& align_spec, shared_ptr<DeclSpecs>& ds)
+        {
+            #ifdef DEEPDEBUG
+                std::printf("DoStructDecl2a\n");
+            #endif
+            Decl *d = new Decl;
+            d->m_decl_type = Decl::SINGLE;
+            d->m_decl_specs = ds;
+            d->m_align_spec = align_spec;
             return shared_ptr<Decl>(d);
         }
 
@@ -2928,6 +2956,7 @@ namespace cparser
             else
                 newpe->m_prim_type = PrimExpr::I_CONSTANT;
             newpe->m_text = token->m_text;
+            newpe->m_extra = token->m_extra;
             return shared_ptr<PrimExpr>(newpe);
         }
 
@@ -2938,6 +2967,7 @@ namespace cparser
             PrimExpr *newpe = new PrimExpr;
             newpe->m_prim_type = PrimExpr::STRING;
             newpe->m_text = token->m_text;
+            newpe->m_extra = token->m_extra;
             return shared_ptr<PrimExpr>(newpe);
         }
 

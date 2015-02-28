@@ -152,7 +152,7 @@ namespace cparser
         shared_ptr<EnumorList>      m_enumor_list;
         shared_ptr<AtomicTypeSpec>  m_atomic_type_spec;
         shared_ptr<AlignSpec>       m_align_spec;           // can be NULL
-        TypeSpec() : m_flag(0), m_pack(0) { }
+        TypeSpec() : m_flag(0), m_pack(8) { }
     };
 
     struct TypeQual : Node {
@@ -236,9 +236,9 @@ namespace cparser
             COND, SINGLE, MUL, DIV, MOD, ADD, SUB, 
             L_SHIFT, R_SHIFT, AND, XOR, OR
         } m_assign_type;
-        shared_ptr<CondExpr> m_cond_expr;
-        shared_ptr<UnaryExpr> m_unary_expr;
-        shared_ptr<AssignExpr> m_assign_expr;
+        shared_ptr<CondExpr>    m_cond_expr;
+        shared_ptr<UnaryExpr>   m_unary_expr;
+        shared_ptr<AssignExpr>  m_assign_expr;
     };
 
     struct CondExpr : Node {
@@ -339,10 +339,11 @@ namespace cparser
         enum {
             IDENTIFIER, I_CONSTANT, F_CONSTANT, STRING, PAREN, SELECTION
         } m_prim_type;
-        CR_String         m_text;
+        CR_String           m_text;
+        CR_String           m_extra;
         shared_ptr<Expr>    m_expr;
         shared_ptr<GeneSel> m_gen_sel;
-        CR_TypeFlags           m_flags;
+        CR_TypeFlags        m_flags;
     };
 
     struct GeneSel : Node {
@@ -459,25 +460,25 @@ namespace cparser
         };
 
     public:
-        TokenNode() : m_pack(0), m_flags(0), m_long_long_value(0) { }
+        TokenNode() : m_pack(8), m_flags(0), m_long_long_value(0) { }
 
         TokenNode(token_type token) :
-            m_token(token), m_pack(0), m_flags(0),
+            m_token(token), m_pack(8), m_flags(0),
             m_long_long_value(0) { }
 
         TokenNode(token_type token, const std::string& text) :
-            m_token(token), m_text(text), m_pack(0),
+            m_token(token), m_text(text), m_pack(8),
             m_flags(0), m_long_long_value(0) { }
 
         TokenNode(token_type token, 
                   const std::string& text, const std::string& extra) :
             m_token(token), m_text(text),
-            m_extra(extra), m_pack(0), m_flags(0), m_long_long_value(0) { }
+            m_extra(extra), m_pack(8), m_flags(0), m_long_long_value(0) { }
 
         TokenNode(token_type token,  const std::string& text,
                   const std::string& extra, CR_TypeFlags flags) :
             m_token(token), m_text(text), m_extra(extra),
-            m_pack(0), m_flags(flags), m_long_long_value(0) { }
+            m_pack(8), m_flags(flags), m_long_long_value(0) { }
 
         void set_token(token_type token) {
             m_token = token;

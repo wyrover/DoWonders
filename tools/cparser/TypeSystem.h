@@ -148,7 +148,7 @@ struct CR_LogType {
     int             m_align;        // alignment requirement of type
     CR_Location     m_loc;          // the location
 
-    CR_LogType() : m_flags(0), m_sub_id(0), m_count(0), m_size(0), m_align(1) { }
+    CR_LogType() : m_flags(0), m_sub_id(0), m_count(0), m_size(0), m_align(0) { }
 
     CR_LogType(CR_TypeFlags flags, size_t size, const CR_Location& location) :
         m_flags(flags), m_sub_id(0), m_count(0), m_size(size), m_align(size),
@@ -190,7 +190,7 @@ struct CR_LogStruct {
     int                     m_align;            // alignment requirement
 
     CR_LogStruct(bool is_struct = true) :
-        m_is_struct(is_struct), m_pack(8), m_align(1) { }
+        m_is_struct(is_struct), m_pack(8), m_align(0) { }
 
     size_t FindName(const CR_String& name) const {
         for (size_t i = 0; i < m_name_list.size(); i++) {
@@ -496,7 +496,7 @@ public:
         CR_LogType type1;
         if (name.empty()) {     // name is empty
             CR_StructID sid = m_structs.insert(ls);
-            type1.m_flags = (ls.m_is_struct ? TF_STRUCT : TF_UNION) | TF_INCOMPLETE;
+            type1.m_flags = TF_STRUCT | TF_INCOMPLETE;
             type1.m_sub_id = sid;
             type1.m_count = ls.m_type_list.size();
             type1.location() = location;
@@ -508,7 +508,7 @@ public:
         auto it = m_mNameToTypeID.find("struct " + name);
         if (it == m_mNameToTypeID.end()) {  // name not found
             CR_StructID sid = m_structs.insert(ls);
-            type1.m_flags = (ls.m_is_struct ? TF_STRUCT : TF_UNION) | TF_INCOMPLETE;
+            type1.m_flags = TF_STRUCT | TF_INCOMPLETE;
             type1.m_sub_id = sid;
             type1.m_count = ls.m_type_list.size();
             type1.location() = location;
@@ -539,7 +539,7 @@ public:
         CR_LogType type1;
         if (name.empty()) { // name is empty
             CR_StructID sid = m_structs.insert(ls);
-            type1.m_flags = (ls.m_is_struct ? TF_STRUCT : TF_UNION) | TF_INCOMPLETE;
+            type1.m_flags = TF_UNION | TF_INCOMPLETE;
             type1.m_sub_id = sid;
             type1.m_count = ls.m_type_list.size();
             type1.location() = location;
@@ -551,7 +551,7 @@ public:
         auto it = m_mNameToTypeID.find("union " + name);
         if (it == m_mNameToTypeID.end()) {  // name not found
             CR_StructID sid = m_structs.insert(ls);
-            type1.m_flags = (ls.m_is_struct ? TF_STRUCT : TF_UNION) | TF_INCOMPLETE;
+            type1.m_flags = TF_UNION | TF_INCOMPLETE;
             type1.m_sub_id = sid;
             type1.m_count = ls.m_type_list.size();
             type1.location() = location;
@@ -648,19 +648,22 @@ public:
                 if (prev_item_size == item_size || bits_remain == 0) {
                     // bitfield continuous
                     bits_remain += bits;
-                    offset += bits_remain / 8;
-                    bits_remain %= 8;
+                    if (bits_remain >= item_size * 8) {
+                        offset += item_size;
+                        bits_remain -= item_size * 8;
+                    }
                 } else { // bitfield discontinuous
                     offset += bits / 8;
                     bits_remain = 0;
                 }
             } else { // not bitfield
-                if (bits_remain) {
-                    offset += prev_item_size;
-                    bits_remain = 0;
-                }
                 if (prev_item_size) {
                     // add padding
+                    if (bits_remain) {
+                        int bytes = (bits_remain + 7) / 8;
+                        offset += bytes;
+                        bits_remain = 0;
+                    }
                     if (ls.m_pack < item_align) {
                         offset = (offset + ls.m_pack - 1) / ls.m_pack * ls.m_pack;
                     } else {
@@ -676,21 +679,29 @@ public:
             prev_item_size = item_size;
         }
         assert(ls.m_offset_list.size() == ls.m_type_list.size());
-        if (bits_remain) {
-            offset += prev_item_size;
-        }
         // set alignment requirement value
-        ls.m_align = max_align;
+        auto& type1 = LogType(tid);
+        if (type1.m_align == 0) {
+            if (ls.m_pack > max_align) {
+                type1.m_align = max_align;
+            } else {
+                type1.m_align = ls.m_pack;
+            }
+            ls.m_align = type1.m_align;
+        }
         // tail padding
+        if (bits_remain) {
+            offset += (bits_remain + 7) / 8;
+        }
         if (ls.m_pack < max_align) {
             offset = (offset + ls.m_pack - 1) / ls.m_pack * ls.m_pack;
         } else {
             offset = (offset + max_align - 1) / max_align * max_align;
         }
-        auto& type1 = LogType(tid);
-        type1.m_size = offset;  // total size
-        type1.m_align = max_align;
-        if (is_complete) {
+        // total size
+        type1.m_size = offset;
+        // complete
+        if (is_complete && ls.m_type_list.size()) {
             type1.m_flags &= ~TF_INCOMPLETE;
         }
         return is_complete;
@@ -727,18 +738,25 @@ public:
             if (max_size < item_size) {
                 max_size = item_size;
             }
-            if (item_align > max_align) {
+            if (max_align < item_align) {
                 max_align = item_align;
             }
         }
         // set alignment requirement value
-        ls.m_align = max_align;
+        auto& type1 = LogType(tid);
+        if (type1.m_align == 0) {
+            if (ls.m_pack > max_align) {
+                type1.m_align = max_align;
+            } else {
+                type1.m_align = ls.m_pack;
+            }
+            ls.m_align = type1.m_align;
+        }
         // tail padding
         //max_size = (max_size + max_align - 1) / max_align * max_align;
-        auto& type1 = LogType(tid);
         type1.m_size = max_size;
-        type1.m_align = max_align;
-        if (is_complete) {
+        // complete
+        if (is_complete && ls.m_type_list.size()) {
             type1.m_flags &= ~TF_INCOMPLETE;
         }
         return is_complete; // total size

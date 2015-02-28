@@ -105,14 +105,14 @@ bool WsJustDoIt(
         "#define check_value(name,value) do { \\\n" << 
         "\tif ((name) != (value)) { \\\n" << 
         "\t\tfprintf(stderr, \"%s: value mismatched, real value is %d\\n\", #name, (int)name); \\\n" << 
-        "\t\treturn 1; \\\n" << 
+        "\t\treturn 2; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" <<
         "#define check_align(name,align) do { \\\n" << 
         "\tif (__alignof(name) != (align)) { \\\n" << 
         "\t\tfprintf(stderr, \"%s: alignment mismatched, real value is %d\\n\", #name, (int)__alignof(name)); \\\n" << 
-        "\t\treturn 1; \\\n" << 
+        "\t\treturn 3; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" <<
@@ -214,8 +214,9 @@ bool WsJustDoIt(
         return false;
     }
 
-    out << "\treturn 0;\n" <<
-            "}" << std::endl;
+    out <<
+        "\treturn 0;\n" <<
+        "}" << std::endl;
     out.close();
     return true;
 }

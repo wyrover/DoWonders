@@ -66,7 +66,7 @@ namespace cparser
                     }
                     error_info.get()->add_error(
                         it_save->location(),
-                        "Syntax error near " + lexer.node_to_string(*it_save) +
+                        "syntax error near " + lexer.node_to_string(*it_save) +
                         "\n" + "around: " + around
                     );
                     error_info->emit_all();

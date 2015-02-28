@@ -4,32 +4,32 @@
 ////////////////////////////////////////////////////////////////////////////
 
 const char * const cr_logo =
-    "///////////////////////////////////////////////\n"
+    "//////////////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser sample 0.2.4 (64-bit) for gcc     //\n"
+    "// CParser sample 0.2.5 (64-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.4 (64-bit) for clang    //\n"
+    "// CParser sample 0.2.5 (64-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.4 (64-bit) for cl      //\n"
+    "// CParser sample 0.2.5 (64-bit) for cl (VC++)  //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser sample 0.2.4 (32-bit) for gcc     //\n"
+    "// CParser sample 0.2.5 (32-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.4 (32-bit) for clang    //\n"
+    "// CParser sample 0.2.5 (32-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.4 (32-bit) for cl      //\n"
+    "// CParser sample 0.2.5 (32-bit) for cl (VC++)  //\n"
 # else
 #  error You lose!
 # endif
 #endif  // !64-bit
-    "// Public Domain Software (PDS)              //\n"
-    "// by Katayama Hirofumi MZ (katahiromz)      //\n"
-    "// katayama.hirofumi.mz@gmail.com            //\n"
-    "///////////////////////////////////////////////\n";
+    "// Public Domain Software (PDS)                 //\n"
+    "// by Katayama Hirofumi MZ (katahiromz)         //\n"
+    "// katayama.hirofumi.mz@gmail.com               //\n"
+    "//////////////////////////////////////////////////\n";
 
 using namespace std;
 
@@ -467,7 +467,11 @@ retry:
             } else if (*it == '\'') {
                 auto text = guts_char(it, end);
                 --it;
-                infos.emplace_back(T_CONSTANT, text, extra);
+                {
+                    char buf[64];
+                    std::sprintf(buf, "%d", text[0]);
+                    infos.emplace_back(T_CONSTANT, buf, extra);
+                }
             } else {
                 --it;
                 goto label_default;
@@ -484,7 +488,9 @@ retry:
             } else if (*it == '\'') {
                 auto text = guts_char(it, end);
                 --it;
-                infos.emplace_back(T_CONSTANT, text, extra);
+                char buf[64];
+                std::sprintf(buf, "%d", text[0]);
+                infos.emplace_back(T_CONSTANT, buf, extra);
             } else {
                 --it;
                 goto label_default;
@@ -502,7 +508,9 @@ retry:
         case '\'':
             {
                 auto text = guts_char(it, end);
-                infos.emplace_back(T_STRING, text);
+                char buf[64];
+                std::sprintf(buf, "%d", text[0]);
+                infos.emplace_back(T_CONSTANT, buf);
             }
             break;
 
@@ -999,6 +1007,11 @@ void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
             it->m_token == T_UNION)
         {
             ++it;
+            if (it->m_token == T_ALIGNAS) {
+                ++it;
+                skip_paren_block(it, end);
+                ++it;
+            }
             if (it->m_token == T_IDENTIFIER) {
                 it->set_token(T_TAGNAME);
                 if ((it + 1)->m_token == T_SEMICOLON) {
@@ -1072,8 +1085,9 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
                     ++it;
                     if (it->m_token == T_L_PAREN) {
                         it = resynth_parameter_list(++it, end);
-                    } else
+                    } else {
                         --it;
+                    }
                 }
             } else if (m_type_names.count(it->m_text)) {
                 // found a type name not in brace or bracket
@@ -1528,6 +1542,8 @@ cparser::Lexer::parse_pragma(
 ////////////////////////////////////////////////////////////////////////////
 // CrCalcConstInt...Expr functions
 
+// TODO: Support typed value calculation
+
 int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe);
 int CrCalcConstIntPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe);
 int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue);
@@ -1554,7 +1570,7 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
         return n;
 
     case PrimExpr::F_CONSTANT:
-        return 0;
+        return std::strtof(pe->m_text.data(), NULL) != 0;
 
     case PrimExpr::I_CONSTANT:
         n = std::strtol(pe->m_text.data(), NULL, 0);
@@ -1618,8 +1634,218 @@ int CrCalcConstIntPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
     return 0;
 }
 
-int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
+int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue);
+
+int CrCalcSizeOfCastExpr(CR_NameScope& namescope, CastExpr *ce) {
+    assert(ce);
+    switch (ce->m_cast_type) {
+    case CastExpr::UNARY:
+        return CrCalcSizeOfUnaryExpr(namescope, ce->m_unary_expr.get());
+
+    default:
+        return 4;
+    }
+}
+
+int CrCalcSizeOfMulExpr(CR_NameScope& namescope, MulExpr *me) {
+    assert(me);
+    switch (me->m_mul_type) {
+    case MulExpr::SINGLE:
+        return CrCalcSizeOfCastExpr(namescope, me->m_cast_expr.get());
+
+    default:
+        return 4;
+    }
+}
+
+int CrCalcSizeOfAddExpr(CR_NameScope& namescope, AddExpr *ae) {
+    assert(ae);
+    switch (ae->m_add_type) {
+    case AddExpr::SINGLE:
+        return CrCalcSizeOfMulExpr(namescope, ae->m_mul_expr.get());
+
+    default:
+        return 4;
+    }
+}
+
+int CrCalcSizeOfShiftExpr(CR_NameScope& namescope, ShiftExpr *se) {
+    assert(se);
+    switch (se->m_shift_type) {
+    case ShiftExpr::SINGLE:
+        return CrCalcSizeOfAddExpr(namescope, se->m_add_expr.get());
+
+    default:
+        return 4;
+    }
+}
+
+int CrCalcSizeOfRelExpr(CR_NameScope& namescope, RelExpr *re) {
+    assert(re);
+    switch (re->m_rel_type) {
+    case RelExpr::SINGLE:
+        return CrCalcSizeOfShiftExpr(namescope, re->m_shift_expr.get());
+
+    default:
+        return 4;
+    }
+}
+
+int CrCalcSizeOfEqualExpr(CR_NameScope& namescope, EqualExpr *ee) {
+    assert(ee);
+    switch (ee->m_equal_type) {
+    case EqualExpr::SINGLE:
+        return CrCalcSizeOfRelExpr(namescope, ee->m_rel_expr.get());
+
+    default:
+        return 4;
+    }
+}
+
+int CrCalcSizeOfAndExpr(CR_NameScope& namescope, AndExpr *ae) {
+    assert(ae);
+    return CrCalcSizeOfEqualExpr(namescope, (*ae)[0].get());
+}
+
+int CrCalcSizeOfExclOrExpr(CR_NameScope& namescope, ExclOrExpr *eoe) {
+    assert(eoe);
+    return CrCalcSizeOfAndExpr(namescope, (*eoe)[0].get());
+}
+
+int CrCalcSizeOfInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
+    assert(ioe);
+    return CrCalcSizeOfExclOrExpr(namescope, (*ioe)[0].get());
+}
+
+int CrCalcSizeOfLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae) {
+    assert(lae);
+    return CrCalcSizeOfInclOrExpr(namescope, (*lae)[0].get());
+}
+
+int CrCalcSizeOfLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe) {
+    assert(loe);
+    return CrCalcSizeOfLogAndExpr(namescope, (*loe)[0].get());
+}
+
+int CrCalcSizeOfExpr(CR_NameScope& namescope, Expr *e);
+
+int CrCalcSizeOfCondExpr(CR_NameScope& namescope, CondExpr *ce) {
+    assert(ce);
+    switch (ce->m_cond_type) {
+    case CondExpr::SINGLE:
+        return CrCalcSizeOfLogOrExpr(namescope, ce->m_log_or_expr.get());
+
+    case CondExpr::QUESTION:
+        return CrCalcConstIntLogOrExpr(namescope, ce->m_log_or_expr.get()) ?
+                    CrCalcSizeOfExpr(namescope, ce->m_expr.get()) :
+                    CrCalcSizeOfCondExpr(namescope, ce->m_cond_expr.get());
+
+    default:
+        return 0;
+    }
+}
+
+
+int CrCalcSizeOfAssignExpr(CR_NameScope& namescope, AssignExpr *ae) {
+    assert(ae);
+    switch (ae->m_assign_type) {
+    case AssignExpr::COND:
+        return CrCalcSizeOfCondExpr(namescope, ae->m_cond_expr.get());
+
+    case AssignExpr::SINGLE:
+        return CrCalcSizeOfUnaryExpr(namescope, ae->m_unary_expr.get());
+
+    default:
+        return 4;
+    }
+}
+
+int CrCalcSizeOfExpr(CR_NameScope& namescope, Expr *e) {
+    assert(e);
+    return CrCalcSizeOfAssignExpr(namescope, (*e)[0].get());
+}
+
+int CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
+    assert(pe);
+
+    switch (pe->m_prim_type) {
+    case PrimExpr::IDENTIFIER:
+        {
+            auto it = namescope.MapNameToVarID().find(pe->m_text);
+            if (it != namescope.MapNameToVarID().end()) {
+                auto& var = namescope.LogVar(it->second);
+                return namescope.SizeOfType(var.m_type_id);
+            }
+        }
+        return 0;
+
+    case PrimExpr::I_CONSTANT:
+        if (pe->m_extra.empty()) {
+            long long n = std::strtoll(pe->m_text.data(), NULL, 0);
+            if (n > 0x7FFFFFFF) {
+                return sizeof(long long);
+            } else {
+                return sizeof(int);
+            }
+        } else if (pe->m_extra.find("LL") != std::string::npos ||
+                   pe->m_extra.find("ll") != std::string::npos)
+        {
+            return sizeof(long long);
+        }
+        return sizeof(int);
+
+    case PrimExpr::F_CONSTANT:
+        if (pe->m_extra.find('f') != std::string::npos ||
+            pe->m_extra.find('F') != std::string::npos)
+        {
+            return sizeof(float);
+        }
+        if (pe->m_extra.find('l') != std::string::npos ||
+            pe->m_extra.find('L') != std::string::npos)
+        {
+            return sizeof(long double);
+        }
+        return sizeof(double);
+
+    case PrimExpr::STRING:
+        if (pe->m_extra.find('L') != std::string::npos) {
+            return (pe->m_text.size() + 1) * sizeof(wchar_t);
+        } else {
+            return (pe->m_text.size() + 1) * sizeof(char);
+        }
+
+    case PrimExpr::PAREN:
+        return CrCalcSizeOfExpr(namescope, pe->m_expr.get());
+
+    default:
+        return 0;
+    }
+}
+
+int CrCalcSizeOfPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
+    assert(pe);
+    switch (pe->m_postfix_type) {
+    case PostfixExpr::SINGLE:
+        return CrCalcSizeOfPrimExpr(namescope, pe->m_prim_expr.get());
+
+    default:
+        // TODO:
+        assert(0);
+    }
     return 0;
+}
+
+int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
+    assert(ue);
+    switch (ue->m_unary_type) {
+    case UnaryExpr::SINGLE:
+        return CrCalcSizeOfPostfixExpr(namescope, ue->m_postfix_expr.get());
+
+    default:
+        // TODO:
+        assert(0);
+        return 0;
+    }
 }
 
 CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
@@ -2462,11 +2688,11 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
 }
 
 CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
-                                 const CR_String& name, DeclList *dl,
+                                 const CR_String& name, DeclList *dl, int pack,
                                  const CR_Location& location)
 {
     CR_LogStruct ls(false);     // union
-    ls.m_pack = 1;
+    ls.m_pack = pack;
     assert(dl);
 
     CR_TypeID tid;
@@ -2603,6 +2829,25 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                             tid = namescope.AddStructType(name, ls, ts->location());
                         }
                     }
+                    if (ts->m_align_spec) {
+                        int align;
+                        switch (ts->m_align_spec->m_align_spec_type) {
+                        case AlignSpec::TYPENAME:
+                            // TODO: 
+                            assert(0);
+                            break;
+
+                        case AlignSpec::CONSTEXPR:
+                            align =
+                                CrCalcConstIntCondExpr(namescope,
+                                    ts->m_align_spec->m_const_expr.get());
+                            if (align) {
+                                auto& type = namescope.LogType(tid);
+                                type.m_align = align;
+                            }
+                            break;
+                        }
+                    }
                 }
                 if (flags & TF_CONST) {
                     tid = namescope.AddConstType(tid);
@@ -2616,13 +2861,32 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                     name = ts->m_name;
                     if (ts->m_decl_list) {
                         tid = CrAnalyseUnionDeclList(
-                            namescope, name, ts->m_decl_list.get(),
+                            namescope, name, ts->m_decl_list.get(), ts->m_pack,
                             ts->location());
                     } else {
                         tid = namescope.TypeIDFromName(name);
                         if (tid == cr_invalid_id) {
                             CR_LogStruct ls(false);
                             tid = namescope.AddUnionType(name, ls, ts->location());
+                        }
+                    }
+                    if (ts->m_align_spec) {
+                        int align;
+                        switch (ts->m_align_spec->m_align_spec_type) {
+                        case AlignSpec::TYPENAME:
+                            // TODO: 
+                            assert(0);
+                            break;
+
+                        case AlignSpec::CONSTEXPR:
+                            align = 
+                                CrCalcConstIntCondExpr(namescope,
+                                    ts->m_align_spec->m_const_expr.get());
+                            if (align) {
+                                auto& type = namescope.LogType(tid);
+                                type.m_align = align;
+                            }
+                            break;
                         }
                     }
                 }

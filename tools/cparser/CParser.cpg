@@ -259,9 +259,11 @@ init_declarator<Declor>
     ;
 
 struct_declaration<Decl>
-    : [DoStructDecl1] specifier_qualifier_list(0) struct_declarator_list(1) T_SEMICOLON
-    | [DoStructDecl2] specifier_qualifier_list(0) T_SEMICOLON
-    | [DoStructDecl3] static_assert_declaration(0)
+    : [DoStructDecl1a] alignment_specifier(0) specifier_qualifier_list(1) struct_declarator_list(2) T_SEMICOLON
+    | [DoStructDecl1]  specifier_qualifier_list(0) struct_declarator_list(1) T_SEMICOLON
+    | [DoStructDecl2a] alignment_specifier(0) specifier_qualifier_list(1) T_SEMICOLON
+    | [DoStructDecl2]  specifier_qualifier_list(0) T_SEMICOLON
+    | [DoStructDecl3]  static_assert_declaration(0)
     ;
 
 specifier_qualifier_list<DeclSpecs>
