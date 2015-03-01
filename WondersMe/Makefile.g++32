@@ -14,7 +14,7 @@ DO_WONDERS_MINGW2 = /mingw/lib/gcc/*-*-mingw*/*.*.*/
 
 DO_WONDERS_INCLUDES = -I /mingw/include/ -I $(DO_WONDERS_MINGW)include/ -I $(DO_WONDERS_MINGW2)include
 
-PREDEF_COMMON = -D_M_IX86=1 -D_MT=1 -D_WIN32=1 -D_X86_=1 -D__i386__=1
+PREDEF_COMMON = -D_M_IX86=1 -D_MT=1 -D_WIN32=1 -D_X86_=1 -D__i386__=1 -DSORTPP_PASS=1
 
 all: macros types
 macros: ansi_macros wide_macros

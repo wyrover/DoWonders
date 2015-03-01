@@ -7,21 +7,21 @@ const char * const cr_logo =
     "//////////////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser sample 0.2.5 (64-bit) for gcc        //\n"
+    "// CParser sample 0.2.6 (64-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.5 (64-bit) for clang      //\n"
+    "// CParser sample 0.2.6 (64-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.5 (64-bit) for cl (VC++)  //\n"
+    "// CParser sample 0.2.6 (64-bit) for cl (VC++)  //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser sample 0.2.5 (32-bit) for gcc        //\n"
+    "// CParser sample 0.2.6 (32-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.5 (32-bit) for clang      //\n"
+    "// CParser sample 0.2.6 (32-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.5 (32-bit) for cl (VC++)  //\n"
+    "// CParser sample 0.2.6 (32-bit) for cl (VC++)  //\n"
 # else
 #  error You lose!
 # endif
@@ -1573,7 +1573,7 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
         return std::strtof(pe->m_text.data(), NULL) != 0;
 
     case PrimExpr::I_CONSTANT:
-        n = std::strtol(pe->m_text.data(), NULL, 0);
+        n = static_cast<int>(std::strtoll(pe->m_text.data(), NULL, 0));
         return n;
 
     case PrimExpr::STRING:
@@ -1809,9 +1809,9 @@ int CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
 
     case PrimExpr::STRING:
         if (pe->m_extra.find('L') != std::string::npos) {
-            return (pe->m_text.size() + 1) * sizeof(wchar_t);
+            return static_cast<int>((pe->m_text.size() + 1) * sizeof(wchar_t));
         } else {
-            return (pe->m_text.size() + 1) * sizeof(char);
+            return static_cast<int>((pe->m_text.size() + 1) * sizeof(char));
         }
 
     case PrimExpr::PAREN:
@@ -1851,27 +1851,8 @@ int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
 CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
 
 int CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
+    assert(tn);
     CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
-    if (tn->m_declor) {
-        switch (tn->m_declor->m_declor_type) {
-        case Declor::POINTERS:
-        case Declor::FUNCTION:
-            return (namescope.Is64Bit() ? 8 : 4);
-
-        case Declor::ARRAY:
-            {
-                int count = CrCalcConstIntCondExpr(
-                    namescope, tn->m_declor->m_const_expr.get());
-                return namescope.SizeOfType(tid) * count;
-            }
-
-        case Declor::BITS:
-            return 0;
-
-        default:
-            break;
-        }
-    }
     return namescope.SizeOfType(tid);
 }
 
@@ -1902,7 +1883,7 @@ int CrCalcConstIntUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
 
     case UnaryExpr::MINUS:
         n = CrCalcConstIntCastExpr(namescope, ue->m_cast_expr.get());
-        return n;
+        return -n;
 
     case UnaryExpr::BITWISE_NOT:
         n = CrCalcConstIntCastExpr(namescope, ue->m_cast_expr.get());
@@ -1937,6 +1918,7 @@ int CrCalcConstIntCastExpr(CR_NameScope& namescope, CastExpr *ce) {
         // TODO:
         //ce->m_type_name
         //ce->m_initer_list
+        assert(0);
         break;
 
     case CastExpr::CAST:
@@ -1966,6 +1948,7 @@ int CrCalcConstIntMulExpr(CR_NameScope& namescope, MulExpr *me) {
     case MulExpr::SLASH:
         n1 = CrCalcConstIntMulExpr(namescope, me->m_mul_expr.get());
         n2 = CrCalcConstIntCastExpr(namescope, me->m_cast_expr.get());
+        assert(n2);
         result = (n1 / n2);
         break;
 
@@ -2094,25 +2077,38 @@ int CrCalcConstIntEqualExpr(CR_NameScope& namescope, EqualExpr *ee) {
 }
 
 int CrCalcConstIntAndExpr(CR_NameScope& namescope, AndExpr *ae) {
-    int result = CrCalcConstIntEqualExpr(namescope, (*ae)[0].get());
-    for (std::size_t i = 1; i < ae->size(); ++i) {
-        result &= CrCalcConstIntEqualExpr(namescope, (*ae)[i].get());
+    int result;
+    if (ae->size() == 1) {
+        result = CrCalcConstIntEqualExpr(namescope, (*ae)[0].get());
+    } else {
+        result = CrCalcConstIntEqualExpr(namescope, (*ae)[0].get());
+        for (std::size_t i = 1; i < ae->size(); ++i) {
+            result &= CrCalcConstIntEqualExpr(namescope, (*ae)[i].get());
+        }
     }
     return result;
 }
 
 int CrCalcConstIntExclOrExpr(CR_NameScope& namescope, ExclOrExpr *eoe) {
     int result = 0;
-    for (auto& ae : *eoe) {
-        result ^= CrCalcConstIntAndExpr(namescope, ae.get());
+    if (eoe->size() == 1) {
+        result = CrCalcConstIntAndExpr(namescope, (*eoe)[0].get());
+    } else {
+        for (auto& ae : *eoe) {
+            result ^= CrCalcConstIntAndExpr(namescope, ae.get());
+        }
     }
     return result;
 }
 
 int CrCalcConstIntInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
     int result = 0;
-    for (auto& eoe : *ioe) {
-        result |= CrCalcConstIntExclOrExpr(namescope, eoe.get());
+    if (ioe->size() == 1) {
+        result = CrCalcConstIntExclOrExpr(namescope, (*ioe)[0].get());
+    } else {
+        for (auto& eoe : *ioe) {
+            result |= CrCalcConstIntExclOrExpr(namescope, eoe.get());
+        }
     }
     return result;
 }
@@ -2258,8 +2254,6 @@ int CrCalcConstIntCondExpr(CR_NameScope& namescope, CondExpr *ce) {
 ////////////////////////////////////////////////////////////////////////////
 // CrAnalyse... functions
 
-CR_TypeID CrAnalysePointer(CR_NameScope& namescope, Pointers *pointers,
-                           CR_TypeID tid);
 void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                                 DeclorList *dl, const CR_Location& location);
 void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
@@ -2273,9 +2267,11 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
                    Declor *declor, DeclList *decl_list);
 CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
                                   const CR_String& name, DeclList *dl,
-                                  int pack, const CR_Location& location);
+                                  int pack, int alignas,
+                                  const CR_Location& location);
 CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
                                  const CR_String& name, DeclList *dl,
+                                 int pack, int alignas,
                                  const CR_Location& location);
 CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
                               const CR_String& name, EnumorList *el);
@@ -2439,7 +2435,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
     for (auto& declor : *dl) {
         CR_TypeID tid2 = tid;
 
-        int value, bits = 0;
+        int value, bits = -1;
         CR_String name;
         Declor *d = declor.get();
         while (d) {
@@ -2463,10 +2459,11 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 continue;
 
             case Declor::ARRAY:
-                if (d->m_const_expr)
+                if (d->m_const_expr) {
                     value = CrCalcConstIntCondExpr(namescope, d->m_const_expr.get());
-                else
-                    value = 0;
+                } else {
+                    value = (ls.m_is_struct ? 0 : 1);
+                }
                 tid2 = namescope.AddArrayType(tid2, value, d->location());
                 d = d->m_declor.get();
                 continue;
@@ -2497,7 +2494,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
         }
         ls.m_type_list.push_back(tid2);
         ls.m_name_list.push_back(name);
-        ls.m_offset_list.push_back(0);
+        ls.m_bit_offset_list.push_back(-1);
         ls.m_bits_list.push_back(bits);
     }
 }
@@ -2522,8 +2519,7 @@ void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl) {
             {
                 shared_ptr<CondExpr> const_expr =
                     decl->m_static_assert_decl->m_const_expr;
-                if (CrCalcConstIntCondExpr(namescope, const_expr.get()) == 0)
-                {
+                if (CrCalcConstIntCondExpr(namescope, const_expr.get()) == 0) {
                     assert(0);
                 }
             }
@@ -2558,7 +2554,6 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
         #endif
 
         CR_TypeID tid2 = tid;
-        int value;
         CR_String name;
         while (d) {
             switch (d->m_declor_type) {
@@ -2579,11 +2574,7 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
                 continue;
 
             case Declor::ARRAY:
-                if (d->m_const_expr)
-                    value = CrCalcConstIntCondExpr(namescope, d->m_const_expr.get());
-                else
-                    value = 0;
-                tid2 = namescope.AddArrayType(tid2, value, d->location());
+                tid2 = namescope.AddPtrType(tid2, 0, d->location());
                 d = d->m_declor.get();
                 continue;
 
@@ -2642,7 +2633,8 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
 }
 
 CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
-                                  const CR_String& name, DeclList *dl, int pack,
+                                  const CR_String& name, DeclList *dl,
+                                  int pack, int alignas,
                                   const CR_Location& location)
 {
     CR_LogStruct ls(true);  // struct
@@ -2663,8 +2655,8 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
             if (tid != cr_invalid_id) {
                 ls.m_type_list.push_back(tid);
                 ls.m_name_list.push_back("");
-                ls.m_offset_list.push_back(0);
-                ls.m_bits_list.push_back(0);
+                ls.m_bit_offset_list.push_back(-1);
+                ls.m_bits_list.push_back(-1);
             }
             break;
 
@@ -2684,11 +2676,12 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
         }
     }
 
-    return namescope.AddStructType(name, ls, location);
+    return namescope.AddStructType(name, ls, alignas, location);
 }
 
 CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
-                                 const CR_String& name, DeclList *dl, int pack,
+                                 const CR_String& name, DeclList *dl,
+                                 int pack, int alignas,
                                  const CR_Location& location)
 {
     CR_LogStruct ls(false);     // union
@@ -2709,8 +2702,8 @@ CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
             if (tid != cr_invalid_id) {
                 ls.m_type_list.push_back(tid);
                 ls.m_name_list.push_back("");
-                ls.m_offset_list.push_back(0);
-                ls.m_bits_list.push_back(0);
+                ls.m_bit_offset_list.push_back(-1);
+                ls.m_bits_list.push_back(-1);
             }
             break;
 
@@ -2730,7 +2723,7 @@ CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
         }
     }
 
-    return namescope.AddUnionType(name, ls, location);
+    return namescope.AddUnionType(name, ls, alignas, location);
 }
 
 CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
@@ -2818,19 +2811,8 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 {
                     TypeSpec *ts = ds->m_type_spec.get();
                     name = ts->m_name;
-                    if (ts->m_decl_list) {
-                        tid = CrAnalyseStructDeclList(
-                            namescope, name, ts->m_decl_list.get(), ts->m_pack,
-                            ts->location());
-                    } else {
-                        tid = namescope.TypeIDFromName(name);
-                        if (tid == cr_invalid_id) {
-                            CR_LogStruct ls(true);
-                            tid = namescope.AddStructType(name, ls, ts->location());
-                        }
-                    }
+                    int alignas = 0;
                     if (ts->m_align_spec) {
-                        int align;
                         switch (ts->m_align_spec->m_align_spec_type) {
                         case AlignSpec::TYPENAME:
                             // TODO: 
@@ -2838,14 +2820,23 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                             break;
 
                         case AlignSpec::CONSTEXPR:
-                            align =
+                            alignas =
                                 CrCalcConstIntCondExpr(namescope,
                                     ts->m_align_spec->m_const_expr.get());
-                            if (align) {
-                                auto& type = namescope.LogType(tid);
-                                type.m_align = align;
+                        }
+                    }
+                    if (ts->m_decl_list) {
+                        tid = CrAnalyseStructDeclList(
+                            namescope, name, ts->m_decl_list.get(), ts->m_pack,
+                            alignas, ts->location());
+                    } else {
+                        tid = namescope.TypeIDFromName(name);
+                        if (tid == cr_invalid_id) {
+                            CR_LogStruct ls(true);
+                            tid = namescope.AddStructType(name, ls, alignas, ts->location());
+                            if (alignas) {
+                                namescope.LogType(tid).m_alignas = alignas;
                             }
-                            break;
                         }
                     }
                 }
@@ -2859,19 +2850,8 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 {
                     TypeSpec *ts = ds->m_type_spec.get();
                     name = ts->m_name;
-                    if (ts->m_decl_list) {
-                        tid = CrAnalyseUnionDeclList(
-                            namescope, name, ts->m_decl_list.get(), ts->m_pack,
-                            ts->location());
-                    } else {
-                        tid = namescope.TypeIDFromName(name);
-                        if (tid == cr_invalid_id) {
-                            CR_LogStruct ls(false);
-                            tid = namescope.AddUnionType(name, ls, ts->location());
-                        }
-                    }
+                    int alignas = 0;
                     if (ts->m_align_spec) {
-                        int align;
                         switch (ts->m_align_spec->m_align_spec_type) {
                         case AlignSpec::TYPENAME:
                             // TODO: 
@@ -2879,14 +2859,21 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                             break;
 
                         case AlignSpec::CONSTEXPR:
-                            align = 
+                            alignas = 
                                 CrCalcConstIntCondExpr(namescope,
                                     ts->m_align_spec->m_const_expr.get());
-                            if (align) {
-                                auto& type = namescope.LogType(tid);
-                                type.m_align = align;
-                            }
                             break;
+                        }
+                    }
+                    if (ts->m_decl_list) {
+                        tid = CrAnalyseUnionDeclList(
+                            namescope, name, ts->m_decl_list.get(), ts->m_pack,
+                            alignas, ts->location());
+                    } else {
+                        tid = namescope.TypeIDFromName(name);
+                        if (tid == cr_invalid_id) {
+                            CR_LogStruct ls(false);
+                            tid = namescope.AddUnionType(name, ls, alignas, ts->location());
                         }
                     }
                 }
@@ -3015,7 +3002,7 @@ int CrInputCSrc(
         static char filename[MAX_PATH];
         ::GetTempFileNameA(".", "cpa", 0, filename);
         cr_tmpfile = filename;
-        #if 0
+        #if 1
             atexit(CrDeleteTempFileAtExit);
         #endif
 
@@ -3201,8 +3188,7 @@ void CrDumpSemantic(
             } else if (type.m_flags & (TF_POINTER | TF_FUNCTION | TF_ARRAY)) {
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\t\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_sub_id),
-                    static_cast<int>(type.m_count),
+                    static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
                     type.m_size, type.m_align,
                     location.m_file.data(), location.m_line);
             } else {
@@ -3219,7 +3205,7 @@ void CrDumpSemantic(
 
     fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(struct_id)\t(name)\t(type_id)\t(is_struct)\t(size)\t(count)\t(pack)\t(align)\t(file)\t(line)\t(definition)\t(item_1_name)\t(item_1_type_id)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
+        fprintf(fp, "(struct_id)\t(name)\t(type_id)\t(is_struct)\t(size)\t(count)\t(align)\t(is_complete)\t(alignas)\t(file)\t(line)\t(definition)\t(item_1_name)\t(item_1_type_id)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
         for (CR_TypeID sid = 0; sid < namescope.LogStructs().size(); ++sid) {
             const auto& ls = namescope.LogStruct(sid);
             auto tid = ls.m_tid;
@@ -3228,17 +3214,19 @@ void CrDumpSemantic(
             const auto& name = namescope.MapTypeIDToName()[tid];
             auto strDef = namescope.StringOfType(tid, "");
             assert(ls.m_type_list.size() == ls.m_name_list.size());
-            fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
+            fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
                 static_cast<int>(sid), name.data(), static_cast<int>(tid), 
                 ls.m_is_struct, type.m_size, static_cast<int>(ls.m_type_list.size()),
-                ls.m_pack, ls.m_align, location.m_file.data(), location.m_line, strDef.data());
-            assert(ls.m_type_list.size() == ls.m_offset_list.size());
+                ls.m_align, static_cast<int>(ls.m_is_complete),
+                static_cast<int>(type.m_alignas),
+                location.m_file.data(), location.m_line, strDef.data());
+            assert(ls.m_type_list.size() == ls.m_bit_offset_list.size());
             assert(ls.m_type_list.size() == ls.m_bits_list.size());
             for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
                 fprintf(fp, "\t%s\t%d\t%d\t%d",
                     ls.m_name_list[i].data(),
                     static_cast<int>(ls.m_type_list[i]),
-                    ls.m_offset_list[i],
+                    ls.m_bit_offset_list[i],
                     ls.m_bits_list[i]);
             }
             fprintf(fp, "\n");

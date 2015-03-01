@@ -1463,7 +1463,7 @@ namespace cparser
                 std::printf("DoAstCom4\n");
             #endif
             AstCom *ac = new AstCom;
-            ac->m_flags = asterisk->m_flags;
+            ac->m_flags = asterisk->m_flags | TF_PTR64;
             return shared_ptr<AstCom>(ac);
         }
 

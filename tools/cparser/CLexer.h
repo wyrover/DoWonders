@@ -8,8 +8,8 @@ namespace cparser
     //
     class Packing {
     public:
-        Packing() : m_pack(8) { }
-        Packing(int packing) : m_pack(packing) { }
+        Packing(int pack = 8, int default_packing = 8) :
+            m_pack(pack), m_default_packing(default_packing) { }
 
         void push(int pack) {
             assert(pack == 1 || pack == 2 || pack == 4 || pack == 8 || pack == 16);
@@ -58,9 +58,9 @@ namespace cparser
 
     protected:
         int                         m_pack;
+        int                         m_default_packing;
         std::deque<int>             m_packs;
         std::deque<std::string>     m_idents;
-        int                         m_default_packing;
     }; // Packing
 
     //

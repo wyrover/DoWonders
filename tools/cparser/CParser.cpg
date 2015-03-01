@@ -58,7 +58,7 @@
 %token T_INT32<CR_TokenNode>;
 %token T_INT64<CR_TokenNode>;
 %token T_INT128<CR_TokenNode>;
-%token T_INVALID_CHAR<CR_TokenNode>;	// invalid character (to be deleted)
+%token T_INVALID_CHAR<CR_TokenNode>;    // invalid character (to be deleted)
 %token T_LE<CR_TokenNode>;
 %token T_LONG<CR_TokenNode>;
 %token T_LT<CR_TokenNode>;

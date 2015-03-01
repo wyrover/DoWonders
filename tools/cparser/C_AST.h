@@ -450,35 +450,25 @@ namespace cparser
         CR_String       m_extra;
         int             m_pack;
         CR_TypeFlags    m_flags;
-        union {
-            long long   m_long_long_value;
-            int         m_int_value;
-            long        m_long_value;
-            float       m_float_value;
-            double      m_double_value;
-            long double m_long_double_value;
-        };
 
     public:
-        TokenNode() : m_pack(8), m_flags(0), m_long_long_value(0) { }
+        TokenNode() : m_pack(8), m_flags(0) { }
 
         TokenNode(token_type token) :
-            m_token(token), m_pack(8), m_flags(0),
-            m_long_long_value(0) { }
+            m_token(token), m_pack(8), m_flags(0) { }
 
         TokenNode(token_type token, const std::string& text) :
-            m_token(token), m_text(text), m_pack(8),
-            m_flags(0), m_long_long_value(0) { }
+            m_token(token), m_text(text), m_pack(8), m_flags(0) { }
 
         TokenNode(token_type token, 
                   const std::string& text, const std::string& extra) :
             m_token(token), m_text(text),
-            m_extra(extra), m_pack(8), m_flags(0), m_long_long_value(0) { }
+            m_extra(extra), m_pack(8), m_flags(0) { }
 
         TokenNode(token_type token,  const std::string& text,
                   const std::string& extra, CR_TypeFlags flags) :
             m_token(token), m_text(text), m_extra(extra),
-            m_pack(8), m_flags(flags), m_long_long_value(0) { }
+            m_pack(8), m_flags(flags) { }
 
         void set_token(token_type token) {
             m_token = token;

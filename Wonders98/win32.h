@@ -91,7 +91,7 @@
 #include <wincred.h>
 
 #include <nspapi.h>
-#include <wsdapi.h>
+//#include <wsdapi.h>
 //#include <winhttp.h>
 
 /* more misc. */

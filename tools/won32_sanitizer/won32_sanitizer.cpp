@@ -23,14 +23,15 @@ enum {
     TF_DOUBLE       = 0x00000100,
     TF_SIGNED       = 0,
     TF_UNSIGNED     = 0x00000200,
-    TF_XSIGNED      = 0x00000400, // CodeReverse extension: signed and/or unsigned
+    TF_PTR64        = 0x00000400,
     TF_STRUCT       = 0x00000800,
     TF_UNION        = 0x00001000,
     TF_ENUM         = 0x00002000,
     TF_POINTER      = 0x00004000,
     TF_ARRAY        = 0x00008000,
     TF_FUNCTION     = 0x00010000,
-    TF_CDECL        = 0x00020000,
+    TF_INCOMPLETE   = 0x00020000,
+    TF_CDECL        = 0,
     TF_STDCALL      = 0x00040000,
     TF_FASTCALL     = 0x00080000,
     TF_CONST        = 0x00100000,
@@ -41,7 +42,7 @@ enum {
     TF_EXTERN       = 0x02000000,
     TF_STATIC       = 0x04000000,
     TF_THREADLOCAL  = 0x08000000,
-    TF_INLINE       = 0x10000000,
+    //                0x10000000 is absent
     TF_ALIAS        = 0x20000000,
     TF_ENUMITEM     = 0x40000000,
     TF_INT128       = 0x80000000
@@ -95,6 +96,9 @@ bool WsJustDoIt(
         "#include \"win32.h\"\n" << 
         "#include <stdio.h>\n" << 
         "\n" << 
+        "#undef PROCESSENTRY32\n" << 
+        "#undef MODULEENTRY32\n" << 
+        "\n" << 
         "#define check_size(name,size) do { \\\n" << 
         "\tif (sizeof(name) != (size)) { \\\n" << 
         "\t\tfprintf(stderr, \"%s: size mismatched, real size is %d\\n\", #name, (int)sizeof(name)); \\\n" << 
@@ -135,7 +139,7 @@ bool WsJustDoIt(
         while (std::getline(in1, line)) {
             WsSplitByTabs(fields, line);
 
-            //auto type_id = atoi(fields[0].data());
+            auto type_id = atoi(fields[0].data());
             auto name = fields[1];
             auto flags = strtol(fields[2].data(), NULL, 16);
             //auto sub_id = atoi(fields[3].data());
@@ -143,7 +147,10 @@ bool WsJustDoIt(
             auto size = atoi(fields[5].data());
             auto align = atoi(fields[6].data());
             if (size && name.size() && name.find("*") == std::string::npos) {
-                if (!(flags & (TF_STRUCT | TF_UNION | TF_ENUM | TF_ENUMITEM | TF_CONST))) {
+                const long c_flags =
+                    (TF_STRUCT | TF_UNION | TF_ENUM | TF_ENUMITEM | TF_CONST |
+                     TF_INCOMPLETE | TF_FUNCTION);
+                if (!(flags & c_flags)) {
                     out << "\tcheck_align(" << name << ", " << align << ");" <<
                            std::endl;
                     out << "\tcheck_size(" << name << ", " << size << ");" <<
@@ -168,14 +175,15 @@ bool WsJustDoIt(
         while (std::getline(in2, line)) {
             WsSplitByTabs(fields, line);
 
-            //auto type_id = atoi(fields[0].data());
+            //auto struct_id = atoi(fields[0].data());
             auto name = fields[1];
-            //auto struct_id = atoi(fields[2].data());
+            //auto type_id = atoi(fields[2].data());
             //auto struct_or_union = atoi(fields[3].data());
             auto size = atoi(fields[4].data());
             auto count = atoi(fields[5].data());
-            auto align = atoi(fields[7].data());
-            if (size && name.size() && count) {
+            auto align = atoi(fields[6].data());
+            auto is_complate = atoi(fields[7].data());
+            if (size && name.size() && count && is_complate) {
                 out << "\tcheck_align(" << name << ", " << align << ");" <<
                        std::endl;
                 out << "\tcheck_size(" << name << ", " << size << ");" <<
@@ -215,6 +223,7 @@ bool WsJustDoIt(
     }
 
     out <<
+        "\tputs(\"success\");\n" <<
         "\treturn 0;\n" <<
         "}" << std::endl;
     out.close();

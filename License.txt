@@ -1,2 +1,4 @@
 Folder tools/mcpp-2.7.2-hacked is released under the BSD License.
+tools/cparser/caper.exe is distributed under the Modified BSD License.
+
 Others are public domain softwares (PDS).
