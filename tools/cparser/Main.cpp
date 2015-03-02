@@ -3205,7 +3205,7 @@ void CrDumpSemantic(
 
     fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(struct_id)\t(name)\t(type_id)\t(is_struct)\t(size)\t(count)\t(align)\t(is_complete)\t(alignas)\t(file)\t(line)\t(definition)\t(item_1_name)\t(item_1_type_id)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
+        fprintf(fp, "(struct_id)\t(name)\t(type_id)\t(is_struct)\t(size)\t(count)\t(pack)\t(align)\t(is_complete)\t(alignas)\t(file)\t(line)\t(definition)\t(item_1_name)\t(item_1_type_id)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
         for (CR_TypeID sid = 0; sid < namescope.LogStructs().size(); ++sid) {
             const auto& ls = namescope.LogStruct(sid);
             auto tid = ls.m_tid;
@@ -3217,7 +3217,7 @@ void CrDumpSemantic(
             fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
                 static_cast<int>(sid), name.data(), static_cast<int>(tid), 
                 ls.m_is_struct, type.m_size, static_cast<int>(ls.m_type_list.size()),
-                ls.m_align, static_cast<int>(ls.m_is_complete),
+                ls.m_pack, ls.m_align, static_cast<int>(ls.m_is_complete),
                 static_cast<int>(type.m_alignas),
                 location.m_file.data(), location.m_line, strDef.data());
             assert(ls.m_type_list.size() == ls.m_bit_offset_list.size());

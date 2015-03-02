@@ -178,11 +178,13 @@ bool WsJustDoIt(
             //auto struct_id = atoi(fields[0].data());
             auto name = fields[1];
             //auto type_id = atoi(fields[2].data());
-            //auto struct_or_union = atoi(fields[3].data());
+            //auto is_struct = atoi(fields[3].data());
             auto size = atoi(fields[4].data());
             auto count = atoi(fields[5].data());
-            auto align = atoi(fields[6].data());
-            auto is_complate = atoi(fields[7].data());
+            auto pack = atoi(fields[6].data());
+            auto align = atoi(fields[7].data());
+            auto is_complate = atoi(fields[8].data());
+            //auto alignas = atoi(fields[9].data());
             if (size && name.size() && count && is_complate) {
                 out << "\tcheck_align(" << name << ", " << align << ");" <<
                        std::endl;

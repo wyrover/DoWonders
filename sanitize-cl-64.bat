@@ -3,8 +3,8 @@
 set REDIRECTOR=tools\redirector\x64\Release\redirector64.exe
 if not exist %REDIRECTOR% goto label_no_redirector64
 
-set WON32_SANITIZE = tools\won32_sanitizer\x64\Release\won32_sanitizer64.exe
-if not exist %WON32_SANITIZE% goto label_no_sanitizer64
+set WON32_SANITIZER = tools\won32_sanitizer\x64\Release\won32_sanitizer64.exe
+if not exist %WON32_SANITIZER% goto label_no_sanitizer64
 
 cd WondersXP
 call sanitize-cl-64.bat

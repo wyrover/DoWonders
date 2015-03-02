@@ -3,8 +3,8 @@
 set REDIRECTOR=tools\redirector\Release\redirector.exe
 if not exist %REDIRECTOR% goto label_no_redirector
 
-set WON32_SANITIZE = tools\won32_sanitizer\Release\won32_sanitizer.exe
-if not exist %WON32_SANITIZE% goto label_no_sanitizer
+set WON32_SANITIZER = tools\won32_sanitizer\Release\won32_sanitizer.exe
+if not exist %WON32_SANITIZER% goto label_no_sanitizer
 
 cd Wonders98
 call sanitize-cl-32.bat
