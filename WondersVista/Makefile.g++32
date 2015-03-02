@@ -54,3 +54,7 @@ delete_log:
 
 clean:
 	rm -f *.log *.tmp
+	rm -f sanitize-gcc-32-a.c
+	rm -f sanitize-gcc-32-w.c
+	rm -f sanitize-gcc-32-a$(DOTEXE)
+	rm -f sanitize-gcc-32-w$(DOTEXE)

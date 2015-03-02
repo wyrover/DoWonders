@@ -3214,7 +3214,7 @@ void CrDumpSemantic(
             const auto& name = namescope.MapTypeIDToName()[tid];
             auto strDef = namescope.StringOfType(tid, "");
             assert(ls.m_type_list.size() == ls.m_name_list.size());
-            fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
+            fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
                 static_cast<int>(sid), name.data(), static_cast<int>(tid), 
                 ls.m_is_struct, type.m_size, static_cast<int>(ls.m_type_list.size()),
                 ls.m_pack, ls.m_align, static_cast<int>(ls.m_is_complete),
