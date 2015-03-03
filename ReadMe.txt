@@ -13,8 +13,8 @@ This is Win32 API Database Project (DoWonders). 100% open technology.
 DoWonders contains C/Win32 parser (cparser), a hacked C preprocessor 
 (mcpp-hacked), and DLL info dumper (dllexpdumper).
 
-cparser extracts type information on Win32 API.mcpp-hacked extracts macro 
-information.dllexpdumper extracts DLL information.
+cparser extracts type information on Win32 API. mcpp-hacked extracts macro 
+information. dllexpdumper extracts DLL information.
 
 _______
 |USAGE|
@@ -29,7 +29,7 @@ there is 4 ways to build:
 
 If build of tools was ended, execute "do-wonders-cl-64.bat" on 64-bit Visual
 Studio (VS) command prompt,and/or execute "do-wonders-cl-32.bat" on 32-bit
-VS command prompt.Then, construction of Win32 API database will begin.
+VS command prompt. Then, construction of Win32 API database will begin.
 
 If everything was ended, ".dat" files will be generated. Use them for free.
 
