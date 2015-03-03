@@ -1,10 +1,18 @@
+          ------------------------------
+                    DoWonders
+
+            Win32 API Database Project
+                  by katahiromz
+          ------------------------------
+
 This is Win32 API Database Project (DoWonders).
 
 100% open technology.
 
 Tested on Visual C++ 2013 and TDM-GCC-64 + MSYS.
 
-SANITIZING...
+Sanitizing database...
+
 
 /////////////////////////////////////////////////////
 // Katayama Hirofumi MZ (katahiromz) [THE ANT]

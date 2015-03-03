@@ -7,7 +7,7 @@ MAKE = make
 MCPP = tools/mcpp-2.7.2-hacked/src/mcpp$(DOTEXE)
 CPARSER = tools/cparser/cparser$(DOTEXE)
 DLLEXPDUMPER = tools/dllexpdumper/dllexpdumper64$(DOTEXE)
-WON32_SANITIZE = tools/won32_sanitizer/won32_sanitizer64$(DOTEXE)
+WON32_SANITIZER = tools/won32_sanitizer/won32_sanitizer64$(DOTEXE)
 
 SUBDIRS = \
 	WondersXP \
@@ -22,7 +22,7 @@ $(CPARSER):
 	cd tools/cparser && $(MAKE) -f Makefile.g++64
 $(DLLEXPDUMPER):
 	cd tools/dllexpdumper && $(MAKE) -f Makefile.g++64
-$(WON32_SANITIZE):
+$(WON32_SANITIZER):
 	cd tools/won32_sanitizer && $(MAKE) -f Makefile.g++64
 
 macros: $(MCPP)
@@ -35,7 +35,7 @@ types: $(CPARSER)
 		(cd $$subdir && $(MAKE) -f Makefile.g++64 types); \
 	done
 
-sanitize: $(WON32_SANITIZE)
+sanitize: $(WON32_SANITIZER)
 	@for subdir in $(SUBDIRS); do \
 		(cd $$subdir && $(MAKE) -f Makefile.g++64 sanitize); \
 	done

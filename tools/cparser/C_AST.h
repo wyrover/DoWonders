@@ -166,8 +166,10 @@ namespace cparser
     };
 
     struct StorClsSpec : Node {
-        CR_TypeFlags                m_flag;
-        StorClsSpec() : m_flag(0) { }
+        enum {
+            AUTO, EXTERN, REGISTER, STATIC, THREADLOCAL
+        } m_scs_type;
+        StorClsSpec() { }
     };
 
     struct FuncSpec : Node {

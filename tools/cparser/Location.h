@@ -32,9 +32,9 @@ struct CR_Location
 
     std::string str() const {
         std::string s = m_file;
-        char buf[32];
-        std::sprintf(buf, " (%d)", m_line);
-        s += buf;
+        s += " (";
+        s += std::to_string(m_line);
+        s += ')';
         return s;
     }
 };

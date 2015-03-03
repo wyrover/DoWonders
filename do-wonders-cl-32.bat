@@ -192,31 +192,37 @@ type tmp.log >>dll-info-32.log
 del tmp.log
 
 cd Wonders98
+echo Wonders98
 call do-cl-32.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd WondersMe
+echo WondersMe
 call do-cl-32.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd Wonders2000
+echo Wonders2000
 call do-cl-32.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd WondersXP
+echo WondersXP
 call do-cl-32.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd WondersVista
+echo WondersVista
 call do-cl-32.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd Wonders7
+echo Wonders7
 call do-cl-32.bat
 if ERRORLEVEL 1 goto error
 cd ..
@@ -225,7 +231,7 @@ exit /b 0
 
 :error
 cd ..
-echo ERROR: ERRORLEVEL >= 1
+echo ERROR: ERRORLEVEL
 exit /b 1
 
 :label_no_redirector

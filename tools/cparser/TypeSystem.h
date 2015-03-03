@@ -39,12 +39,12 @@ enum {
     TF_COMPLEX      = 0x00400000,
     TF_IMAGINARY    = 0x00800000,
     TF_ATOMIC       = 0x01000000,
-    TF_EXTERN       = 0x02000000,
-    TF_STATIC       = 0x04000000,
-    TF_THREADLOCAL  = 0x08000000,
-    //                0x10000000 is absent
+    TF_PTR32        = 0x02000000,
+    TF_INACCURATE   = 0x04000000,   // size and/or alignment is not accurate
+    //                0x08000000 is absent
+    TF_BITFIELD     = 0x10000000,
     TF_ALIAS        = 0x20000000,
-    TF_ENUMITEM     = 0x40000000,
+    TF_ENUMITEM     = 0x40000000,   // CodeReverse extension
     TF_INT128       = 0x80000000
 };
 typedef unsigned long CR_TypeFlags;
@@ -75,7 +75,7 @@ inline CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags) {
     if (flags == 0)
         flags = TF_INT;
     // remove storage class specifiers
-    return flags & ~(TF_EXTERN | TF_STATIC | TF_INCOMPLETE);
+    return flags & ~TF_INCOMPLETE;
 } // CrNormalizeTypeFlags
 
 ////////////////////////////////////////////////////////////////////////////
@@ -132,6 +132,8 @@ struct CR_LogType {
 
     CR_ID        m_sub_id;          // sub ID.
     // m_sub_id means...
+    // For TF_ALIAS:                A type ID (CR_TypeID).
+    // For TF_ALIAS | TF_FUNCTION:  A type ID (CR_TypeID).
     // For TF_POINTER:              A type ID (CR_TypeID).
     // For TF_ARRAY:                A type ID (CR_TypeID).
     // For TF_CONST:                A type ID (CR_TypeID).
@@ -141,8 +143,6 @@ struct CR_LogType {
     // For TF_ENUM:                 An enum ID (CR_EnumID).
     // For TF_UNION:                A struct ID (CR_StructID).
     // For TF_ENUMITEM:             An enum ID (CR_EnumID).
-    // For TF_ALIAS:                A type ID (CR_TypeID).
-    // For TF_ALIAS | TF_FUNCTION:  A type ID (CR_TypeID).
     // otherwise: zero
 
     size_t          m_count;        // for TF_ARRAY, TF_STRUCT, TF_UNION
@@ -162,6 +162,11 @@ struct CR_LogType {
                const CR_Location& location) :
         m_flags(flags), m_sub_id(0), m_count(0), m_size(size), m_align(align),
             m_alignas(0), m_loc(location) { }
+
+    CR_LogType(CR_TypeFlags flags, int size, int align, int alignas_,
+               const CR_Location& location) :
+        m_flags(flags), m_sub_id(0), m_count(0), m_size(size), m_align(align),
+            m_alignas(alignas_), m_loc(location) { }
 
     // comparison with ignoring m_size, m_align and m_loc
     bool operator==(const CR_LogType& type) const {
@@ -323,9 +328,9 @@ public:
         // long double may differ between environments...
         #ifdef __GNUC__
             if (m_is_64bit)
-                AddType("long double", TF_LONG | TF_DOUBLE, 16, 4);
+                AddType("long double", TF_LONG | TF_DOUBLE, 16, 16, 16);
             else
-                AddType("long double", TF_LONG | TF_DOUBLE, 12, 4);
+                AddType("long double", TF_LONG | TF_DOUBLE, 12, 4, 4);
         #else
             AddType("long double", TF_LONG | TF_DOUBLE, 8);
         #endif
@@ -357,6 +362,13 @@ public:
         return AddType(name, CR_LogType(flags, size, align, location));
     }
 
+    CR_TypeID AddType(const CR_String& name, CR_TypeFlags flags, int size,
+                      int align, int alignas_,
+                      const CR_Location& location = CR_Location())
+    {
+        return AddType(name, CR_LogType(flags, size, align, alignas_, location));
+    }
+
     // add alias type
     CR_TypeID AddAliasType(const CR_String& name, CR_TypeID tid,
                            const CR_Location& location)
@@ -373,6 +385,11 @@ public:
             type1.m_align = type2.m_align;
             type1.m_alignas = type2.m_alignas;
         }
+        #ifdef __GNUC__
+            if (type2.m_flags & TF_INACCURATE) {
+                type1.m_flags |= TF_INACCURATE;
+            }
+        #endif
         if (type2.m_flags & TF_FUNCTION) {
             type1.m_flags |= TF_FUNCTION;
         }
@@ -424,6 +441,9 @@ public:
             type1.m_size = type2.m_size;
             type1.m_align = type2.m_align;
         }
+        if (type2.m_flags & TF_BITFIELD) {
+            type1.m_flags |= TF_BITFIELD;
+        }
         type1.m_sub_id = tid;
         auto tid2 = m_types.AddUnique(type1);
         auto name = NameFromTypeID(tid);
@@ -442,9 +462,16 @@ public:
         assert(tid != cr_invalid_id);
         CR_LogType type1;
         type1.m_flags = TF_POINTER | flags;
+        if (Is64Bit()) {
+            type1.m_flags &= ~TF_PTR64;
+        } else {
+            type1.m_flags &= ~TF_PTR32;
+        }
         type1.m_sub_id = tid;
         if (flags & TF_PTR64) {
             type1.m_align = type1.m_size = 8;
+        } else if (flags & TF_PTR32) {
+            type1.m_align = type1.m_size = 4;
         } else {
             type1.m_align = type1.m_size = (Is64Bit() ? 8 : 4);
         }
@@ -454,10 +481,23 @@ public:
         auto name = NameFromTypeID(tid);
         if (!name.empty()) {
             if ((type2.m_flags & (TF_ALIAS | TF_FUNCTION)) != TF_FUNCTION) {
-                if (flags & TF_CONST)
-                    name += "* const ";
-                else
-                    name += "*";
+                if (flags & TF_CONST) {
+                    if (flags & TF_PTR32) {
+                        name += "* __ptr32 const ";
+                    } else if (flags & TF_PTR64) {
+                        name += "* __ptr64 const ";
+                    } else {
+                        name += "* const ";
+                    }
+                } else {
+                    if (flags & TF_PTR32) {
+                        name += "* __ptr32 ";
+                    } else if (flags & TF_PTR64) {
+                        name += "* __ptr64 ";
+                    } else {
+                        name += "* ";
+                    }
+                }
             }
             m_mNameToTypeID[name] = tid2;
             m_mTypeIDToName[tid2] = name;
@@ -477,6 +517,9 @@ public:
             type1.m_flags = TF_ARRAY;
             type1.m_size = type2.m_size * count;
             type1.m_align = type2.m_align;
+        }
+        if (type2.m_flags & TF_BITFIELD) {
+            type1.m_flags |= TF_BITFIELD;
         }
         type1.m_sub_id = tid;
         type1.m_count = count;
@@ -507,7 +550,7 @@ public:
 
     // add struct type
     CR_TypeID AddStructType(const CR_String& name, const CR_LogStruct& ls,
-                            int alignas, const CR_Location& location)
+                            int alignas_, const CR_Location& location)
     {
         CR_LogType type1;
         if (name.empty()) {     // name is empty
@@ -515,7 +558,7 @@ public:
             type1.m_flags = TF_STRUCT | TF_INCOMPLETE;
             type1.m_sub_id = sid;
             type1.m_count = ls.m_type_list.size();
-            type1.m_alignas = alignas;
+            type1.m_alignas = alignas_;
             type1.location() = location;
             CR_TypeID tid2 = m_types.AddUnique(type1);
             LogStruct(sid).m_tid = tid2;
@@ -529,7 +572,7 @@ public:
             type1.m_flags = TF_STRUCT | TF_INCOMPLETE;
             type1.m_sub_id = sid;
             type1.m_count = ls.m_type_list.size();
-            type1.m_alignas = alignas;
+            type1.m_alignas = alignas_;
             type1.location() = location;
             CR_TypeID tid2 = m_types.AddUnique(type1);
             LogStruct(sid).m_tid = tid2;
@@ -544,7 +587,8 @@ public:
                 // overwrite the definition if type list not empty
                 auto& type1 = LogType(tid2);
                 type1.m_count = ls.m_type_list.size();
-                type1.m_alignas = alignas;
+                type1.m_alignas = alignas_;
+                type1.location() = location;
                 CR_StructID sid = type1.m_sub_id;
                 LogStruct(sid) = ls;
                 LogStruct(sid).m_tid = tid2;
@@ -556,7 +600,7 @@ public:
 
     // add union type
     CR_TypeID AddUnionType(const CR_String& name, const CR_LogStruct& ls,
-                           int alignas, const CR_Location& location)
+                           int alignas_, const CR_Location& location)
     {
         CR_LogType type1;
         if (name.empty()) { // name is empty
@@ -564,7 +608,7 @@ public:
             type1.m_flags = TF_UNION | TF_INCOMPLETE;
             type1.m_sub_id = sid;
             type1.m_count = ls.m_type_list.size();
-            type1.m_alignas = alignas;
+            type1.m_alignas = alignas_;
             type1.location() = location;
             CR_TypeID tid1 = m_types.AddUnique(type1);
             LogStruct(sid).m_tid = tid1;
@@ -578,7 +622,7 @@ public:
             type1.m_flags = TF_UNION | TF_INCOMPLETE;
             type1.m_sub_id = sid;
             type1.m_count = ls.m_type_list.size();
-            type1.m_alignas = alignas;
+            type1.m_alignas = alignas_;
             type1.location() = location;
             CR_TypeID tid1 = m_types.AddUnique(type1);
             LogStruct(sid).m_tid = tid1;
@@ -593,7 +637,8 @@ public:
                 // overwrite the definition if type list not empty
                 auto& type1 = LogType(tid2);
                 type1.m_count = ls.m_type_list.size();
-                type1.m_alignas = alignas;
+                type1.m_alignas = alignas_;
+                type1.location() = location;
                 CR_StructID sid = type1.m_sub_id;
                 LogStruct(sid) = ls;
                 LogStruct(sid).m_tid = tid2;
@@ -610,6 +655,9 @@ public:
         if (name.empty()) {     // name is empty
             CR_EnumID eid = m_enums.insert(le);
             type1.m_flags = TF_ENUM;
+            #ifdef __GNUC__
+                type1.m_flags |= TF_INACCURATE;
+            #endif
             type1.m_sub_id = eid;
             type1.m_size = type1.m_align = 4;
             type1.location() = location;
@@ -621,6 +669,9 @@ public:
         if (it == m_mNameToTypeID.end()) {  // name not found
             CR_EnumID eid = m_enums.insert(le);
             type1.m_flags = TF_ENUM;
+            #ifdef __GNUC__
+                type1.m_flags |= TF_INACCURATE;
+            #endif
             type1.m_sub_id = eid;
             type1.m_size = type1.m_align = 4;
             type1.location() = location;
@@ -630,10 +681,13 @@ public:
             return tid1;
         } else {    // name was found
             CR_TypeID tid1 = it->second;
-            assert(m_types[tid1].m_flags & TF_ENUM);
-            CR_EnumID eid = LogType(tid1).m_sub_id;
+            auto& type1 = LogType(tid1);
+            assert(type1.m_flags & TF_ENUM);
+            CR_EnumID eid = type1.m_sub_id;
             if (!le.empty()) {
-                m_enums[eid] = le;  // overwrite the definition if not empty
+                // overwrite the definition if not empty
+                m_enums[eid] = le;
+                type1.m_size = type1.m_align = 4;
             }
             return tid1;
         }
@@ -653,7 +707,7 @@ public:
 
         // check completeness for each field
         const size_t siz = ls.m_type_list.size();
-        bool is_complete = true, has_bitfield = false;
+        bool is_complete = true;
         for (std::size_t i = 0; i < siz; ++i) {
             auto tid2 = ls.m_type_list[i];
             auto& type2 = LogType(tid2);
@@ -666,17 +720,21 @@ public:
                     is_complete = false;
                 }
             }
-            if (ls.m_bits_list[i] != -1) {
-                has_bitfield = true;
-                #ifdef __GNUC__
-                    is_complete = false;
-                #endif
+            if (ls.m_bits_list[i] != -1 || (type2.m_flags & TF_BITFIELD)) {
+                type1.m_flags |= TF_BITFIELD;
             }
+            #ifdef __GNUC__
+                if ((type1.m_flags & TF_BITFIELD) ||
+                    (type2.m_flags & TF_INACCURATE))
+                {
+                    type1.m_flags |= TF_INACCURATE;
+                }
+            #endif
         }
 
         // calculate alignment and size
         int byte_offset = 0, prev_item_size = 0;
-        int bits_remain = 0, max_align = 1, alignas = 0;
+        int bits_remain = 0, max_align = 1;
         if (is_complete) {
             ls.m_bit_offset_list.clear();
             for (std::size_t i = 0; i < siz; ++i) {
@@ -684,6 +742,9 @@ public:
                 auto& type2 = LogType(tid2);
                 int item_size = type2.m_size;            // size of type
                 int item_align = type2.m_align;          // alignment requirement
+                if (type1.m_alignas < type2.m_alignas) {
+                    type1.m_alignas = type2.m_alignas;
+                }
                 int bits = ls.m_bits_list[i];            // bits of bitfield
                 if (bits != -1) {
                     // the bits specified as bitfield
@@ -700,8 +761,8 @@ public:
                         int bytes = (bits_remain + 7) / 8;
                         byte_offset += bytes;
                         if (type2.m_alignas) {
-                            int alignas = type2.m_alignas;
-                            byte_offset = (byte_offset + alignas - 1) / alignas * alignas;
+                            int alignas_ = type2.m_alignas;
+                            byte_offset = (byte_offset + alignas_ - 1) / alignas_ * alignas_;
                         } else if (ls.m_pack < item_align) {
                             assert(ls.m_pack);
                             byte_offset = (byte_offset + ls.m_pack - 1) / ls.m_pack * ls.m_pack;
@@ -725,8 +786,8 @@ public:
                     if (prev_item_size) {
                         // add padding
                         if (type2.m_alignas) {
-                            int alignas = type2.m_alignas;
-                            byte_offset = (byte_offset + alignas - 1) / alignas * alignas;
+                            int alignas_ = type2.m_alignas;
+                            byte_offset = (byte_offset + alignas_ - 1) / alignas_ * alignas_;
                         } else if (ls.m_pack < item_align) {
                             assert(ls.m_pack);
                             byte_offset = (byte_offset + ls.m_pack - 1) / ls.m_pack * ls.m_pack;
@@ -741,9 +802,6 @@ public:
                 if (max_align < item_align) {
                     max_align = item_align;
                 }
-                if (alignas < type2.m_alignas) {
-                    alignas = type2.m_alignas;
-                }
                 prev_item_size = item_size;
             }
         } else {
@@ -751,22 +809,7 @@ public:
         }
         assert(ls.m_bit_offset_list.size() == ls.m_type_list.size());
 
-        // set alignment requirement value of type
-        if (type1.m_alignas) {
-            ls.m_align = type1.m_alignas;
-            type1.m_align = type1.m_alignas;
-        } else if (alignas > max_align) {
-            ls.m_align = alignas;
-            type1.m_align = alignas;
-        } else if (ls.m_pack > max_align) {
-            ls.m_align = max_align;
-            type1.m_align = max_align;
-        } else {
-            ls.m_align = ls.m_pack;
-            type1.m_align = ls.m_pack;
-        }
-
-        // tail padding
+        // alignment requirement and tail padding
         if (bits_remain) {
             int prev_size_bits = prev_item_size * 8;
             assert(prev_size_bits);
@@ -774,26 +817,29 @@ public:
                             / prev_size_bits * prev_size_bits) / 8;
         }
         if (type1.m_alignas) {
-            alignas = type1.m_alignas;
-            byte_offset = (byte_offset + alignas - 1) / alignas * alignas;
-        } else if (alignas > max_align) {
-            byte_offset = (byte_offset + alignas - 1) / alignas * alignas;
-        } else if (ls.m_pack < max_align) {
+            int alignas_;
+            if (type1.m_alignas >= max_align) {
+                alignas_ = type1.m_alignas;
+            } else {
+                alignas_ = max_align;
+            }
+            ls.m_align = alignas_;
+            type1.m_align = alignas_;
+            byte_offset = (byte_offset + alignas_ - 1) / alignas_ * alignas_;
+        } else if (ls.m_pack > max_align) {
+            ls.m_align = max_align;
+            type1.m_align = max_align;
             assert(ls.m_pack);
-            byte_offset = (byte_offset + ls.m_pack - 1) / ls.m_pack * ls.m_pack;
-        } else {
-            assert(max_align);
             byte_offset = (byte_offset + max_align - 1) / max_align * max_align;
+        } else {
+            ls.m_align = ls.m_pack;
+            type1.m_align = ls.m_pack;
+            assert(max_align);
+            byte_offset = (byte_offset + ls.m_pack - 1) / ls.m_pack * ls.m_pack;
         }
 
         // total size
         type1.m_size = byte_offset;
-
-        #ifdef __GNUC__
-            if (has_bitfield) {
-                is_complete = false;
-            }
-        #endif
 
         // complete
         if (is_complete && ls.m_type_list.size()) {
@@ -806,6 +852,7 @@ public:
     bool CompleteUnionType(CR_TypeID tid, CR_StructID sid) {
         auto& ls = LogStruct(sid);
         auto& type1 = LogType(tid);
+
         if ((type1.m_flags & TF_INCOMPLETE) == 0) {
             ls.m_is_complete = true;
             return true;
@@ -828,6 +875,11 @@ public:
                         type2.location(), "'" + name + "' has incomplete type");
                     is_complete = false;
                 }
+                #ifdef __GNUC__
+                    if (type2.m_flags & TF_INACCURATE) {
+                        type1.m_flags |= TF_INACCURATE;
+                    }
+                #endif
             }
         }
 
@@ -838,6 +890,9 @@ public:
             auto& type2 = LogType(tid2);
             item_size = type2.m_size;
             item_align = type2.m_align;
+            if (type1.m_alignas < type2.m_alignas) {
+                type1.m_alignas = type2.m_alignas;
+            }
             if (max_size < item_size) {
                 max_size = item_size;
             }
@@ -846,22 +901,24 @@ public:
             }
         }
 
-        // set alignment requirement value of type
+        // alignment requirement
         if (type1.m_alignas) {
-            ls.m_align = type1.m_alignas;
-            type1.m_align = type1.m_alignas;
-        } else {
-            if (ls.m_pack > max_align) {
-                ls.m_align = max_align;
-                type1.m_align = max_align;
+            int alignas_;
+            if (type1.m_alignas >= max_align) {
+                alignas_ = type1.m_alignas;
             } else {
-                ls.m_align = ls.m_pack;
-                type1.m_align = ls.m_pack;
+                alignas_ = max_align;
             }
+            ls.m_align = alignas_;
+            type1.m_align = alignas_;
+        } else if (ls.m_pack > max_align) {
+            ls.m_align = max_align;
+            type1.m_align = max_align;
+        } else {
+            ls.m_align = ls.m_pack;
+            type1.m_align = ls.m_pack;
         }
 
-        // tail padding
-        //max_size = (max_size + max_align - 1) / max_align * max_align;
         type1.m_size = max_size;
 
         // complete
@@ -888,6 +945,14 @@ public:
                 if (type2.m_alignas) {
                     type.m_align = type2.m_alignas;
                 }
+                #ifdef __GNUC__
+                    if (type2.m_flags & TF_INACCURATE) {
+                        type.m_flags |= TF_INACCURATE;
+                    }
+                #endif
+                if (type2.m_flags & TF_FUNCTION) {
+                    type.m_flags |= TF_FUNCTION;
+                }
                 type.m_flags &= ~TF_INCOMPLETE;
                 return true;
             }
@@ -902,6 +967,11 @@ public:
                 if (type2.m_alignas) {
                     type.m_align = type2.m_alignas;
                 }
+                #ifdef __GNUC__
+                    if (type2.m_flags & TF_INACCURATE) {
+                        type.m_flags |= TF_INACCURATE;
+                    }
+                #endif
                 type.m_flags &= ~TF_INCOMPLETE;
                 return true;
             }
@@ -916,6 +986,11 @@ public:
                 if (type2.m_alignas) {
                     type.m_align = type2.m_alignas;
                 }
+                #ifdef __GNUC__
+                    if (type2.m_flags & TF_INACCURATE) {
+                        type.m_flags |= TF_INACCURATE;
+                    }
+                #endif
                 type.m_flags &= ~TF_INCOMPLETE;
                 return true;
             }
@@ -953,24 +1028,40 @@ public:
         return type.m_size;
     }
 
+    void SetAlignas(CR_TypeID tid, int alignas_) {
+        auto& type = LogType(tid);
+        type.m_align = alignas_;
+        type.m_alignas = alignas_;
+        if (type.m_flags & (TF_STRUCT | TF_UNION)) {
+            LogStruct(type.m_sub_id).m_align = alignas_;
+        }
+    }
+
+    CR_String
+    StringOfEnumTag(const CR_String& name) const {
+        CR_String str = "enum ";
+        if (name.size()) {
+            assert(name.find("enum ") == 0);
+            str += name.substr(5);
+            str += ' ';
+        }
+        return str;
+    }
+
     // get string of enum
     CR_String StringOfEnum(const CR_String& name, CR_EnumID eid) const {
         assert(eid != cr_invalid_id);
         if (eid == cr_invalid_id) {
             return "";  // invalid ID
         }
-        CR_String str;
-        str += name;
-        str += " ";
         const auto& e = m_enums[eid];
+        CR_String str = StringOfEnumTag(name);
         if (!e.empty()) {
             str += "{ ";
             for (auto it : e.MapNameToValue()) {
                 str += it.first;
                 str += " = ";
-                char buf[32];
-                std::sprintf(buf, "%d", it.second);
-                str += buf;
+                str += std::to_string(it.second);
                 str += ", ";
             }
             str += "} ";
@@ -989,9 +1080,9 @@ public:
 
         const auto& type = LogType(s.m_tid);
         if (type.m_alignas) {
-            char buf[64];
-            std::sprintf(buf, "_Alignas(%d) ", type.m_alignas);
-            str += buf;
+            str += "_Alignas(";
+            str += std::to_string(type.m_alignas);
+            str += ") ";
         }
 
         if (name.size()) {
@@ -1002,7 +1093,7 @@ public:
                 assert(name.find("union ") == 0);
                 str += name.substr(6);
             }
-            str += " ";
+            str += ' ';
         }
         return str;
     }
@@ -1017,9 +1108,8 @@ public:
             for (std::size_t i = 0; i < siz; i++) {
                 str += StringOfType(s.m_type_list[i], s.m_name_list[i], false);
                 if (s.m_bits_list[i] != -1) {
-                    char buf[64];
-                    std::sprintf(buf, " : %d", static_cast<int>(s.m_bits_list[i]));
-                    str += buf;
+                    str += " : ";
+                    str += std::to_string(s.m_bits_list[i]);
                 }
                 str += "; ";
             }
@@ -1065,9 +1155,10 @@ public:
         if (type.m_flags & TF_ARRAY) {
             // if type was array
             if (type.m_count) {
-                char buf[64];
-                std::sprintf(buf, "[%d]", static_cast<int>(type.m_count));
-                return StringOfType(type.m_sub_id, name + buf, false);
+                std::string s = "[";
+                s += std::to_string(type.m_count);
+                s += ']';
+                return StringOfType(type.m_sub_id, name + s, false);
             } else {
                 return StringOfType(type.m_sub_id, name + "[]", false);
             }
@@ -1126,18 +1217,20 @@ public:
                 if (type.m_flags & TF_CONST) {
                     // pointer to const array
                     if (type2.m_count) {
-                        char buf[64];
-                        std::sprintf(buf, "[%d]", static_cast<int>(type2.m_count));
-                        return StringOfType(sub_id, "(* const " + name + buf + ")", false);
+                        std::string s = "[";
+                        s += std::to_string(type2.m_count);
+                        s += ']';
+                        return StringOfType(sub_id, "(* const " + name + s + ")", false);
                     } else {
                         return StringOfType(sub_id, "(* const " + name + "[])", false);
                     }
                 } else {
                     // pointer to non-const array
                     if (type2.m_count) {
-                        char buf[64];
-                        std::sprintf(buf, "[%d]", static_cast<int>(type2.m_count));
-                        return StringOfType(sub_id, "(*" + name + buf + ")", false);
+                        std::string s = "[";
+                        s += std::to_string(type2.m_count);
+                        s += ']';
+                        return StringOfType(sub_id, "(*" + name + s + ")", false);
                     } else {
                         return StringOfType(sub_id, "(*" + name + "[])", false);
                     }

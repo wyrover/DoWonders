@@ -8,16 +8,16 @@
 
 #include <pshpack1.h>
 typedef struct {
-	//int a : 8;
-	int a : 9;
-	int b;
+    //int a : 8;
+    int a : 9;
+    int b;
 } X,*LPX;
 #include <poppack.h>
 
 /*
     size: 8
-	int a : 8;
-	int b;
+    int a : 8;
+    int b;
 11111111
 00000000
 00000000

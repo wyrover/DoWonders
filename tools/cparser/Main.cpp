@@ -4,32 +4,32 @@
 ////////////////////////////////////////////////////////////////////////////
 
 const char * const cr_logo =
-    "//////////////////////////////////////////////////\n"
+    "///////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser sample 0.2.6 (64-bit) for gcc        //\n"
+    "// CParser 0.2.7 (64-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.6 (64-bit) for clang      //\n"
+    "// CParser 0.2.7 (64-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.6 (64-bit) for cl (VC++)  //\n"
+    "// CParser 0.2.7 (64-bit) for cl (VC++)  //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser sample 0.2.6 (32-bit) for gcc        //\n"
+    "// CParser 0.2.7 (32-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser sample 0.2.6 (32-bit) for clang      //\n"
+    "// CParser 0.2.7 (32-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser sample 0.2.6 (32-bit) for cl (VC++)  //\n"
+    "// CParser 0.2.7 (32-bit) for cl (VC++)  //\n"
 # else
 #  error You lose!
 # endif
 #endif  // !64-bit
-    "// Public Domain Software (PDS)                 //\n"
-    "// by Katayama Hirofumi MZ (katahiromz)         //\n"
-    "// katayama.hirofumi.mz@gmail.com               //\n"
-    "//////////////////////////////////////////////////\n";
+    "// Public Domain Software (PDS)          //\n"
+    "// by Katayama Hirofumi MZ (katahiromz)  //\n"
+    "// katayama.hirofumi.mz@gmail.com        //\n"
+    "///////////////////////////////////////////\n";
 
 using namespace std;
 
@@ -55,9 +55,9 @@ using namespace cparser;
 std::string cparser::Lexer::node_to_string(const node_type& node) const {
     std::string str = token_label(node.m_token);
     if (node.m_text.size()) {
-        str += "(";
+        str += '(';
         str += node.m_text;
-        str += ")";
+        str += ')';
     }
     return str;
 }
@@ -144,9 +144,8 @@ cparser::Lexer::guts_escape_sequence(
             {
                 ++it;
                 auto hex = guts_hex(it, end);
-                result +=
-                    static_cast<char>(
-                        std::strtoul(hex.data(), NULL, 16));
+                unsigned long value = std::stoul(hex, NULL, 16);
+                result += static_cast<char>(value);
             }
             break;
 
@@ -162,9 +161,8 @@ cparser::Lexer::guts_escape_sequence(
         default:
             if ('0' <= *it && *it <= '7') {
                 auto octal = guts_octal(it, end);
-                result +=
-                    static_cast<char>(
-                        std::strtoul(octal.data(), NULL, 8));
+                unsigned long value = std::stoul(octal, NULL, 8);
+                result += static_cast<char>(value);
             } else {
                 result += *it;
             }
@@ -468,9 +466,8 @@ retry:
                 auto text = guts_char(it, end);
                 --it;
                 {
-                    char buf[64];
-                    std::sprintf(buf, "%d", text[0]);
-                    infos.emplace_back(T_CONSTANT, buf, extra);
+                    auto s = std::to_string(text[0]);
+                    infos.emplace_back(T_CONSTANT, s, extra);
                 }
             } else {
                 --it;
@@ -488,9 +485,8 @@ retry:
             } else if (*it == '\'') {
                 auto text = guts_char(it, end);
                 --it;
-                char buf[64];
-                std::sprintf(buf, "%d", text[0]);
-                infos.emplace_back(T_CONSTANT, buf, extra);
+                auto s = std::to_string(text[0]);
+                infos.emplace_back(T_CONSTANT, s, extra);
             } else {
                 --it;
                 goto label_default;
@@ -508,9 +504,8 @@ retry:
         case '\'':
             {
                 auto text = guts_char(it, end);
-                char buf[64];
-                std::sprintf(buf, "%d", text[0]);
-                infos.emplace_back(T_CONSTANT, buf);
+                auto s = std::to_string(text[0]);
+                infos.emplace_back(T_CONSTANT, s);
             }
             break;
 
@@ -795,18 +790,18 @@ void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
     const bool c_show_tokens = false;
 
     if (c_show_tokens) {
-        std::printf("\n#0\n");
+        printf("\n#0\n");
         show_tokens(c.begin(), c.end());
-        std::printf("\n--------------\n");
+        printf("\n--------------\n");
         fflush(stdout);
     }
 
     resynth1(base, c);
 
     if (c_show_tokens) {
-        std::printf("\n#1\n");
+        printf("\n#1\n");
         show_tokens(c.begin(), c.end());
-        std::printf("\n--------------\n");
+        printf("\n--------------\n");
         fflush(stdout);
     }
 
@@ -1405,7 +1400,7 @@ cparser::Lexer::parse_pack(
             base.packing().push(base.packing());
         } else {
             // #pragma pack(#)
-            int pack = std::strtol((it + 1)->m_text.data(), NULL, 0);
+            int pack = std::stoi((it + 1)->m_text, NULL, 0);
             if (c_show_pack)
                 fprintf(stderr, "%s: pragma pack(%d)\n",
                     base.location().str().data(), pack);
@@ -1441,7 +1436,7 @@ cparser::Lexer::parse_pack(
             // #pragma pack(..., #)
             if ((it + 1)->m_text == "pop") {
                 // #pragma pack(pop, #)
-                int pack = std::strtol(param.data(), NULL, 0);
+                int pack = std::stoi(param, NULL, 0);
                 if (c_show_pack)
                     fprintf(stderr, "%s: pragma pack(pop,%d)\n",
                         base.location().str().data(), pack);
@@ -1449,7 +1444,7 @@ cparser::Lexer::parse_pack(
                 return CR_ErrorInfo::NOTHING;
             } else if ((it + 1)->m_text == "push") {
                 // #pragma pack(push, #)
-                int pack = std::strtol(param.data(), NULL, 0);
+                int pack = std::stoi(param, NULL, 0);
                 if (c_show_pack)
                     fprintf(stderr, "%s: pragma pack(push,%d)\n",
                         base.location().str().data(), pack);
@@ -1478,7 +1473,7 @@ cparser::Lexer::parse_pack(
             base.packing().set(base.packing());
             return CR_ErrorInfo::NOTHING;
         } else if (op == "pop") {
-            int pack = std::strtol(param.data(), NULL, 0);
+            int pack = std::stoi(param, NULL, 0);
             if (c_show_pack)
                 fprintf(stderr, "%s: pragma pack(pop,%s,%s)\n",
                     base.location().str().data(),
@@ -1542,7 +1537,7 @@ cparser::Lexer::parse_pragma(
 ////////////////////////////////////////////////////////////////////////////
 // CrCalcConstInt...Expr functions
 
-// TODO: Support typed value calculation
+// TODO: Support "typed value" calculation
 
 int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe);
 int CrCalcConstIntPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe);
@@ -1570,10 +1565,10 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
         return n;
 
     case PrimExpr::F_CONSTANT:
-        return std::strtof(pe->m_text.data(), NULL) != 0;
+        return std::stold(pe->m_text, NULL) != 0;
 
     case PrimExpr::I_CONSTANT:
-        n = static_cast<int>(std::strtoll(pe->m_text.data(), NULL, 0));
+        n = static_cast<int>(std::stoull(pe->m_text, NULL, 0));
         return n;
 
     case PrimExpr::STRING:
@@ -1781,8 +1776,8 @@ int CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
 
     case PrimExpr::I_CONSTANT:
         if (pe->m_extra.empty()) {
-            long long n = std::strtoll(pe->m_text.data(), NULL, 0);
-            if (n > 0x7FFFFFFF) {
+            unsigned long long n = std::stoull(pe->m_text, NULL, 0);
+            if (n > 0xFFFFFFFF) {
                 return sizeof(long long);
             } else {
                 return sizeof(int);
@@ -1827,6 +1822,10 @@ int CrCalcSizeOfPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
     switch (pe->m_postfix_type) {
     case PostfixExpr::SINGLE:
         return CrCalcSizeOfPrimExpr(namescope, pe->m_prim_expr.get());
+
+    case PostfixExpr::ARROW:
+        // TODO:
+        return 0;
 
     default:
         // TODO:
@@ -2255,7 +2254,8 @@ int CrCalcConstIntCondExpr(CR_NameScope& namescope, CondExpr *ce) {
 // CrAnalyse... functions
 
 void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
-                                DeclorList *dl, const CR_Location& location);
+                                DeclorList *dl, AlignSpec *as,
+                                const CR_Location& location);
 void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                          DeclorList *dl);
 void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
@@ -2267,14 +2267,15 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
                    Declor *declor, DeclList *decl_list);
 CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
                                   const CR_String& name, DeclList *dl,
-                                  int pack, int alignas,
+                                  int pack, int alignas_,
                                   const CR_Location& location);
 CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
                                  const CR_String& name, DeclList *dl,
-                                 int pack, int alignas,
+                                 int pack, int alignas_,
                                  const CR_Location& location);
 CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
-                              const CR_String& name, EnumorList *el);
+                              const CR_String& name, EnumorList *el,
+                              const CR_Location& location);
 CR_TypeID CrAnalyseAtomic(CR_NameScope& namescope, AtomicTypeSpec *ats);
 CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
 
@@ -2294,7 +2295,8 @@ CR_TypeID CrAnalysePointers(CR_NameScope& namescope, Pointers *pointers,
 }
 
 void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
-                                DeclorList *dl, const CR_Location& location)
+                                DeclorList *dl, AlignSpec *as,
+                                const CR_Location& location)
 {
     assert(dl);
     for (auto& declor : *dl) {
@@ -2312,8 +2314,24 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     if (name == "__builtin_va_list")
                         name = "va_list";
                 #endif
-                if (d->m_flags && namescope.IsFuncType(tid2))
+                if (as) {
+                    int alignas_ = 0;
+                    switch (as->m_align_spec_type) {
+                    case AlignSpec::TYPENAME:
+                        // TODO: 
+                        assert(0);
+                        break;
+
+                    case AlignSpec::CONSTEXPR:
+                        alignas_ =
+                            CrCalcConstIntCondExpr(namescope,
+                                as->m_const_expr.get());
+                    }
+                    namescope.SetAlignas(tid2, alignas_);
+                }
+                if (d->m_flags && namescope.IsFuncType(tid2)) {
                     namescope.AddTypeFlags(tid2, d->m_flags);
+                }
                 namescope.AddAliasType(name, tid2, location);
                 d = NULL;
                 break;
@@ -2507,7 +2525,8 @@ void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl) {
         case Decl::TYPEDEF:
             if (decl->m_declor_list.get()) {
                 CrAnalyseTypedefDeclorList(namescope, tid,
-                    decl->m_declor_list.get(), decl->location());
+                    decl->m_declor_list.get(), decl->m_align_spec.get(),
+                    decl->location());
             }
             break;
 
@@ -2634,7 +2653,7 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
 
 CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
                                   const CR_String& name, DeclList *dl,
-                                  int pack, int alignas,
+                                  int pack, int alignas_,
                                   const CR_Location& location)
 {
     CR_LogStruct ls(true);  // struct
@@ -2676,12 +2695,12 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
         }
     }
 
-    return namescope.AddStructType(name, ls, alignas, location);
+    return namescope.AddStructType(name, ls, alignas_, location);
 }
 
 CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
                                  const CR_String& name, DeclList *dl,
-                                 int pack, int alignas,
+                                 int pack, int alignas_,
                                  const CR_Location& location)
 {
     CR_LogStruct ls(false);     // union
@@ -2723,7 +2742,7 @@ CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
         }
     }
 
-    return namescope.AddUnionType(name, ls, alignas, location);
+    return namescope.AddUnionType(name, ls, alignas_, location);
 }
 
 CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
@@ -2774,8 +2793,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
         CR_String name;
         switch (ds->m_spec_type) {
         case DeclSpecs::STORCLSSPEC:
-            flag = ds->m_stor_cls_spec->m_flag;
-            flags |= flag;
+            // TODO: ds->m_stor_cls_spec->m_scs_type;
             if (ds->m_decl_specs) {
                 ds = ds->m_decl_specs.get();
                 continue;
@@ -2811,7 +2829,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 {
                     TypeSpec *ts = ds->m_type_spec.get();
                     name = ts->m_name;
-                    int alignas = 0;
+                    int alignas_ = 0;
                     if (ts->m_align_spec) {
                         switch (ts->m_align_spec->m_align_spec_type) {
                         case AlignSpec::TYPENAME:
@@ -2820,7 +2838,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                             break;
 
                         case AlignSpec::CONSTEXPR:
-                            alignas =
+                            alignas_ =
                                 CrCalcConstIntCondExpr(namescope,
                                     ts->m_align_spec->m_const_expr.get());
                         }
@@ -2828,15 +2846,12 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                     if (ts->m_decl_list) {
                         tid = CrAnalyseStructDeclList(
                             namescope, name, ts->m_decl_list.get(), ts->m_pack,
-                            alignas, ts->location());
+                            alignas_, ts->location());
                     } else {
                         tid = namescope.TypeIDFromName(name);
                         if (tid == cr_invalid_id) {
                             CR_LogStruct ls(true);
-                            tid = namescope.AddStructType(name, ls, alignas, ts->location());
-                            if (alignas) {
-                                namescope.LogType(tid).m_alignas = alignas;
-                            }
+                            tid = namescope.AddStructType(name, ls, alignas_, ts->location());
                         }
                     }
                 }
@@ -2850,7 +2865,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 {
                     TypeSpec *ts = ds->m_type_spec.get();
                     name = ts->m_name;
-                    int alignas = 0;
+                    int alignas_ = 0;
                     if (ts->m_align_spec) {
                         switch (ts->m_align_spec->m_align_spec_type) {
                         case AlignSpec::TYPENAME:
@@ -2859,7 +2874,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                             break;
 
                         case AlignSpec::CONSTEXPR:
-                            alignas = 
+                            alignas_ = 
                                 CrCalcConstIntCondExpr(namescope,
                                     ts->m_align_spec->m_const_expr.get());
                             break;
@@ -2868,12 +2883,12 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                     if (ts->m_decl_list) {
                         tid = CrAnalyseUnionDeclList(
                             namescope, name, ts->m_decl_list.get(), ts->m_pack,
-                            alignas, ts->location());
+                            alignas_, ts->location());
                     } else {
                         tid = namescope.TypeIDFromName(name);
                         if (tid == cr_invalid_id) {
                             CR_LogStruct ls(false);
-                            tid = namescope.AddUnionType(name, ls, alignas, ts->location());
+                            tid = namescope.AddUnionType(name, ls, alignas_, ts->location());
                         }
                     }
                 }
@@ -3022,9 +3037,10 @@ int CrInputCSrc(
             if (k == -1 && ::GetFileAttributesA(argv[i]) != 0xFFFFFFFF) {
                 k = i;
             }
-            cmdline += " ";
+            cmdline += ' ';
             cmdline += CrConvertCmdLineParam(argv[i]);
         }
+        fprintf(stderr, "CommandLine: %s\n", cmdline.data());
 
         MProcessMaker pmaker;
         MFile input, output, error;
@@ -3083,9 +3099,14 @@ int CrInputCSrc(
                     return cr_exit_parse_error;   // failure
                 }
             } else {
+                error_info.get()->add_error("failed to run C preprocessor");
                 return cr_exit_cpp_error;   // failure
             }
         } else {
+            error_info.get()->add_error(
+                "failed to start up C preprocessor (error code " +
+                    std::to_string(::GetLastError()) + ")"
+            );
             return cr_exit_cpp_error;   // failure
         }
     } else {
@@ -3129,8 +3150,10 @@ int CrSemanticAnalysis(
                 if (decl->m_decl_type == Decl::TYPEDEF) {
                     fflush(stderr);
                     if (dl.get()) {
-                        CrAnalyseTypedefDeclorList(namescope, tid, dl.get(),
-                                                   decl->location());
+                        CrAnalyseTypedefDeclorList(
+                            namescope, tid, dl.get(),
+                            decl->m_align_spec.get(),
+                            decl->location());
                     }
                 } else {
                     fflush(stderr);
@@ -3178,7 +3201,9 @@ void CrDumpSemantic(
                     static_cast<int>(tid), name.data(), type.m_flags,
                     static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
                     type.m_size, type.m_align);
-            } else if (type.m_flags & (TF_STRUCT | TF_UNION | TF_ENUM)) {
+            } else if (!(type.m_flags & TF_ALIAS) &&
+                       type.m_flags & (TF_STRUCT | TF_UNION | TF_ENUM))
+            {
                 auto strDef = namescope.StringOfType(tid, "", true);
                 fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\t%s;\n",
                     static_cast<int>(tid), name.data(), type.m_flags,
@@ -3205,7 +3230,7 @@ void CrDumpSemantic(
 
     fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
     if (fp) {
-        fprintf(fp, "(struct_id)\t(name)\t(type_id)\t(is_struct)\t(size)\t(count)\t(pack)\t(align)\t(is_complete)\t(alignas)\t(file)\t(line)\t(definition)\t(item_1_name)\t(item_1_type_id)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
+        fprintf(fp, "(struct_id)\t(name)\t(type_id)\t(flags)\t(is_struct)\t(size)\t(count)\t(pack)\t(align)\t(alignas)\t(file)\t(line)\t(definition)\t(item_1_name)\t(item_1_type_id)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
         for (CR_TypeID sid = 0; sid < namescope.LogStructs().size(); ++sid) {
             const auto& ls = namescope.LogStruct(sid);
             auto tid = ls.m_tid;
@@ -3214,11 +3239,11 @@ void CrDumpSemantic(
             const auto& name = namescope.MapTypeIDToName()[tid];
             auto strDef = namescope.StringOfType(tid, "");
             assert(ls.m_type_list.size() == ls.m_name_list.size());
-            fprintf(fp, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
+            fprintf(fp, "%d\t%s\t%d\t0x%08lX\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
                 static_cast<int>(sid), name.data(), static_cast<int>(tid), 
-                ls.m_is_struct, type.m_size, static_cast<int>(ls.m_type_list.size()),
-                ls.m_pack, ls.m_align, static_cast<int>(ls.m_is_complete),
-                static_cast<int>(type.m_alignas),
+                type.m_flags, ls.m_is_struct,
+                type.m_size, static_cast<int>(ls.m_type_list.size()),
+                ls.m_pack, ls.m_align, static_cast<int>(type.m_alignas),
                 location.m_file.data(), location.m_line, strDef.data());
             assert(ls.m_type_list.size() == ls.m_bit_offset_list.size());
             assert(ls.m_type_list.size() == ls.m_bits_list.size());
@@ -3239,7 +3264,7 @@ void CrDumpSemantic(
         fprintf(fp, "(type_id)\t(name)\t(num_items)\t(file)\t(line)\t(item_name_1)\t(item_value_1)\t(item_name_2)\t...\n");
         for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
             const auto& type = namescope.LogType(tid);
-            if (type.m_flags & TF_ENUM) {
+            if ((type.m_flags & TF_ENUM) && (type.m_flags & TF_ALIAS) == 0) {
                 const auto& name = namescope.MapTypeIDToName()[tid];
                 const auto& le = namescope.LogEnum(type.m_sub_id);
                 size_t num_items = le.MapNameToValue().size();
@@ -3340,6 +3365,11 @@ int main(int argc, char **argv) {
         bool is_64bit = true;
     #else
         bool is_64bit = false;
+    #endif
+
+    #if 0
+        printf("Hit [Enter] key!");
+        getchar();
     #endif
 
     bool show_help = false;

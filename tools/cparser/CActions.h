@@ -32,7 +32,7 @@ namespace cparser
             shared_ptr<TransUnit>& tu, shared_ptr<ExtDecl>& ed)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoTransUnit1\n");
+                printf("DoTransUnit1\n");
             #endif
             if (ed)
                 tu.get()->push_back(ed->m_decl);
@@ -41,7 +41,7 @@ namespace cparser
 
         shared_ptr<TransUnit> DoTransUnit2(shared_ptr<ExtDecl>& ed) {
             #ifdef DEEPDEBUG
-                std::printf("DoTransUnit2\n");
+                printf("DoTransUnit2\n");
             #endif
             TransUnit *tu = new TransUnit;
             if (ed)
@@ -51,7 +51,7 @@ namespace cparser
 
         shared_ptr<ExtDecl> DoExtDecl1(shared_ptr<Decl>& decl) {
             #ifdef DEEPDEBUG
-                std::printf("DoExtDecl1\n");
+                printf("DoExtDecl1\n");
             #endif
             ExtDecl *ed = new ExtDecl;
             ed->m_decl = decl;
@@ -60,7 +60,7 @@ namespace cparser
 
         shared_ptr<ExtDecl> DoExtDecl2(shared_ptr<Decl>& decl) {
             #ifdef DEEPDEBUG
-                std::printf("DoExtDecl2\n");
+                printf("DoExtDecl2\n");
             #endif
             ExtDecl *ed = new ExtDecl;
             ed->m_decl = decl;
@@ -69,7 +69,7 @@ namespace cparser
 
         shared_ptr<ExtDecl> DoExtDecl3() {
             #ifdef DEEPDEBUG
-                std::printf("DoExtDecl3\n");
+                printf("DoExtDecl3\n");
             #endif
             return shared_ptr<ExtDecl>();
         }
@@ -78,7 +78,7 @@ namespace cparser
                                     shared_ptr<DeclList>& dl, shared_ptr<CompStmt>& cs)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoFuncDef1\n");
+                printf("DoFuncDef1\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::FUNCTION;
@@ -98,7 +98,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds, shared_ptr<Declor>& d, shared_ptr<CompStmt>& cs)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoFuncDef2\n");
+                printf("DoFuncDef2\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::FUNCTION;
@@ -117,7 +117,7 @@ namespace cparser
             shared_ptr<Declor>& d, shared_ptr<DeclList>& dl, shared_ptr<CompStmt>& cs)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoFuncDef3\n");
+                printf("DoFuncDef3\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::FUNCTION;
@@ -135,7 +135,7 @@ namespace cparser
         shared_ptr<Decl> DoFuncDef4(shared_ptr<Declor>& d, shared_ptr<CompStmt>& cs)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoFuncDef4\n");
+                printf("DoFuncDef4\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::FUNCTION;
@@ -153,7 +153,7 @@ namespace cparser
             shared_ptr<DeclList>& dl, shared_ptr<Decl>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclList1\n");
+                printf("DoDeclList1\n");
             #endif
             dl.get()->push_back(d);
             return dl;
@@ -161,7 +161,7 @@ namespace cparser
 
         shared_ptr<DeclList> DoDeclList2(shared_ptr<Decl>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclList2\n");
+                printf("DoDeclList2\n");
             #endif
             DeclList *dl = new DeclList;
             dl->push_back(d);
@@ -173,7 +173,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl1a\n");
+                printf("DoDecl1a\n");
             #endif
             Decl *decl = new Decl;
             decl->location() = def->location();
@@ -189,7 +189,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl1\n");
+                printf("DoDecl1\n");
             #endif
             Decl *decl = new Decl;
             decl->location() = def->location();
@@ -204,7 +204,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl7a\n");
+                printf("DoDecl7a\n");
             #endif
             Decl *decl = new Decl;
             decl->location() = def->location();
@@ -219,7 +219,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl7\n");
+                printf("DoDecl7\n");
             #endif
             Decl *decl = new Decl;
             decl->location() = def->location();
@@ -233,7 +233,7 @@ namespace cparser
             shared_ptr<DeclorList>& dl)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl2a\n");
+                printf("DoDecl2a\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::DECLORLIST;
@@ -247,7 +247,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl2\n");
+                printf("DoDecl2\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::DECLORLIST;
@@ -260,7 +260,7 @@ namespace cparser
             shared_ptr<AlignSpec>& align_spec, shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl3a\n");
+                printf("DoDecl3a\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::SINGLE;
@@ -271,7 +271,7 @@ namespace cparser
 
         shared_ptr<Decl> DoDecl3(shared_ptr<DeclSpecs>& ds) {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl3\n");
+                printf("DoDecl3\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::SINGLE;
@@ -281,7 +281,7 @@ namespace cparser
 
         shared_ptr<Decl> DoDecl4(shared_ptr<StaticAssertDecl>& sad) {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl4\n");
+                printf("DoDecl4\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::STATIC_ASSERT;
@@ -291,7 +291,7 @@ namespace cparser
 
         shared_ptr<Decl> DoDecl5(shared_ptr<AsmSpec>& as) {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl5\n");
+                printf("DoDecl5\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::ASMSPEC;
@@ -301,7 +301,7 @@ namespace cparser
 
         shared_ptr<Decl> DoDecl6(shared_ptr<AsmBlock>& ab) {
             #ifdef DEEPDEBUG
-                std::printf("DoDecl6\n");
+                printf("DoDecl6\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::ASMBLOCK;
@@ -313,7 +313,7 @@ namespace cparser
             shared_ptr<StorClsSpec>& scs, shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclSpecs1\n");
+                printf("DoDeclSpecs1\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::STORCLSSPEC;
@@ -324,7 +324,7 @@ namespace cparser
 
         shared_ptr<DeclSpecs> DoDeclSpecs2(shared_ptr<StorClsSpec>& scs) {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclSpecs2\n");
+                printf("DoDeclSpecs2\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::STORCLSSPEC;
@@ -336,7 +336,7 @@ namespace cparser
             shared_ptr<FuncSpec>& fs, shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclSpecs3\n");
+                printf("DoDeclSpecs3\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::FUNCSPEC;
@@ -347,7 +347,7 @@ namespace cparser
 
         shared_ptr<DeclSpecs> DoDeclSpecs4(shared_ptr<FuncSpec>& fs) {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclSpecs4\n");
+                printf("DoDeclSpecs4\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::FUNCSPEC;
@@ -359,7 +359,7 @@ namespace cparser
             shared_ptr<TypeSpec>& ts, shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclSpecs5\n");
+                printf("DoDeclSpecs5\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPESPEC;
@@ -370,7 +370,7 @@ namespace cparser
 
         shared_ptr<DeclSpecs> DoDeclSpecs6(shared_ptr<TypeSpec>& ts) {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclSpecs6\n");
+                printf("DoDeclSpecs6\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPESPEC;
@@ -382,7 +382,7 @@ namespace cparser
             shared_ptr<TypeQual>& tq, shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclSpecs7\n");
+                printf("DoDeclSpecs7\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPEQUAL;
@@ -393,7 +393,7 @@ namespace cparser
 
         shared_ptr<DeclSpecs> DoDeclSpecs8(shared_ptr<TypeQual>& tq) {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclSpecs8\n");
+                printf("DoDeclSpecs8\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPEQUAL;
@@ -405,7 +405,7 @@ namespace cparser
             shared_ptr<TypeSpec>& ts, shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDeclSpecs1\n");
+                printf("DoTypedefDeclSpecs1\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPESPEC;
@@ -418,7 +418,7 @@ namespace cparser
             shared_ptr<TypeQual>& tq, shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDeclSpecs2\n");
+                printf("DoTypedefDeclSpecs2\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPEQUAL;
@@ -429,7 +429,7 @@ namespace cparser
 
         shared_ptr<DeclSpecs> DoTypedefDeclSpecs3(shared_ptr<TypeSpec>& ts) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDeclSpecs3\n");
+                printf("DoTypedefDeclSpecs3\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPESPEC;
@@ -439,7 +439,7 @@ namespace cparser
 
         shared_ptr<DeclSpecs> DoTypedefDeclSpecs4(shared_ptr<TypeQual>& tq) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDeclSpecs4\n");
+                printf("DoTypedefDeclSpecs4\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPEQUAL;
@@ -449,50 +449,52 @@ namespace cparser
 
         shared_ptr<StorClsSpec> DoStorClsSpec1() {
             #ifdef DEEPDEBUG
-                std::printf("DoStorClsSpec1\n");
+                printf("DoStorClsSpec1\n");
             #endif
             StorClsSpec *scs = new StorClsSpec;
+            scs->m_scs_type = StorClsSpec::AUTO;
             return shared_ptr<StorClsSpec>(scs);
         }
 
         shared_ptr<StorClsSpec> DoStorClsSpec2() {
             #ifdef DEEPDEBUG
-                std::printf("DoStorClsSpec2\n");
+                printf("DoStorClsSpec2\n");
             #endif
             StorClsSpec *scs = new StorClsSpec;
-            scs->m_flag = TF_EXTERN;
+            scs->m_scs_type = StorClsSpec::EXTERN;
             return shared_ptr<StorClsSpec>(scs);
         }
 
         shared_ptr<StorClsSpec> DoStorClsSpec3() {
             #ifdef DEEPDEBUG
-                std::printf("DoStorClsSpec3\n");
+                printf("DoStorClsSpec3\n");
             #endif
             StorClsSpec *scs = new StorClsSpec;
+            scs->m_scs_type = StorClsSpec::REGISTER;
             return shared_ptr<StorClsSpec>(scs);
         }
 
         shared_ptr<StorClsSpec> DoStorClsSpec4() {
             #ifdef DEEPDEBUG
-                std::printf("DoStorClsSpec4\n");
+                printf("DoStorClsSpec4\n");
             #endif
             StorClsSpec *scs = new StorClsSpec;
-            scs->m_flag = TF_STATIC;
+            scs->m_scs_type = StorClsSpec::STATIC;
             return shared_ptr<StorClsSpec>(scs);
         }
 
         shared_ptr<StorClsSpec> DoStorClsSpec5() {
             #ifdef DEEPDEBUG
-                std::printf("DoStorClsSpec5\n");
+                printf("DoStorClsSpec5\n");
             #endif
             StorClsSpec *scs = new StorClsSpec;
-            scs->m_flag = TF_THREADLOCAL;
+            scs->m_scs_type = StorClsSpec::THREADLOCAL;
             return shared_ptr<StorClsSpec>(scs);
         }
 
         shared_ptr<TypeSpec> DoTypeSpec1() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec1\n");
+                printf("DoTypeSpec1\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_VOID;
@@ -501,7 +503,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec2() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec2\n");
+                printf("DoTypeSpec2\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_CHAR;
@@ -510,7 +512,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec3() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec3\n");
+                printf("DoTypeSpec3\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_SHORT;
@@ -519,7 +521,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec4() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec4\n");
+                printf("DoTypeSpec4\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_INT;
@@ -528,7 +530,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec5() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec5\n");
+                printf("DoTypeSpec5\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_INT;
@@ -537,7 +539,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec6() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec6\n");
+                printf("DoTypeSpec6\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_LONGLONG;
@@ -546,7 +548,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec22() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec22\n");
+                printf("DoTypeSpec22\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_INT128;
@@ -555,7 +557,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec7() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec7\n");
+                printf("DoTypeSpec7\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_LONG;
@@ -564,7 +566,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec8() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec8\n");
+                printf("DoTypeSpec8\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_FLOAT;
@@ -573,7 +575,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec9() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec9\n");
+                printf("DoTypeSpec9\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_DOUBLE;
@@ -582,7 +584,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec10() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec10\n");
+                printf("DoTypeSpec10\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_SIGNED;
@@ -591,7 +593,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec11() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec11\n");
+                printf("DoTypeSpec11\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNSIGNED;
@@ -600,7 +602,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec12() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec12\n");
+                printf("DoTypeSpec12\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_INT;
@@ -609,7 +611,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec13() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec13\n");
+                printf("DoTypeSpec13\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = 0;   // TODO: __w64
@@ -618,7 +620,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec14(shared_ptr<CR_TokenNode>& info) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec14\n");
+                printf("DoTypeSpec14\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ALIAS;
@@ -628,28 +630,28 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec15(shared_ptr<TypeSpec>& struct_spec) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec15\n");
+                printf("DoTypeSpec15\n");
             #endif
             return struct_spec;
         }
 
         shared_ptr<TypeSpec> DoTypeSpec16(shared_ptr<TypeSpec>& union_spec) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec16\n");
+                printf("DoTypeSpec16\n");
             #endif
             return union_spec;
         }
 
         shared_ptr<TypeSpec> DoTypeSpec17(shared_ptr<TypeSpec>& enum_spec) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec17\n");
+                printf("DoTypeSpec17\n");
             #endif
             return enum_spec;
         }
 
         shared_ptr<TypeSpec> DoTypeSpec18(shared_ptr<AtomicTypeSpec>& ats) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec18\n");
+                printf("DoTypeSpec18\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ATOMIC;
@@ -659,7 +661,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec19() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec19\n");
+                printf("DoTypeSpec19\n");
             #endif
             // TODO: complex
             assert(0);
@@ -668,7 +670,7 @@ namespace cparser
 
         shared_ptr<TypeSpec> DoTypeSpec20() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeSpec20\n");
+                printf("DoTypeSpec20\n");
             #endif
             // TODO: imaginary
             assert(0);
@@ -677,7 +679,7 @@ namespace cparser
 
         shared_ptr<AtomicTypeSpec> DoAtomicTypeSpec1(shared_ptr<TypeName>& tn) {
             #ifdef DEEPDEBUG
-                std::printf("DoAtomicTypeSpec1\n");
+                printf("DoAtomicTypeSpec1\n");
             #endif
             AtomicTypeSpec *ats = new AtomicTypeSpec;
             ats->m_type_name = tn;
@@ -686,7 +688,7 @@ namespace cparser
 
         shared_ptr<TypeQual> DoTypeQual1() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeQual1\n");
+                printf("DoTypeQual1\n");
             #endif
             TypeQual *tq = new TypeQual;
             tq->m_flag = TF_CONST;
@@ -695,7 +697,7 @@ namespace cparser
 
         shared_ptr<TypeQual> DoTypeQual2() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeQual2\n");
+                printf("DoTypeQual2\n");
             #endif
             TypeQual *tq = new TypeQual;
             tq->m_flag = 0;    // restrict is ignored
@@ -704,7 +706,7 @@ namespace cparser
 
         shared_ptr<TypeQual> DoTypeQual3() {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeQual3\n");
+                printf("DoTypeQual3\n");
             #endif
             TypeQual *tq = new TypeQual;
             tq->m_flag = 0;     // volatile is ignored
@@ -716,7 +718,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& tag, shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructSpec1a\n");
+                printf("DoStructSpec1a\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
@@ -733,7 +735,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& tag, shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructSpec1\n");
+                printf("DoStructSpec1\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
@@ -750,7 +752,7 @@ namespace cparser
             shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructSpec2a\n");
+                printf("DoStructSpec2a\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
@@ -766,7 +768,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& keyword, shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructSpec2\n");
+                printf("DoStructSpec2\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
@@ -782,7 +784,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& tag)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructSpec3a\n");
+                printf("DoStructSpec3a\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
@@ -798,7 +800,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& keyword, shared_ptr<CR_TokenNode>& tag)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructSpec3\n");
+                printf("DoStructSpec3\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
@@ -814,13 +816,14 @@ namespace cparser
             shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoUnionSpec1a\n");
+                printf("DoUnionSpec1a\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
             ts->m_name = tag->m_text;
             ts->m_decl_list = decl_list;
             ts->location() = keyword->location();
+            ts->m_pack = keyword->m_pack;
             ts->m_align_spec = align_spec;
             return shared_ptr<TypeSpec>(ts);
         }
@@ -829,13 +832,14 @@ namespace cparser
             shared_ptr<CR_TokenNode>& tag, shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoUnionSpec1\n");
+                printf("DoUnionSpec1\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
             ts->m_name = tag->m_text;
             ts->m_decl_list = decl_list;
             ts->location() = keyword->location();
+            ts->m_pack = keyword->m_pack;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -844,12 +848,13 @@ namespace cparser
             shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoUnionSpec2a\n");
+                printf("DoUnionSpec2a\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
             ts->m_decl_list = decl_list;
             ts->location() = keyword->location();
+            ts->m_pack = keyword->m_pack;
             ts->m_align_spec = align_spec;
             return shared_ptr<TypeSpec>(ts);
         }
@@ -858,12 +863,13 @@ namespace cparser
             shared_ptr<CR_TokenNode>& keyword, shared_ptr<DeclList>& decl_list)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoUnionSpec2\n");
+                printf("DoUnionSpec2\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
             ts->m_decl_list = decl_list;
             ts->location() = keyword->location();
+            ts->m_pack = keyword->m_pack;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -872,7 +878,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& tag)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoUnionSpec3a\n");
+                printf("DoUnionSpec3a\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
@@ -886,7 +892,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& keyword, shared_ptr<CR_TokenNode>& tag)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoUnionSpec3\n");
+                printf("DoUnionSpec3\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
@@ -899,7 +905,7 @@ namespace cparser
             shared_ptr<DeclList>& dl, shared_ptr<Decl>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDeclList1\n");
+                printf("DoStructDeclList1\n");
             #endif
             dl.get()->push_back(d);
             return dl;
@@ -907,7 +913,7 @@ namespace cparser
 
         shared_ptr<DeclList> DoStructDeclList2(shared_ptr<Decl>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDeclList2\n");
+                printf("DoStructDeclList2\n");
             #endif
             DeclList *dl = new DeclList;
             dl->push_back(d);
@@ -918,7 +924,7 @@ namespace cparser
             shared_ptr<DeclorList>& dl, shared_ptr<Declor>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDeclorList1\n");
+                printf("DoTypedefDeclorList1\n");
             #endif
             dl.get()->push_back(d);
             return dl;
@@ -926,7 +932,7 @@ namespace cparser
 
         shared_ptr<DeclorList> DoTypedefDeclorList2(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDeclorList2\n");
+                printf("DoTypedefDeclorList2\n");
             #endif
             DeclorList *dl = new DeclorList;
             dl->push_back(d);
@@ -937,7 +943,7 @@ namespace cparser
             shared_ptr<DeclorList>& dl, shared_ptr<Declor>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoInitDeclorList1\n");
+                printf("DoInitDeclorList1\n");
             #endif
             dl.get()->push_back(d);
             return dl;
@@ -945,7 +951,7 @@ namespace cparser
 
         shared_ptr<DeclorList> DoInitDeclorList2(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoInitDeclorList2\n");
+                printf("DoInitDeclorList2\n");
             #endif
             DeclorList *dl = new DeclorList;
             dl->push_back(d);
@@ -956,7 +962,7 @@ namespace cparser
             shared_ptr<Declor>& d, shared_ptr<Initer>& i)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoInitDeclor1\n");
+                printf("DoInitDeclor1\n");
             #endif
             d.get()->m_initer = i;
             return d;
@@ -964,7 +970,7 @@ namespace cparser
 
         shared_ptr<Declor> DoInitDeclor2(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoInitDeclor2\n");
+                printf("DoInitDeclor2\n");
             #endif
             return d;
         }
@@ -974,7 +980,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDecl1a\n");
+                printf("DoStructDecl1a\n");
             #endif
             Decl *d = new Decl;
             d->m_decl_type = Decl::DECLORLIST;
@@ -988,7 +994,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDecl1\n");
+                printf("DoStructDecl1\n");
             #endif
             Decl *d = new Decl;
             d->m_decl_type = Decl::DECLORLIST;
@@ -1001,7 +1007,7 @@ namespace cparser
             shared_ptr<AlignSpec>& align_spec, shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDecl2a\n");
+                printf("DoStructDecl2a\n");
             #endif
             Decl *d = new Decl;
             d->m_decl_type = Decl::SINGLE;
@@ -1012,7 +1018,7 @@ namespace cparser
 
         shared_ptr<Decl> DoStructDecl2(shared_ptr<DeclSpecs>& ds) {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDecl2\n");
+                printf("DoStructDecl2\n");
             #endif
             Decl *d = new Decl;
             d->m_decl_type = Decl::SINGLE;
@@ -1022,7 +1028,7 @@ namespace cparser
 
         shared_ptr<Decl> DoStructDecl3(shared_ptr<StaticAssertDecl>& sad) {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDecl3\n");
+                printf("DoStructDecl3\n");
             #endif
             Decl *d = new Decl;
             d->m_decl_type = Decl::STATIC_ASSERT;
@@ -1034,7 +1040,7 @@ namespace cparser
             shared_ptr<TypeSpec>& ts, shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoSpecQualList1\n");
+                printf("DoSpecQualList1\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPESPEC;
@@ -1045,7 +1051,7 @@ namespace cparser
 
         shared_ptr<DeclSpecs> DoSpecQualList2(shared_ptr<TypeSpec>& ts) {
             #ifdef DEEPDEBUG
-                std::printf("DoSpecQualList2\n");
+                printf("DoSpecQualList2\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPESPEC;
@@ -1057,7 +1063,7 @@ namespace cparser
             shared_ptr<TypeQual>& tq, shared_ptr<DeclSpecs>& ds)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoSpecQualList3\n");
+                printf("DoSpecQualList3\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPEQUAL;
@@ -1068,7 +1074,7 @@ namespace cparser
 
         shared_ptr<DeclSpecs> DoSpecQualList4(shared_ptr<TypeQual>& tq) {
             #ifdef DEEPDEBUG
-                std::printf("DoSpecQualList4\n");
+                printf("DoSpecQualList4\n");
             #endif
             DeclSpecs *decl_specs = new DeclSpecs;
             decl_specs->m_spec_type = DeclSpecs::TYPEQUAL;
@@ -1080,7 +1086,7 @@ namespace cparser
             shared_ptr<DeclorList>& dl, shared_ptr<Declor>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDeclorList1\n");
+                printf("DoStructDeclorList1\n");
             #endif
             dl.get()->push_back(d);
             return dl;
@@ -1088,7 +1094,7 @@ namespace cparser
 
         shared_ptr<DeclorList> DoStructDeclorList2(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDeclorList2\n");
+                printf("DoStructDeclorList2\n");
             #endif
             DeclorList *dl = new DeclorList;
             dl->push_back(d);
@@ -1099,7 +1105,7 @@ namespace cparser
             shared_ptr<Declor>& d, shared_ptr<CondExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDeclor1\n");
+                printf("DoStructDeclor1\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::BITS;
@@ -1111,7 +1117,7 @@ namespace cparser
 
         shared_ptr<Declor> DoStructDeclor2(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDeclor2\n");
+                printf("DoStructDeclor2\n");
             #endif
             return d;
         }
@@ -1120,7 +1126,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& token, shared_ptr<CondExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStructDeclor3\n");
+                printf("DoStructDeclor3\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::BITS;
@@ -1133,7 +1139,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& tag, shared_ptr<EnumorList>& el)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoEnumSpec1\n");
+                printf("DoEnumSpec1\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
@@ -1147,7 +1153,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& tag, shared_ptr<EnumorList>& el)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoEnumSpec2\n");
+                printf("DoEnumSpec2\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
@@ -1161,7 +1167,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& keyword, shared_ptr<EnumorList>& el)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoEnumSpec3\n");
+                printf("DoEnumSpec3\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
@@ -1174,7 +1180,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& keyword, shared_ptr<EnumorList>& el)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoEnumSpec4\n");
+                printf("DoEnumSpec4\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
@@ -1187,7 +1193,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& keyword, shared_ptr<CR_TokenNode>& tag)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoEnumSpec5\n");
+                printf("DoEnumSpec5\n");
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
@@ -1200,7 +1206,7 @@ namespace cparser
             shared_ptr<EnumorList>& el, shared_ptr<Enumor>& e)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoEnumorList1\n");
+                printf("DoEnumorList1\n");
             #endif
             el.get()->push_back(e);
             return el;
@@ -1208,7 +1214,7 @@ namespace cparser
 
         shared_ptr<EnumorList> DoEnumorList2(shared_ptr<Enumor>& e) {
             #ifdef DEEPDEBUG
-                std::printf("DoEnumorList2\n");
+                printf("DoEnumorList2\n");
             #endif
             EnumorList *el = new EnumorList;
             el->push_back(e);
@@ -1219,7 +1225,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& info, shared_ptr<CondExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoEnumor1\n");
+                printf("DoEnumor1\n");
             #endif
             Enumor *e = new Enumor;
             e->m_name = info->m_text;
@@ -1229,7 +1235,7 @@ namespace cparser
 
         shared_ptr<Enumor> DoEnumor2(shared_ptr<CR_TokenNode>& info) {
             #ifdef DEEPDEBUG
-                std::printf("DoEnumor2\n");
+                printf("DoEnumor2\n");
             #endif
             Enumor *e = new Enumor;
             e->m_name = info->m_text;
@@ -1240,7 +1246,7 @@ namespace cparser
             shared_ptr<Pointers>& ptrs, shared_ptr<Declor>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDeclor1\n");
+                printf("DoTypedefDeclor1\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::POINTERS;
@@ -1252,7 +1258,7 @@ namespace cparser
 
         shared_ptr<Declor> DoTypedefDeclor2(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDeclor2\n");
+                printf("DoTypedefDeclor2\n");
             #endif
             return d;
         }
@@ -1261,7 +1267,7 @@ namespace cparser
             shared_ptr<Pointers>& ptrs, shared_ptr<Declor>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclor1\n");
+                printf("DoDeclor1\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::POINTERS;
@@ -1273,14 +1279,14 @@ namespace cparser
 
         shared_ptr<Declor> DoDeclor2(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoDeclor2\n");
+                printf("DoDeclor2\n");
             #endif
             return d;
         }
 
         shared_ptr<Declor> DoTypedefDirDeclor1(shared_ptr<CR_TokenNode>& token) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDirDeclor1\n");
+                printf("DoTypedefDirDeclor1\n");
             #endif
             Declor *d = new Declor;
             d->m_declor_type = Declor::TYPEDEF_TAG;
@@ -1291,7 +1297,7 @@ namespace cparser
 
         shared_ptr<Declor> DoTypedefDirDeclor2(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDirDeclor2\n");
+                printf("DoTypedefDirDeclor2\n");
             #endif
             return d;
         }
@@ -1300,7 +1306,7 @@ namespace cparser
             shared_ptr<Declor>& d, shared_ptr<CondExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDirDeclor3\n");
+                printf("DoTypedefDirDeclor3\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::ARRAY;
@@ -1312,7 +1318,7 @@ namespace cparser
 
         shared_ptr<Declor> DoTypedefDirDeclor4(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDirDeclor4\n");
+                printf("DoTypedefDirDeclor4\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::ARRAY;
@@ -1325,7 +1331,7 @@ namespace cparser
             shared_ptr<Declor>& d, shared_ptr<ParamList>& pl)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDirDeclor5\n");
+                printf("DoTypedefDirDeclor5\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::FUNCTION;
@@ -1337,7 +1343,7 @@ namespace cparser
 
         shared_ptr<Declor> DoTypedefDirDeclor7(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypedefDirDeclor7\n");
+                printf("DoTypedefDirDeclor7\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::FUNCTION;
@@ -1348,7 +1354,7 @@ namespace cparser
 
         shared_ptr<Declor> DoDirDeclor1(shared_ptr<CR_TokenNode>& token) {
             #ifdef DEEPDEBUG
-                std::printf("DoDirDeclor1\n");
+                printf("DoDirDeclor1\n");
             #endif
             Declor *d = new Declor;
             d->m_declor_type = Declor::IDENTIFIER;
@@ -1360,7 +1366,7 @@ namespace cparser
 
         shared_ptr<Declor> DoDirDeclor2(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoDirDeclor2\n");
+                printf("DoDirDeclor2\n");
             #endif
             return d;
         }
@@ -1369,7 +1375,7 @@ namespace cparser
             shared_ptr<Declor>& d, shared_ptr<CondExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDirDeclor3\n");
+                printf("DoDirDeclor3\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::ARRAY;
@@ -1381,7 +1387,7 @@ namespace cparser
 
         shared_ptr<Declor> DoDirDeclor4(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoDirDeclor4\n");
+                printf("DoDirDeclor4\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::ARRAY;
@@ -1394,7 +1400,7 @@ namespace cparser
             shared_ptr<Declor>& d, shared_ptr<ParamList>& pl)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDirDeclor5\n");
+                printf("DoDirDeclor5\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::FUNCTION;
@@ -1406,7 +1412,7 @@ namespace cparser
 
         shared_ptr<Declor> DoDirDeclor7(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoDirDeclor7\n");
+                printf("DoDirDeclor7\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::FUNCTION;
@@ -1420,7 +1426,7 @@ namespace cparser
             shared_ptr<Pointers>& p)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoPtr1\n");
+                printf("DoPtr1\n");
             #endif
             ac.get()->m_flags |= tql->m_flags;
             p.get()->push_back(ac);
@@ -1431,7 +1437,7 @@ namespace cparser
             shared_ptr<AstCom>& ac, shared_ptr<TypeQualList> tql)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoPtr2\n");
+                printf("DoPtr2\n");
             #endif
             Pointers *p = new Pointers;
             ac.get()->m_flags |= tql->m_flags;
@@ -1443,7 +1449,7 @@ namespace cparser
             shared_ptr<AstCom>& ac, shared_ptr<Pointers>& p)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoPtr3\n");
+                printf("DoPtr3\n");
             #endif
             p.get()->push_back(ac);
             return p;
@@ -1451,7 +1457,7 @@ namespace cparser
 
         shared_ptr<Pointers> DoPtr4(shared_ptr<AstCom>& ac) {
             #ifdef DEEPDEBUG
-                std::printf("DoPtr4\n");
+                printf("DoPtr4\n");
             #endif
             Pointers *p = new Pointers;
             p->push_back(ac);
@@ -1460,7 +1466,7 @@ namespace cparser
 
         shared_ptr<AstCom> DoAstCom4(shared_ptr<CR_TokenNode>& asterisk) {
             #ifdef DEEPDEBUG
-                std::printf("DoAstCom4\n");
+                printf("DoAstCom4\n");
             #endif
             AstCom *ac = new AstCom;
             ac->m_flags = asterisk->m_flags | TF_PTR64;
@@ -1469,16 +1475,16 @@ namespace cparser
 
         shared_ptr<AstCom> DoAstCom5(shared_ptr<CR_TokenNode>& asterisk) {
             #ifdef DEEPDEBUG
-                std::printf("DoAstCom5\n");
+                printf("DoAstCom5\n");
             #endif
             AstCom *ac = new AstCom;
-            ac->m_flags = asterisk->m_flags;
+            ac->m_flags = asterisk->m_flags | TF_PTR32;
             return shared_ptr<AstCom>(ac);
         }
 
         shared_ptr<AstCom> DoAstCom6(shared_ptr<CR_TokenNode>& asterisk) {
             #ifdef DEEPDEBUG
-                std::printf("DoAstCom6\n");
+                printf("DoAstCom6\n");
             #endif
             AstCom *ac = new AstCom;
             ac->m_flags = asterisk->m_flags;
@@ -1489,7 +1495,7 @@ namespace cparser
             shared_ptr<TypeQualList>& tql, shared_ptr<TypeQual>& tq)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeQualList1\n");
+                printf("DoTypeQualList1\n");
             #endif
             tql.get()->m_flags |= tq->m_flag;
             return tql;
@@ -1497,7 +1503,7 @@ namespace cparser
 
         shared_ptr<TypeQualList> DoTypeQualList2(shared_ptr<TypeQual>& tq) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeQualList2\n");
+                printf("DoTypeQualList2\n");
             #endif
             TypeQualList *tql = new TypeQualList;
             tql->m_flags |= tq->m_flag;
@@ -1506,7 +1512,7 @@ namespace cparser
 
         shared_ptr<ParamList> DoParamTypeList1(shared_ptr<ParamList>& pl) {
             #ifdef DEEPDEBUG
-                std::printf("DoParamTypeList1\n");
+                printf("DoParamTypeList1\n");
             #endif
             pl.get()->m_ellipsis = true;
             return pl;
@@ -1514,7 +1520,7 @@ namespace cparser
 
         shared_ptr<ParamList> DoParamTypeList2(shared_ptr<ParamList>& pl) {
             #ifdef DEEPDEBUG
-                std::printf("DoParamTypeList2\n");
+                printf("DoParamTypeList2\n");
             #endif
             return pl;
         }
@@ -1523,7 +1529,7 @@ namespace cparser
             shared_ptr<ParamList>& pl, shared_ptr<Decl>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoParamList1\n");
+                printf("DoParamList1\n");
             #endif
             pl.get()->push_back(d);
             return pl;
@@ -1531,7 +1537,7 @@ namespace cparser
 
         shared_ptr<ParamList> DoParamList2(shared_ptr<Decl>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoParamList2\n");
+                printf("DoParamList2\n");
             #endif
             ParamList *pl = new ParamList;
             pl->push_back(d);
@@ -1542,7 +1548,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds, shared_ptr<Declor>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoParamDecl1\n");
+                printf("DoParamDecl1\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::PARAM;
@@ -1559,7 +1565,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds, shared_ptr<Declor>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoParamDecl2\n");
+                printf("DoParamDecl2\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::PARAM;
@@ -1574,7 +1580,7 @@ namespace cparser
 
         shared_ptr<Decl> DoParamDecl3(shared_ptr<DeclSpecs>& ds) {
             #ifdef DEEPDEBUG
-                std::printf("DoParamDecl3\n");
+                printf("DoParamDecl3\n");
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::PARAM;
@@ -1588,7 +1594,7 @@ namespace cparser
 
         shared_ptr<Initer> DoIniter1(shared_ptr<AssignExpr>& ae) {
             #ifdef DEEPDEBUG
-                std::printf("DoIniter1\n");
+                printf("DoIniter1\n");
             #endif
             Initer *i = new Initer;
             i->m_initer_type = Initer::SIMPLE;
@@ -1598,7 +1604,7 @@ namespace cparser
 
         shared_ptr<Initer> DoIniter2(shared_ptr<IniterList>& il) {
             #ifdef DEEPDEBUG
-                std::printf("DoIniter2\n");
+                printf("DoIniter2\n");
             #endif
             Initer *i = new Initer;
             i->m_initer_type = Initer::COMPLEX;
@@ -1608,7 +1614,7 @@ namespace cparser
 
         shared_ptr<Initer> DoIniter3(shared_ptr<IniterList>& il) {
             #ifdef DEEPDEBUG
-                std::printf("DoIniter3\n");
+                printf("DoIniter3\n");
             #endif
             Initer *i = new Initer;
             i->m_initer_type = Initer::COMPLEX;
@@ -1620,7 +1626,7 @@ namespace cparser
             shared_ptr<IniterList>& il, shared_ptr<Initer>& i)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoIniterList1\n");
+                printf("DoIniterList1\n");
             #endif
             il.get()->push_back(i);
             return il;
@@ -1628,7 +1634,7 @@ namespace cparser
 
         shared_ptr<IniterList> DoIniterList2(shared_ptr<Initer>& i) {
             #ifdef DEEPDEBUG
-                std::printf("DoIniterList2\n");
+                printf("DoIniterList2\n");
             #endif
             IniterList *il = new IniterList;
             il->push_back(i);
@@ -1639,7 +1645,7 @@ namespace cparser
             shared_ptr<DeclSpecs>& ds, shared_ptr<Declor>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeName1\n");
+                printf("DoTypeName1\n");
             #endif
             TypeName *tn = new TypeName;
             tn->m_decl_specs = ds;
@@ -1649,7 +1655,7 @@ namespace cparser
 
         shared_ptr<TypeName> DoTypeName2(shared_ptr<DeclSpecs>& ds) {
             #ifdef DEEPDEBUG
-                std::printf("DoTypeName2\n");
+                printf("DoTypeName2\n");
             #endif
             TypeName *tn = new TypeName;
             tn->m_decl_specs = ds;
@@ -1660,7 +1666,7 @@ namespace cparser
             shared_ptr<Pointers>& ptrs, shared_ptr<Declor>& d)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAbsDeclor1\n");
+                printf("DoAbsDeclor1\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::POINTERS;
@@ -1671,14 +1677,14 @@ namespace cparser
 
         shared_ptr<Declor> DoAbsDeclor2(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoAbsDeclor2\n");
+                printf("DoAbsDeclor2\n");
             #endif
             return d;
         }
 
         shared_ptr<Declor> DoAbsDeclor3(shared_ptr<Pointers>& ptrs) {
             #ifdef DEEPDEBUG
-                std::printf("DoAbsDeclor3\n");
+                printf("DoAbsDeclor3\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::POINTERS;
@@ -1688,14 +1694,14 @@ namespace cparser
 
         shared_ptr<Declor> DoDirAbsDeclor1(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoDirAbsDeclor1\n");
+                printf("DoDirAbsDeclor1\n");
             #endif
             return d;
         }
 
         shared_ptr<Declor> DoDirAbsDeclor2() {
             #ifdef DEEPDEBUG
-                std::printf("DoDirAbsDeclor2\n");
+                printf("DoDirAbsDeclor2\n");
             #endif
             Declor *d = new Declor;
             d->m_declor_type = Declor::ARRAY;
@@ -1704,7 +1710,7 @@ namespace cparser
 
         shared_ptr<Declor> DoDirAbsDeclor3(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoDirAbsDeclor3\n");
+                printf("DoDirAbsDeclor3\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::ARRAY;
@@ -1714,7 +1720,7 @@ namespace cparser
 
         shared_ptr<Declor> DoDirAbsDeclor4(shared_ptr<CondExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoDirAbsDeclor4\n");
+                printf("DoDirAbsDeclor4\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::ARRAY;
@@ -1726,7 +1732,7 @@ namespace cparser
             shared_ptr<Declor>& d, shared_ptr<CondExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDirAbsDeclor5\n");
+                printf("DoDirAbsDeclor5\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::ARRAY;
@@ -1737,7 +1743,7 @@ namespace cparser
 
         shared_ptr<Declor> DoDirAbsDeclor6() {
             #ifdef DEEPDEBUG
-                std::printf("DoDirAbsDeclor6\n");
+                printf("DoDirAbsDeclor6\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::FUNCTION;
@@ -1746,7 +1752,7 @@ namespace cparser
 
         shared_ptr<Declor> DoDirAbsDeclor7(shared_ptr<Declor>& d) {
             #ifdef DEEPDEBUG
-                std::printf("DoDirAbsDeclor7\n");
+                printf("DoDirAbsDeclor7\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::FUNCTION;
@@ -1756,7 +1762,7 @@ namespace cparser
 
         shared_ptr<Declor> DoDirAbsDeclor8(shared_ptr<ParamList>& pl) {
             #ifdef DEEPDEBUG
-                std::printf("DoDirAbsDeclor8\n");
+                printf("DoDirAbsDeclor8\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::FUNCTION;
@@ -1768,7 +1774,7 @@ namespace cparser
             shared_ptr<Declor>& d, shared_ptr<ParamList>& pl)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoDirAbsDeclor9\n");
+                printf("DoDirAbsDeclor9\n");
             #endif
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::FUNCTION;
@@ -1781,7 +1787,7 @@ namespace cparser
             shared_ptr<StmtList>& sl, shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStmtList1\n");
+                printf("DoStmtList1\n");
             #endif
             sl.get()->push_back(s);
             return sl;
@@ -1789,7 +1795,7 @@ namespace cparser
 
         shared_ptr<StmtList> DoStmtList2(shared_ptr<Stmt>& s) {
             #ifdef DEEPDEBUG
-                std::printf("DoStmtList2\n");
+                printf("DoStmtList2\n");
             #endif
             StmtList *sl = new StmtList;
             sl->push_back(s);
@@ -1798,7 +1804,7 @@ namespace cparser
 
         shared_ptr<Stmt> DoStmt1(shared_ptr<LabeledStmt>& ls) {
             #ifdef DEEPDEBUG
-                std::printf("DoStmt1\n");
+                printf("DoStmt1\n");
             #endif
             Stmt *s = new Stmt;
             s->m_stmt_type = Stmt::LABELED;
@@ -1808,7 +1814,7 @@ namespace cparser
 
         shared_ptr<Stmt> DoStmt2(shared_ptr<ExprStmt>& es) {
             #ifdef DEEPDEBUG
-                std::printf("DoStmt2\n");
+                printf("DoStmt2\n");
             #endif
             Stmt *s = new Stmt;
             s->m_stmt_type = Stmt::EXPR;
@@ -1818,7 +1824,7 @@ namespace cparser
 
         shared_ptr<Stmt> DoStmt3(shared_ptr<CompStmt>& cs) {
             #ifdef DEEPDEBUG
-                std::printf("DoStmt3\n");
+                printf("DoStmt3\n");
             #endif
             Stmt *s = new Stmt;
             s->m_stmt_type = Stmt::COMP;
@@ -1828,7 +1834,7 @@ namespace cparser
 
         shared_ptr<Stmt> DoStmt4(shared_ptr<SelStmt>& ss) {
             #ifdef DEEPDEBUG
-                std::printf("DoStmt4\n");
+                printf("DoStmt4\n");
             #endif
             Stmt *s = new Stmt;
             s->m_stmt_type = Stmt::SEL;
@@ -1838,7 +1844,7 @@ namespace cparser
 
         shared_ptr<Stmt> DoStmt5(shared_ptr<IterStmt>& is) {
             #ifdef DEEPDEBUG
-                std::printf("DoStmt5\n");
+                printf("DoStmt5\n");
             #endif
             Stmt *s = new Stmt;
             s->m_stmt_type = Stmt::ITER;
@@ -1848,7 +1854,7 @@ namespace cparser
 
         shared_ptr<Stmt> DoStmt6(shared_ptr<JumpStmt>& js) {
             #ifdef DEEPDEBUG
-                std::printf("DoStmt6\n");
+                printf("DoStmt6\n");
             #endif
             Stmt *s = new Stmt;
             s->m_stmt_type = Stmt::JUMP;
@@ -1860,7 +1866,7 @@ namespace cparser
             shared_ptr<CR_TokenNode>& id, shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoLabeledStmt1\n");
+                printf("DoLabeledStmt1\n");
             #endif
             LabeledStmt *ls = new LabeledStmt;
             ls->m_labeled_type = LabeledStmt::LABEL;
@@ -1873,7 +1879,7 @@ namespace cparser
             shared_ptr<CondExpr>& ce, shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoLabeledStmt2\n");
+                printf("DoLabeledStmt2\n");
             #endif
             LabeledStmt *ls = new LabeledStmt;
             ls->m_labeled_type = LabeledStmt::CASE;
@@ -1884,7 +1890,7 @@ namespace cparser
 
         shared_ptr<LabeledStmt> DoLabeledStmt3(shared_ptr<Stmt>& s) {
             #ifdef DEEPDEBUG
-                std::printf("DoLabeledStmt3\n");
+                printf("DoLabeledStmt3\n");
             #endif
             LabeledStmt *ls = new LabeledStmt;
             ls->m_labeled_type = LabeledStmt::DEFAULT;
@@ -1894,14 +1900,14 @@ namespace cparser
 
         shared_ptr<ExprStmt> DoExprStmt1() {
             #ifdef DEEPDEBUG
-                std::printf("DoExprStmt1\n");
+                printf("DoExprStmt1\n");
             #endif
             return shared_ptr<ExprStmt>(new ExprStmt);
         }
 
         shared_ptr<ExprStmt> DoExprStmt2(shared_ptr<Expr>& e) {
             #ifdef DEEPDEBUG
-                std::printf("DoExprStmt2\n");
+                printf("DoExprStmt2\n");
             #endif
             ExprStmt *es = new ExprStmt;
             es->m_expr = e;
@@ -1910,14 +1916,14 @@ namespace cparser
 
         shared_ptr<CompStmt> DoCompStmt1() {
             #ifdef DEEPDEBUG
-                std::printf("DoCompStmt1\n");
+                printf("DoCompStmt1\n");
             #endif
             return shared_ptr<CompStmt>(new CompStmt);
         }
 
         shared_ptr<CompStmt> DoCompStmt2(shared_ptr<DeclList>& dl) {
             #ifdef DEEPDEBUG
-                std::printf("DoCompStmt2\n");
+                printf("DoCompStmt2\n");
             #endif
             CompStmt *cs = new CompStmt;
             cs->m_decl_list = dl;
@@ -1926,7 +1932,7 @@ namespace cparser
 
         shared_ptr<CompStmt> DoCompStmt3(shared_ptr<StmtList>& sl) {
             #ifdef DEEPDEBUG
-                std::printf("DoCompStmt3\n");
+                printf("DoCompStmt3\n");
             #endif
             CompStmt *cs = new CompStmt;
             cs->m_stmt_list = sl;
@@ -1937,7 +1943,7 @@ namespace cparser
             shared_ptr<DeclList>& dl, shared_ptr<StmtList>& sl)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoCompStmt4\n");
+                printf("DoCompStmt4\n");
             #endif
             CompStmt *cs = new CompStmt;
             cs->m_decl_list = dl;
@@ -1950,7 +1956,7 @@ namespace cparser
             shared_ptr<Stmt>& else_s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoSelStmt1\n");
+                printf("DoSelStmt1\n");
             #endif
             SelStmt *ss = new SelStmt;
             ss->m_sel_type = SelStmt::IF_THEN_ELSE;
@@ -1964,7 +1970,7 @@ namespace cparser
             shared_ptr<Expr>& e, shared_ptr<Stmt>& then_s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoSelStmt2\n");
+                printf("DoSelStmt2\n");
             #endif
             SelStmt *ss = new SelStmt;
             ss->m_sel_type = SelStmt::IF_THEN;
@@ -1977,7 +1983,7 @@ namespace cparser
             shared_ptr<Expr>& e, shared_ptr<Stmt>& then_s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoSelStmt3\n");
+                printf("DoSelStmt3\n");
             #endif
             SelStmt *ss = new SelStmt;
             ss->m_sel_type = SelStmt::SWITCH;
@@ -1990,7 +1996,7 @@ namespace cparser
             shared_ptr<Expr>& e, shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoIterStmt1\n");
+                printf("DoIterStmt1\n");
             #endif
             IterStmt *is = new IterStmt;
             is->m_iter_type = IterStmt::WHILE;
@@ -2003,7 +2009,7 @@ namespace cparser
             shared_ptr<Stmt>& s, shared_ptr<Expr>& e)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoIterStmt2\n");
+                printf("DoIterStmt2\n");
             #endif
             IterStmt *is = new IterStmt;
             is->m_iter_type = IterStmt::DO_WHILE;
@@ -2014,7 +2020,7 @@ namespace cparser
 
         shared_ptr<IterStmt> DoIterStmt3(shared_ptr<Stmt>& s) {
             #ifdef DEEPDEBUG
-                std::printf("DoIterStmt3\n");
+                printf("DoIterStmt3\n");
             #endif
             IterStmt *is = new IterStmt;
             is->m_iter_type = IterStmt::FOR;
@@ -2026,7 +2032,7 @@ namespace cparser
             shared_ptr<Expr>& e3, shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoIterStmt4\n");
+                printf("DoIterStmt4\n");
             #endif
             IterStmt *is = new IterStmt;
             is->m_iter_type = IterStmt::FOR;
@@ -2039,7 +2045,7 @@ namespace cparser
             shared_ptr<Expr>& e2, shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoIterStmt5\n");
+                printf("DoIterStmt5\n");
             #endif
             IterStmt *is = new IterStmt;
             is->m_iter_type = IterStmt::FOR;
@@ -2053,7 +2059,7 @@ namespace cparser
             shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoIterStmt6\n");
+                printf("DoIterStmt6\n");
             #endif
             IterStmt *is = new IterStmt;
             is->m_iter_type = IterStmt::FOR;
@@ -2067,7 +2073,7 @@ namespace cparser
             shared_ptr<Expr>& e1, shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoIterStmt7\n");
+                printf("DoIterStmt7\n");
             #endif
             IterStmt *is = new IterStmt;
             is->m_iter_type = IterStmt::FOR;
@@ -2080,7 +2086,7 @@ namespace cparser
             shared_ptr<Expr>& e1, shared_ptr<Expr>& e3, shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoIterStmt8\n");
+                printf("DoIterStmt8\n");
             #endif
             IterStmt *is = new IterStmt;
             is->m_iter_type = IterStmt::FOR;
@@ -2094,7 +2100,7 @@ namespace cparser
             shared_ptr<Expr>& e1, shared_ptr<Expr>& e2, shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoIterStmt9\n");
+                printf("DoIterStmt9\n");
             #endif
             IterStmt *is = new IterStmt;
             is->m_iter_type = IterStmt::FOR;
@@ -2109,7 +2115,7 @@ namespace cparser
             shared_ptr<Stmt>& s)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoIterStmt10\n");
+                printf("DoIterStmt10\n");
             #endif
             IterStmt *is = new IterStmt;
             is->m_iter_type = IterStmt::FOR;
@@ -2122,7 +2128,7 @@ namespace cparser
 
         shared_ptr<JumpStmt> DoJumpStmt1(shared_ptr<CR_TokenNode>& id) {
             #ifdef DEEPDEBUG
-                std::printf("DoJumpStmt1\n");
+                printf("DoJumpStmt1\n");
             #endif
             JumpStmt *js = new JumpStmt;
             js->m_jump_type = JumpStmt::GOTO;
@@ -2132,7 +2138,7 @@ namespace cparser
 
         shared_ptr<JumpStmt> DoJumpStmt2() {
             #ifdef DEEPDEBUG
-                std::printf("DoJumpStmt2\n");
+                printf("DoJumpStmt2\n");
             #endif
             JumpStmt *js = new JumpStmt;
             js->m_jump_type = JumpStmt::CONTINUE;
@@ -2141,7 +2147,7 @@ namespace cparser
 
         shared_ptr<JumpStmt> DoJumpStmt3() {
             #ifdef DEEPDEBUG
-                std::printf("DoJumpStmt3\n");
+                printf("DoJumpStmt3\n");
             #endif
             JumpStmt *js = new JumpStmt;
             js->m_jump_type = JumpStmt::BREAK;
@@ -2150,7 +2156,7 @@ namespace cparser
 
         shared_ptr<JumpStmt> DoJumpStmt4() {
             #ifdef DEEPDEBUG
-                std::printf("DoJumpStmt4\n");
+                printf("DoJumpStmt4\n");
             #endif
             JumpStmt *js = new JumpStmt;
             js->m_jump_type = JumpStmt::RETURN_VOID;
@@ -2159,7 +2165,7 @@ namespace cparser
 
         shared_ptr<JumpStmt> DoJumpStmt5(shared_ptr<Expr>& e) {
             #ifdef DEEPDEBUG
-                std::printf("DoJumpStmt5\n");
+                printf("DoJumpStmt5\n");
             #endif
             JumpStmt *js = new JumpStmt;
             js->m_jump_type = JumpStmt::RETURN_EXPR;
@@ -2169,7 +2175,7 @@ namespace cparser
 
         shared_ptr<Expr> DoExpr1(shared_ptr<AssignExpr>& ae) {
             #ifdef DEEPDEBUG
-                std::printf("DoExpr1\n");
+                printf("DoExpr1\n");
             #endif
             Expr *e = new Expr;
             e->push_back(ae);
@@ -2180,7 +2186,7 @@ namespace cparser
             shared_ptr<Expr>& e, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoExpr2\n");
+                printf("DoExpr2\n");
             #endif
             e.get()->push_back(ae);
             return e;
@@ -2188,7 +2194,7 @@ namespace cparser
 
         shared_ptr<AssignExpr> DoAssignExpr1(shared_ptr<CondExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr1\n");
+                printf("DoAssignExpr1\n");
             #endif
             AssignExpr *ae = new AssignExpr;
             ae->m_assign_type = AssignExpr::COND;
@@ -2200,7 +2206,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr2\n");
+                printf("DoAssignExpr2\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::SINGLE;
@@ -2213,7 +2219,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr3\n");
+                printf("DoAssignExpr3\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::MUL;
@@ -2226,7 +2232,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr4\n");
+                printf("DoAssignExpr4\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::DIV;
@@ -2239,7 +2245,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr5\n");
+                printf("DoAssignExpr5\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::MOD;
@@ -2252,7 +2258,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr6\n");
+                printf("DoAssignExpr6\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::ADD;
@@ -2265,7 +2271,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr7\n");
+                printf("DoAssignExpr7\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::SUB;
@@ -2278,7 +2284,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr8\n");
+                printf("DoAssignExpr8\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::L_SHIFT;
@@ -2291,7 +2297,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr9\n");
+                printf("DoAssignExpr9\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::R_SHIFT;
@@ -2304,7 +2310,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr10\n");
+                printf("DoAssignExpr10\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::AND;
@@ -2317,7 +2323,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr11\n");
+                printf("DoAssignExpr11\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::XOR;
@@ -2330,7 +2336,7 @@ namespace cparser
             shared_ptr<UnaryExpr>& ue, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAssignExpr12\n");
+                printf("DoAssignExpr12\n");
             #endif
             AssignExpr *newae = new AssignExpr;
             newae->m_assign_type = AssignExpr::OR;
@@ -2341,7 +2347,7 @@ namespace cparser
 
         shared_ptr<CondExpr> DoCondExpr1(shared_ptr<LogOrExpr>& loe) {
             #ifdef DEEPDEBUG
-                std::printf("DoCondExpr1\n");
+                printf("DoCondExpr1\n");
             #endif
             CondExpr *ce = new CondExpr;
             ce->m_cond_type = CondExpr::SINGLE;
@@ -2355,7 +2361,7 @@ namespace cparser
             shared_ptr<CondExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoCondExpr2\n");
+                printf("DoCondExpr2\n");
             #endif
             CondExpr *newce = new CondExpr;
             newce->m_cond_type = CondExpr::QUESTION;
@@ -2367,14 +2373,14 @@ namespace cparser
 
         shared_ptr<CondExpr> DoConstExpr1(shared_ptr<CondExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoConstExpr1\n");
+                printf("DoConstExpr1\n");
             #endif
             return ce;
         }
 
         shared_ptr<LogOrExpr> DoLogOrExpr1(shared_ptr<LogAndExpr>& lae) {
             #ifdef DEEPDEBUG
-                std::printf("DoLogOrExpr1\n");
+                printf("DoLogOrExpr1\n");
             #endif
             LogOrExpr *loe = new LogOrExpr;
             loe->push_back(lae);
@@ -2385,7 +2391,7 @@ namespace cparser
             shared_ptr<LogOrExpr>& loe, shared_ptr<LogAndExpr>& lae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoLogOrExpr2\n");
+                printf("DoLogOrExpr2\n");
             #endif
             loe.get()->push_back(lae);
             return loe;
@@ -2393,7 +2399,7 @@ namespace cparser
 
         shared_ptr<LogAndExpr> DoLogAnd1(shared_ptr<InclOrExpr>& ioe) {
             #ifdef DEEPDEBUG
-                std::printf("DoLogAnd1\n");
+                printf("DoLogAnd1\n");
             #endif
             LogAndExpr *lae = new LogAndExpr;
             lae->push_back(ioe);
@@ -2404,7 +2410,7 @@ namespace cparser
             shared_ptr<LogAndExpr>& lae, shared_ptr<InclOrExpr>& ioe)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoLogAnd2\n");
+                printf("DoLogAnd2\n");
             #endif
             lae.get()->push_back(ioe);
             return lae;
@@ -2412,7 +2418,7 @@ namespace cparser
 
         shared_ptr<InclOrExpr> DoInclOrExpr1(shared_ptr<ExclOrExpr>& eoe) {
             #ifdef DEEPDEBUG
-                std::printf("DoInclOrExpr1\n");
+                printf("DoInclOrExpr1\n");
             #endif
             InclOrExpr *ioe = new InclOrExpr;
             ioe->push_back(eoe);
@@ -2423,7 +2429,7 @@ namespace cparser
             shared_ptr<InclOrExpr>& ioe, shared_ptr<ExclOrExpr>& eoe)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoInclOrExpr2\n");
+                printf("DoInclOrExpr2\n");
             #endif
             ioe.get()->push_back(eoe);
             return ioe;
@@ -2431,7 +2437,7 @@ namespace cparser
 
         shared_ptr<ExclOrExpr> DoExclOr1(shared_ptr<AndExpr>& ae) {
             #ifdef DEEPDEBUG
-                std::printf("DoExclOr1\n");
+                printf("DoExclOr1\n");
             #endif
             ExclOrExpr *eoe = new ExclOrExpr;
             eoe->push_back(ae);
@@ -2442,7 +2448,7 @@ namespace cparser
             shared_ptr<ExclOrExpr>& eoe, shared_ptr<AndExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoExclOr2\n");
+                printf("DoExclOr2\n");
             #endif
             eoe.get()->push_back(ae);
             return eoe;
@@ -2451,7 +2457,7 @@ namespace cparser
         shared_ptr<AndExpr> DoAndExpr1(shared_ptr<EqualExpr>& ee)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAndExpr1\n");
+                printf("DoAndExpr1\n");
             #endif
             AndExpr *ae = new AndExpr;
             ae->push_back(ee);
@@ -2462,7 +2468,7 @@ namespace cparser
             shared_ptr<AndExpr>& ae, shared_ptr<EqualExpr>& ee)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAndExpr2\n");
+                printf("DoAndExpr2\n");
             #endif
             ae.get()->push_back(ee);
             return ae;
@@ -2470,7 +2476,7 @@ namespace cparser
 
         shared_ptr<EqualExpr> DoEqualExpr1(shared_ptr<RelExpr>& re) {
             #ifdef DEEPDEBUG
-                std::printf("DoEqualExpr1\n");
+                printf("DoEqualExpr1\n");
             #endif
             EqualExpr *ee = new EqualExpr;
             ee->m_equal_type = EqualExpr::SINGLE;
@@ -2482,7 +2488,7 @@ namespace cparser
             shared_ptr<EqualExpr>& ee, shared_ptr<RelExpr>& re)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoEqualExpr2\n");
+                printf("DoEqualExpr2\n");
             #endif
             EqualExpr *newee = new EqualExpr;
             newee->m_equal_type = EqualExpr::EQUAL;
@@ -2495,7 +2501,7 @@ namespace cparser
             shared_ptr<EqualExpr>& ee, shared_ptr<RelExpr>& re)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoEqualExpr3\n");
+                printf("DoEqualExpr3\n");
             #endif
             EqualExpr *newee = new EqualExpr;
             newee->m_equal_type = EqualExpr::NE;
@@ -2506,7 +2512,7 @@ namespace cparser
 
         shared_ptr<RelExpr> DoRelExpr1(shared_ptr<ShiftExpr>& se) {
             #ifdef DEEPDEBUG
-                std::printf("DoRelExpr1\n");
+                printf("DoRelExpr1\n");
             #endif
             RelExpr *re = new RelExpr;
             re->m_rel_type = RelExpr::SINGLE;
@@ -2518,7 +2524,7 @@ namespace cparser
             shared_ptr<RelExpr>& re, shared_ptr<ShiftExpr>& se)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoRelExpr2\n");
+                printf("DoRelExpr2\n");
             #endif
             RelExpr *newre = new RelExpr;
             newre->m_rel_type = RelExpr::LT;
@@ -2531,7 +2537,7 @@ namespace cparser
             shared_ptr<RelExpr>& re, shared_ptr<ShiftExpr>& se)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoRelExpr3\n");
+                printf("DoRelExpr3\n");
             #endif
             RelExpr *newre = new RelExpr;
             newre->m_rel_type = RelExpr::GT;
@@ -2544,7 +2550,7 @@ namespace cparser
             shared_ptr<RelExpr>& re, shared_ptr<ShiftExpr>& se)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoRelExpr4\n");
+                printf("DoRelExpr4\n");
             #endif
             RelExpr *newre = new RelExpr;
             newre->m_rel_type = RelExpr::LE;
@@ -2557,7 +2563,7 @@ namespace cparser
             shared_ptr<RelExpr>& re, shared_ptr<ShiftExpr>& se)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoRelExpr5\n");
+                printf("DoRelExpr5\n");
             #endif
             RelExpr *newre = new RelExpr;
             newre->m_rel_type = RelExpr::GE;
@@ -2568,7 +2574,7 @@ namespace cparser
 
         shared_ptr<ShiftExpr> DoShiftExpr1(shared_ptr<AddExpr>& ae) {
             #ifdef DEEPDEBUG
-                std::printf("DoShiftExpr1\n");
+                printf("DoShiftExpr1\n");
             #endif
             ShiftExpr *se = new ShiftExpr;
             se->m_shift_type = ShiftExpr::SINGLE;
@@ -2580,7 +2586,7 @@ namespace cparser
             shared_ptr<ShiftExpr>& se, shared_ptr<AddExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoShiftExpr2\n");
+                printf("DoShiftExpr2\n");
             #endif
             ShiftExpr *newse = new ShiftExpr;
             newse->m_shift_type = ShiftExpr::L_SHIFT;
@@ -2593,7 +2599,7 @@ namespace cparser
             shared_ptr<ShiftExpr>& se, shared_ptr<AddExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoShiftExpr3\n");
+                printf("DoShiftExpr3\n");
             #endif
             ShiftExpr *newse = new ShiftExpr;
             newse->m_shift_type = ShiftExpr::R_SHIFT;
@@ -2604,7 +2610,7 @@ namespace cparser
 
         shared_ptr<AddExpr> DoAddExpr1(shared_ptr<MulExpr>& me) {
             #ifdef DEEPDEBUG
-                std::printf("DoAddExpr1\n");
+                printf("DoAddExpr1\n");
             #endif
             AddExpr *ae = new AddExpr;
             ae->m_add_type = AddExpr::SINGLE;
@@ -2616,7 +2622,7 @@ namespace cparser
             shared_ptr<AddExpr>& ae, shared_ptr<MulExpr>& me)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAddExpr2\n");
+                printf("DoAddExpr2\n");
             #endif
             AddExpr *newae = new AddExpr;
             newae->m_add_type = AddExpr::PLUS;
@@ -2629,7 +2635,7 @@ namespace cparser
             shared_ptr<AddExpr>& ae, shared_ptr<MulExpr>& me)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAddExpr3\n");
+                printf("DoAddExpr3\n");
             #endif
             AddExpr *newae = new AddExpr;
             newae->m_add_type = AddExpr::MINUS;
@@ -2640,7 +2646,7 @@ namespace cparser
 
         shared_ptr<MulExpr> DoMulExpr1(shared_ptr<CastExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoMulExpr1\n");
+                printf("DoMulExpr1\n");
             #endif
             MulExpr *me = new MulExpr;
             me->m_mul_type = MulExpr::SINGLE;
@@ -2652,7 +2658,7 @@ namespace cparser
             shared_ptr<MulExpr>& me, shared_ptr<CastExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoMulExpr2\n");
+                printf("DoMulExpr2\n");
             #endif
             MulExpr *newme = new MulExpr;
             newme->m_mul_type = MulExpr::ASTERISK;
@@ -2665,7 +2671,7 @@ namespace cparser
             shared_ptr<MulExpr>& me, shared_ptr<CastExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoMulExpr3\n");
+                printf("DoMulExpr3\n");
             #endif
             MulExpr *newme = new MulExpr;
             newme->m_mul_type = MulExpr::SLASH;
@@ -2678,7 +2684,7 @@ namespace cparser
             shared_ptr<MulExpr>& me, shared_ptr<CastExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoMulExpr4\n");
+                printf("DoMulExpr4\n");
             #endif
             MulExpr *newme = new MulExpr;
             newme->m_mul_type = MulExpr::PERCENT;
@@ -2689,7 +2695,7 @@ namespace cparser
 
         shared_ptr<CastExpr> DoCastExpr1(shared_ptr<UnaryExpr>& ue) {
             #ifdef DEEPDEBUG
-                std::printf("DoCastExpr1\n");
+                printf("DoCastExpr1\n");
             #endif
             CastExpr *ce = new CastExpr;
             ce->m_cast_type = CastExpr::UNARY;
@@ -2701,7 +2707,7 @@ namespace cparser
             shared_ptr<TypeName>& tn, shared_ptr<IniterList>& il)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoCastExpr2\n");
+                printf("DoCastExpr2\n");
             #endif
             CastExpr *ce = new CastExpr;
             ce->m_cast_type = CastExpr::INITERLIST;
@@ -2714,7 +2720,7 @@ namespace cparser
             shared_ptr<TypeName>& tn, shared_ptr<IniterList>& il)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoCastExpr3\n");
+                printf("DoCastExpr3\n");
             #endif
             CastExpr *ce = new CastExpr;
             ce->m_cast_type = CastExpr::INITERLIST;
@@ -2727,7 +2733,7 @@ namespace cparser
             shared_ptr<TypeName>& tn, shared_ptr<CastExpr>& ce)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoCastExpr4\n");
+                printf("DoCastExpr4\n");
             #endif
             CastExpr *newce = new CastExpr;
             newce->m_cast_type = CastExpr::CAST;
@@ -2738,7 +2744,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr1(shared_ptr<PostfixExpr>& pe) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr1\n");
+                printf("DoUnaryExpr1\n");
             #endif
             UnaryExpr *ue = new UnaryExpr;
             ue->m_unary_type = UnaryExpr::SINGLE;
@@ -2748,7 +2754,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr2(shared_ptr<UnaryExpr>& ue) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr2\n");
+                printf("DoUnaryExpr2\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::INC;
@@ -2758,7 +2764,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr3(shared_ptr<UnaryExpr>& ue) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr3\n");
+                printf("DoUnaryExpr3\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::DEC;
@@ -2768,7 +2774,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr4(shared_ptr<CastExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr4\n");
+                printf("DoUnaryExpr4\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::AND;
@@ -2778,7 +2784,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr5(shared_ptr<CastExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr5\n");
+                printf("DoUnaryExpr5\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::ASTERISK;
@@ -2788,7 +2794,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr6(shared_ptr<CastExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr6\n");
+                printf("DoUnaryExpr6\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::PLUS;
@@ -2798,7 +2804,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr7(shared_ptr<CastExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr7\n");
+                printf("DoUnaryExpr7\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::MINUS;
@@ -2808,7 +2814,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr8(shared_ptr<CastExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr8\n");
+                printf("DoUnaryExpr8\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::BITWISE_NOT;
@@ -2818,7 +2824,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr9(shared_ptr<CastExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr9\n");
+                printf("DoUnaryExpr9\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::NOT;
@@ -2828,7 +2834,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr10(shared_ptr<UnaryExpr>& ue) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr10\n");
+                printf("DoUnaryExpr10\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::SIZEOF1;
@@ -2838,7 +2844,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr11(shared_ptr<TypeName>& tn) {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr11\n");
+                printf("DoUnaryExpr11\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::SIZEOF2;
@@ -2848,7 +2854,7 @@ namespace cparser
 
         shared_ptr<UnaryExpr> DoUnaryExpr12() {
             #ifdef DEEPDEBUG
-                std::printf("DoUnaryExpr12\n");
+                printf("DoUnaryExpr12\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
             newue->m_unary_type = UnaryExpr::ALIGNOF;
@@ -2857,7 +2863,7 @@ namespace cparser
 
         shared_ptr<PostfixExpr> DoPostfixExpr1(shared_ptr<PrimExpr>& pe) {
             #ifdef DEEPDEBUG
-                std::printf("DoPostfixExpr1\n");
+                printf("DoPostfixExpr1\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::SINGLE;
@@ -2867,7 +2873,7 @@ namespace cparser
 
         shared_ptr<PostfixExpr> DoPostfixExpr2(shared_ptr<PostfixExpr>& pe) {
             #ifdef DEEPDEBUG
-                std::printf("DoPostfixExpr2\n");
+                printf("DoPostfixExpr2\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::ARRAYITEM;
@@ -2877,7 +2883,7 @@ namespace cparser
 
         shared_ptr<PostfixExpr> DoPostfixExpr3(shared_ptr<PostfixExpr>& pe) {
             #ifdef DEEPDEBUG
-                std::printf("DoPostfixExpr3\n");
+                printf("DoPostfixExpr3\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::FUNCCALL1;
@@ -2887,7 +2893,7 @@ namespace cparser
 
         shared_ptr<PostfixExpr> DoPostfixExpr4(shared_ptr<PostfixExpr>& pe) {
             #ifdef DEEPDEBUG
-                std::printf("DoPostfixExpr4\n");
+                printf("DoPostfixExpr4\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::FUNCCALL2;
@@ -2897,7 +2903,7 @@ namespace cparser
 
         shared_ptr<PostfixExpr> DoPostfixExpr5(shared_ptr<PostfixExpr>& pe) {
             #ifdef DEEPDEBUG
-                std::printf("DoPostfixExpr5\n");
+                printf("DoPostfixExpr5\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::DOT;
@@ -2907,7 +2913,7 @@ namespace cparser
 
         shared_ptr<PostfixExpr> DoPostfixExpr6(shared_ptr<PostfixExpr>& pe) {
             #ifdef DEEPDEBUG
-                std::printf("DoPostfixExpr6\n");
+                printf("DoPostfixExpr6\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::ARROW;
@@ -2917,7 +2923,7 @@ namespace cparser
 
         shared_ptr<PostfixExpr> DoPostfixExpr7(shared_ptr<PostfixExpr>& pe) {
             #ifdef DEEPDEBUG
-                std::printf("DoPostfixExpr7\n");
+                printf("DoPostfixExpr7\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::INC;
@@ -2927,7 +2933,7 @@ namespace cparser
 
         shared_ptr<PostfixExpr> DoPostfixExpr8(shared_ptr<PostfixExpr>& pe) {
             #ifdef DEEPDEBUG
-                std::printf("DoPostfixExpr8\n");
+                printf("DoPostfixExpr8\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::DEC;
@@ -2937,7 +2943,7 @@ namespace cparser
 
         shared_ptr<PrimExpr> DoPrimExpr1(shared_ptr<CR_TokenNode>& token) {
             #ifdef DEEPDEBUG
-                std::printf("DoPrimExpr1\n");
+                printf("DoPrimExpr1\n");
             #endif
             PrimExpr *newpe = new PrimExpr;
             newpe->m_prim_type = PrimExpr::IDENTIFIER;
@@ -2947,7 +2953,7 @@ namespace cparser
 
         shared_ptr<PrimExpr> DoPrimExpr2(shared_ptr<CR_TokenNode>& token) {
             #ifdef DEEPDEBUG
-                std::printf("DoPrimExpr2\n");
+                printf("DoPrimExpr2\n");
             #endif
             PrimExpr *newpe = new PrimExpr;
             newpe->m_flags = token->m_flags;
@@ -2962,7 +2968,7 @@ namespace cparser
 
         shared_ptr<PrimExpr> DoPrimExpr3(shared_ptr<CR_TokenNode>& token) {
             #ifdef DEEPDEBUG
-                std::printf("DoPrimExpr3\n");
+                printf("DoPrimExpr3\n");
             #endif
             PrimExpr *newpe = new PrimExpr;
             newpe->m_prim_type = PrimExpr::STRING;
@@ -2973,7 +2979,7 @@ namespace cparser
 
         shared_ptr<PrimExpr> DoPrimExpr4(shared_ptr<Expr>& e) {
             #ifdef DEEPDEBUG
-                std::printf("DoPrimExpr4\n");
+                printf("DoPrimExpr4\n");
             #endif
             PrimExpr *newpe = new PrimExpr;
             newpe->m_prim_type = PrimExpr::PAREN;
@@ -2983,7 +2989,7 @@ namespace cparser
 
         shared_ptr<PrimExpr> DoPrimExpr5() {
             #ifdef DEEPDEBUG
-                std::printf("DoPrimExpr5\n");
+                printf("DoPrimExpr5\n");
             #endif
             PrimExpr *newpe = new PrimExpr;
             newpe->m_prim_type = PrimExpr::SELECTION;
@@ -2994,7 +3000,7 @@ namespace cparser
             shared_ptr<AssignExpr>& ae, shared_ptr<GeneAssocList>& gal)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoGeneSel1\n");
+                printf("DoGeneSel1\n");
             #endif
             GeneSel *gs = new GeneSel;
             gs->m_assign_expr = ae;
@@ -3006,7 +3012,7 @@ namespace cparser
             shared_ptr<GeneAssocList>& gal, shared_ptr<GeneAssoc>& ga)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoGeneAssocList1\n");
+                printf("DoGeneAssocList1\n");
             #endif
             gal.get()->push_back(ga);
             return gal;
@@ -3015,7 +3021,7 @@ namespace cparser
         shared_ptr<GeneAssocList> DoGeneAssocList2(shared_ptr<GeneAssoc>& ga)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoGeneAssocList2\n");
+                printf("DoGeneAssocList2\n");
             #endif
             GeneAssocList *gal = new GeneAssocList;
             gal->push_back(ga);
@@ -3026,7 +3032,7 @@ namespace cparser
             shared_ptr<TypeName>& tn, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoGeneAssoc1\n");
+                printf("DoGeneAssoc1\n");
             #endif
             GeneAssoc *ga = new GeneAssoc;
             ga->m_gene_assoc_type = GeneAssoc::NONDEFAULT;
@@ -3037,7 +3043,7 @@ namespace cparser
 
         shared_ptr<GeneAssoc> DoGeneAssoc2(shared_ptr<AssignExpr>& ae) {
             #ifdef DEEPDEBUG
-                std::printf("DoGeneAssoc2\n");
+                printf("DoGeneAssoc2\n");
             #endif
             GeneAssoc *ga = new GeneAssoc;
             ga->m_gene_assoc_type = GeneAssoc::DEFAULT;
@@ -3049,7 +3055,7 @@ namespace cparser
             shared_ptr<ArgExprList>& ael, shared_ptr<AssignExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoArgExprList1\n");
+                printf("DoArgExprList1\n");
             #endif
             ael.get()->push_back(ae);
             return ael;
@@ -3057,7 +3063,7 @@ namespace cparser
 
         shared_ptr<ArgExprList> DoArgExprList2(shared_ptr<AssignExpr>& ae) {
             #ifdef DEEPDEBUG
-                std::printf("DoArgExprList2\n");
+                printf("DoArgExprList2\n");
             #endif
             ArgExprList *ael = new ArgExprList;
             ael->push_back(ae);
@@ -3066,7 +3072,7 @@ namespace cparser
 
         shared_ptr<FuncSpec> DoFuncSpec1() {
             #ifdef DEEPDEBUG
-                std::printf("DoFuncSpec1\n");
+                printf("DoFuncSpec1\n");
             #endif
             FuncSpec *fs = new FuncSpec;
             fs->m_func_spec_type = FuncSpec::INLINE;
@@ -3075,7 +3081,7 @@ namespace cparser
 
         shared_ptr<FuncSpec> DoFuncSpec2() {
             #ifdef DEEPDEBUG
-                std::printf("DoFuncSpec2\n");
+                printf("DoFuncSpec2\n");
             #endif
             FuncSpec *fs = new FuncSpec;
             fs->m_func_spec_type = FuncSpec::DOFORCEINLINE;
@@ -3084,7 +3090,7 @@ namespace cparser
 
         shared_ptr<FuncSpec> DoFuncSpec3() {
             #ifdef DEEPDEBUG
-                std::printf("DoFuncSpec3\n");
+                printf("DoFuncSpec3\n");
             #endif
             FuncSpec *fs = new FuncSpec;
             fs->m_func_spec_type = FuncSpec::NORETURN;
@@ -3093,7 +3099,7 @@ namespace cparser
 
         shared_ptr<AlignSpec> DoAlignSpec1(shared_ptr<TypeName>& tn) {
             #ifdef DEEPDEBUG
-                std::printf("DoAlignSpec1\n");
+                printf("DoAlignSpec1\n");
             #endif
             AlignSpec *as = new AlignSpec;
             as->m_align_spec_type = AlignSpec::TYPENAME;
@@ -3103,7 +3109,7 @@ namespace cparser
 
         shared_ptr<AlignSpec> DoAlignSpec2(shared_ptr<CondExpr>& ce) {
             #ifdef DEEPDEBUG
-                std::printf("DoAlignSpec2\n");
+                printf("DoAlignSpec2\n");
             #endif
             AlignSpec *as = new AlignSpec;
             as->m_align_spec_type = AlignSpec::CONSTEXPR;
@@ -3115,7 +3121,7 @@ namespace cparser
             shared_ptr<CondExpr>& ce, shared_ptr<CR_TokenNode>& str)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoStaticAssertDecl1\n");
+                printf("DoStaticAssertDecl1\n");
             #endif
             StaticAssertDecl *sad = new StaticAssertDecl;
             sad->m_const_expr = ce;
@@ -3127,7 +3133,7 @@ namespace cparser
             shared_ptr<TypeQualList>& tql, shared_ptr<AsmOperands>& aos)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmSpec1\n");
+                printf("DoAsmSpec1\n");
             #endif
             AsmSpec *as = new AsmSpec;
             as->m_type_qual_list = tql;
@@ -3137,7 +3143,7 @@ namespace cparser
 
         shared_ptr<AsmSpec> DoAsmSpec2(shared_ptr<TypeQualList>& tql) {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmSpec2\n");
+                printf("DoAsmSpec2\n");
             #endif
             AsmSpec *as = new AsmSpec;
             as->m_type_qual_list = tql;
@@ -3146,7 +3152,7 @@ namespace cparser
 
         shared_ptr<AsmSpec> DoAsmSpec3(shared_ptr<AsmOperands>& aos) {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmSpec3\n");
+                printf("DoAsmSpec3\n");
             #endif
             AsmSpec *as = new AsmSpec;
             as->m_asm_operands = aos;
@@ -3155,7 +3161,7 @@ namespace cparser
 
         shared_ptr<AsmSpec> DoAsmSpec4() {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmSpec4\n");
+                printf("DoAsmSpec4\n");
             #endif
             AsmSpec *as = new AsmSpec;
             return shared_ptr<AsmSpec>(as);
@@ -3163,7 +3169,7 @@ namespace cparser
 
         shared_ptr<AsmBlock> DoAsmBlock1(shared_ptr<AsmOperands>& aos) {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmBlock1\n");
+                printf("DoAsmBlock1\n");
             #endif
             AsmBlock *ab = new AsmBlock;
             ab->m_asm_operands = aos;
@@ -3174,7 +3180,7 @@ namespace cparser
             shared_ptr<AsmOperands>& aos, shared_ptr<AsmOperand>& ao)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmOperands1\n");
+                printf("DoAsmOperands1\n");
             #endif
             aos.get()->push_back(ao);
             return aos;
@@ -3183,7 +3189,7 @@ namespace cparser
         shared_ptr<AsmOperands> DoAsmOperands2(shared_ptr<AsmOperand>& ao)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmOperands2\n");
+                printf("DoAsmOperands2\n");
             #endif
             AsmOperands *aos = new AsmOperands;
             aos->push_back(ao);
@@ -3193,7 +3199,7 @@ namespace cparser
         shared_ptr<AsmOperand> DoAsmOperand1(shared_ptr<CR_TokenNode>& value)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmOperand1\n");
+                printf("DoAsmOperand1\n");
             #endif
             AsmOperand *ao = new AsmOperand;
             ao->m_operand_type = AsmOperand::STRING;
@@ -3204,7 +3210,7 @@ namespace cparser
         shared_ptr<AsmOperand> DoAsmOperand2(shared_ptr<CR_TokenNode>& value)
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmOperand2\n");
+                printf("DoAsmOperand2\n");
             #endif
             AsmOperand *ao = new AsmOperand;
             ao->m_operand_type = AsmOperand::IDENTIFIER;
@@ -3215,7 +3221,7 @@ namespace cparser
         shared_ptr<AsmOperand> DoAsmOperand3()
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmOperand3\n");
+                printf("DoAsmOperand3\n");
             #endif
             AsmOperand *ao = new AsmOperand;
             ao->m_operand_type = AsmOperand::COMMA;
@@ -3225,7 +3231,7 @@ namespace cparser
         shared_ptr<AsmOperand> DoAsmOperand4()
         {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmOperand4\n");
+                printf("DoAsmOperand4\n");
             #endif
             AsmOperand *ao = new AsmOperand;
             ao->m_operand_type = AsmOperand::COLON;
@@ -3234,7 +3240,7 @@ namespace cparser
 
         shared_ptr<AsmOperand> DoAsmOperand5(shared_ptr<Expr>& e) {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmOperand5\n");
+                printf("DoAsmOperand5\n");
             #endif
             AsmOperand *ao = new AsmOperand;
             ao->m_operand_type = AsmOperand::PAREN;
@@ -3244,7 +3250,7 @@ namespace cparser
 
         shared_ptr<AsmOperand> DoAsmOperand6(shared_ptr<Expr>& e) {
             #ifdef DEEPDEBUG
-                std::printf("DoAsmOperand6\n");
+                printf("DoAsmOperand6\n");
             #endif
             AsmOperand *ao = new AsmOperand;
             ao->m_operand_type = AsmOperand::BRACKET;

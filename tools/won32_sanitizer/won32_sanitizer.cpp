@@ -39,12 +39,12 @@ enum {
     TF_COMPLEX      = 0x00400000,
     TF_IMAGINARY    = 0x00800000,
     TF_ATOMIC       = 0x01000000,
-    TF_EXTERN       = 0x02000000,
-    TF_STATIC       = 0x04000000,
-    TF_THREADLOCAL  = 0x08000000,
-    //                0x10000000 is absent
+    TF_PTR32        = 0x02000000,
+    TF_INACCURATE   = 0x04000000,   // size and/or alignment is not accurate
+    //                0x08000000 is absent
+    TF_BITFIELD     = 0x10000000,
     TF_ALIAS        = 0x20000000,
-    TF_ENUMITEM     = 0x40000000,
+    TF_ENUMITEM     = 0x40000000,   // CodeReverse extension
     TF_INT128       = 0x80000000
 };
 
@@ -56,8 +56,20 @@ void WsShowHelp(void) {
 
 void WsShowVersion(void) {
     std::cout <<
-        "won32_sanitizer --- Won32 sanitizer" << std::endl <<
-        "Version 0.0" << std::endl;
+#ifdef _WIN64
+# ifdef __GNUC__
+        "won32_sanitizer --- Won32 sanitizer for 64-bit gcc\n"
+# else
+        "won32_sanitizer --- Won32 sanitizer for 64-bit cl (VC++)\n"
+# endif
+#else
+# ifdef __GNUC__
+        "won32_sanitizer --- Won32 sanitizer for 32-bit gcc\n"
+# else
+        "won32_sanitizer --- Won32 sanitizer for 32-bit cl (VC++)\n"
+# endif
+#endif
+        "Version 0.2" << std::endl;
 }
 
 void WsSplit(std::vector<std::string>& v, const std::string& s, char separator) {
@@ -96,6 +108,9 @@ bool WsJustDoIt(
         "#include \"win32.h\"\n" << 
         "#include <stdio.h>\n" << 
         "\n" << 
+        "/* fixup */\n" <<
+        "#undef RASCTRYINFO\n" <<
+        "#undef RASIPADDR\n" <<
         "#undef PROCESSENTRY32\n" << 
         "#undef MODULEENTRY32\n" << 
         "\n" << 
@@ -120,10 +135,6 @@ bool WsJustDoIt(
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" <<
-        "/* fixup */\n" <<
-        "#undef RASCTRYINFO\n" <<
-        "#undef RASIPADDR\n" <<
-        "\n" <<
         "int main(void) {" << std::endl;
 
     std::vector<std::string> fields;
@@ -139,18 +150,18 @@ bool WsJustDoIt(
         while (std::getline(in1, line)) {
             WsSplitByTabs(fields, line);
 
-            auto type_id = atoi(fields[0].data());
+            //auto type_id = atoi(fields[0].data());
             auto name = fields[1];
-            auto flags = strtol(fields[2].data(), NULL, 16);
+            auto flags = strtol(fields[2].data(), NULL, 0);
             //auto sub_id = atoi(fields[3].data());
             //auto count = atoi(fields[4].data());
             auto size = atoi(fields[5].data());
             auto align = atoi(fields[6].data());
             if (size && name.size() && name.find("*") == std::string::npos) {
-                const long c_flags =
-                    (TF_STRUCT | TF_UNION | TF_ENUM | TF_ENUMITEM | TF_CONST |
-                     TF_INCOMPLETE | TF_FUNCTION);
-                if (!(flags & c_flags)) {
+                const long excl_flags =
+                    (TF_STRUCT | TF_UNION | TF_ENUM | TF_ENUMITEM |
+                     TF_INCOMPLETE | TF_FUNCTION | TF_INACCURATE);
+                if (!(flags & excl_flags)) {
                     out << "\tcheck_align(" << name << ", " << align << ");" <<
                            std::endl;
                     out << "\tcheck_size(" << name << ", " << size << ");" <<
@@ -178,19 +189,29 @@ bool WsJustDoIt(
             //auto struct_id = atoi(fields[0].data());
             auto name = fields[1];
             //auto type_id = atoi(fields[2].data());
-            //auto is_struct = atoi(fields[3].data());
-            auto size = atoi(fields[4].data());
-            auto count = atoi(fields[5].data());
-            auto pack = atoi(fields[6].data());
-            auto align = atoi(fields[7].data());
-            auto is_complate = atoi(fields[8].data());
+            auto flags = strtol(fields[3].data(), NULL, 0);
+            //auto is_struct = atoi(fields[4].data());
+            auto size = atoi(fields[5].data());
+            auto count = atoi(fields[6].data());
+            //auto pack = atoi(fields[7].data());
+            auto align = atoi(fields[8].data());
             //auto alignas = atoi(fields[9].data());
-            if (size && name.size() && count && is_complate) {
-                out << "\tcheck_align(" << name << ", " << align << ");" <<
-                       std::endl;
-                out << "\tcheck_size(" << name << ", " << size << ");" <<
-                       std::endl;
-            }
+            #ifdef __GNUC__
+                // NOTE: MinGW gcc wrongly calculates size and alignment. ignore 'em
+                if (size && name.size() && count && !(flags & TF_INACCURATE)) {
+                    out << "\tcheck_align(" << name << ", " << align << ");" <<
+                           std::endl;
+                    out << "\tcheck_size(" << name << ", " << size << ");" <<
+                           std::endl;
+                }
+            #else
+                if (size && name.size() && count) {
+                    out << "\tcheck_align(" << name << ", " << align << ");" <<
+                           std::endl;
+                    out << "\tcheck_size(" << name << ", " << size << ");" <<
+                           std::endl;
+                }
+            #endif
         }
     } else {
         out.close();

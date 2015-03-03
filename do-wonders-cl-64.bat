@@ -189,16 +189,19 @@ type tmp.log >>dll-info-64.log
 del tmp.log
 
 cd WondersXP
+echo WondersXP
 call do-cl-64.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd WondersVista
+echo WondersVista
 call do-cl-64.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
 cd Wonders7
+echo Wonders7
 call do-cl-64.bat
 if ERRORLEVEL 1 goto error
 cd ..
@@ -206,7 +209,7 @@ cd ..
 exit /b 0
 
 :error
-echo ERROR: ERRORLEVEL >= 1
+echo ERROR: ERRORLEVEL
 exit /b 1
 
 :label_no_redirector64

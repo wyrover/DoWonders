@@ -58,7 +58,7 @@ namespace cparser
                     for (int i = 0; i < count; ++i) {
                         if (infos_end != it) {
                             around += lexer.node_to_string(*it);
-                            around += " ";
+                            around += ' ';
                             ++it;
                         }
                         else

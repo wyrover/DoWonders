@@ -55,7 +55,10 @@
 #include <mapi.h>
 
 /* perf data helper */
-#include <pdh.h>
+#if !defined(__GNUC__) || (_WIN32_WINNT < 0x0600)
+    // NOTE: MinGW has bug in <pdh.h> on _WIN32_WINNT >= 0x0600
+    #include <pdh.h>
+#endif
 
 /* setup-related */
 #include <msi.h>
@@ -91,12 +94,17 @@
 #include <wincred.h>
 
 #include <nspapi.h>
+
+// NOTE: <wsdapi.h> is likely not available on C
 //#include <wsdapi.h>
+
+// NOTE: <winhttp.h> is not compatible to <wininet.h>
 //#include <winhttp.h>
 
 /* more misc. */
 #include <lmrepl.h>
 #if !defined(__GNUC__) || (_WIN32_WINNT < 0x0600)
+    // NOTE: MinGW has bug in <dhcpsapi.h> on _WIN32_WINNT >= 0x0600
     #include <dhcpsapi.h>
 #endif
 #include <urlmon.h>

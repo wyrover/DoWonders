@@ -7,7 +7,7 @@ CC = gcc
 MAKE = make
 MCPP = ../tools/mcpp-2.7.2-hacked/src/mcpp$(DOTEXE)
 CPARSER = ../tools/cparser/cparser64$(DOTEXE)
-WON32_SANITIZE = ../tools/won32_sanitizer/won32_sanitizer64$(DOTEXE)
+WON32_SANITIZER = ../tools/won32_sanitizer/won32_sanitizer64$(DOTEXE)
 
 DO_WONDERS_MINGW = /mingw/*-*-mingw*/
 DO_WONDERS_MINGW2 = /mingw/lib/gcc/*-*-mingw*/*.*.*/
@@ -31,14 +31,14 @@ ansi_types: $(CPARSER)
 wide_types: $(CPARSER)
 	$(CPARSER) --nologo -64 --suffix -gcc-64-w.dat win32.h $(PREDEF_COMMON) -m64 -DUNICODE -D_UNICODE >cparser-gcc-64-w.log 2>&1
 
-ansi_sanitize: $(WON32_SANITIZE)
-	$(WON32_SANITIZE) --suffix -gcc-64-a.dat
-	$(CC) -m64 -DMBCS -D_MBCS -o sanitize-gcc-64-a$(DOTEXE) sanitize-gcc-64-a.c >sanitize-gcc-64-a.log 2>&1
+ansi_sanitize: $(WON32_SANITIZER)
+	$(WON32_SANITIZER) --suffix -gcc-64-a.dat
+	$(CC) -m64 -DMBCS -D_MBCS -o sanitize-gcc-64-a$(DOTEXE) sanitize-gcc-64-a.c -lole32 >sanitize-gcc-64-a.log 2>&1
 	sanitize-gcc-64-a$(DOTEXE)
 
-wide_sanitize: $(WON32_SANITIZE)
-	$(WON32_SANITIZE) --suffix -gcc-64-w.dat
-	$(CC) -m64 -DUNICODE -D_UNICODE -o sanitize-gcc-64-w$(DOTEXE) sanitize-gcc-64-w.c >sanitize-gcc-64-w.log 2>&1
+wide_sanitize: $(WON32_SANITIZER)
+	$(WON32_SANITIZER) --suffix -gcc-64-w.dat
+	$(CC) -m64 -DUNICODE -D_UNICODE -o sanitize-gcc-64-w$(DOTEXE) sanitize-gcc-64-w.c -lole32 >sanitize-gcc-64-w.log 2>&1
 	sanitize-gcc-64-w$(DOTEXE)
 
 $(MCPP):

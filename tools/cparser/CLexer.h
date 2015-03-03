@@ -121,7 +121,7 @@ namespace cparser
 
         void show_tokens(node_iterator begin, node_iterator end) const {
             for (auto it = begin; it != end; ++it) {
-                std::printf("%s ", node_to_string(*it).data());
+                printf("%s ", node_to_string(*it).data());
             }
         }
 

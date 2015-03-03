@@ -1,6 +1,6 @@
 @echo off
 
-set CC=cl
+set CC=cl /Ot
 
 SET REDIRECTOR=..\tools\redirector\x64\Release\redirector64.exe
 if not exist %REDIRECTOR% goto label_no_redirector

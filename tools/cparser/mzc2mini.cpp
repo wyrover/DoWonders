@@ -465,7 +465,7 @@ BOOL __cdecl MFile::WriteFormatA(LPCSTR pszFormat, ...)
     va_list argList;
     CHAR sz[1024];
     va_start(argList, pszFormat);
-    std::vsprintf(sz, pszFormat, argList);
+    vsprintf(sz, pszFormat, argList);
     BOOL b = WriteSzA(sz);
     va_end(argList);
     return b;
