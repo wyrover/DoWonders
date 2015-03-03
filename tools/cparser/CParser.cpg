@@ -114,6 +114,7 @@
 %token T_UNALIGNED<CR_TokenNode>;
 %token T_UNION<CR_TokenNode>;
 %token T_UNSIGNED<CR_TokenNode>;
+%token T_VECTOR_SIZE<CR_TokenNode>;
 %token T_VOID<CR_TokenNode>;
 %token T_VOLATILE<CR_TokenNode>;
 %token T_WHILE<CR_TokenNode>;
@@ -148,6 +149,7 @@ declaration_list<DeclList>
 
 declaration<Decl>
     : [DoDecl1a] T_TYPEDEF(0) alignment_specifier(1) typedef_declaration_specifiers(2) typedef_declarator_list(3) T_SEMICOLON
+    | [DoDecl1v] T_TYPEDEF(0) typedef_declaration_specifiers(1) typedef_declarator_list(2) T_VECTOR_SIZE T_L_PAREN T_CONSTANT(3) T_R_PAREN T_SEMICOLON
     | [DoDecl1]  T_TYPEDEF(0) typedef_declaration_specifiers(1) typedef_declarator_list(2) T_SEMICOLON
     | [DoDecl7a] T_TYPEDEF(0) alignment_specifier(1) typedef_declaration_specifiers(2) T_SEMICOLON  // fixup
     | [DoDecl7]  T_TYPEDEF(0) typedef_declaration_specifiers(1) T_SEMICOLON  // fixup

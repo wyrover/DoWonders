@@ -127,6 +127,7 @@ namespace cparser
         shared_ptr<AsmSpec>             m_asm_spec;             // can be NULL
         shared_ptr<AsmBlock>            m_asm_block;            // can be NULL
         shared_ptr<AlignSpec>           m_align_spec;           // can be NULL
+        std::string                     m_constant;
     };
 
     struct DeclList : Node, std::vector<shared_ptr<Decl>> {

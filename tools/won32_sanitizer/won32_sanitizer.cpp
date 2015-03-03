@@ -41,7 +41,7 @@ enum {
     TF_ATOMIC       = 0x01000000,
     TF_PTR32        = 0x02000000,
     TF_INACCURATE   = 0x04000000,   // size and/or alignment is not accurate
-    //                0x08000000 is absent
+    TF_VECTOR       = 0x08000000,
     TF_BITFIELD     = 0x10000000,
     TF_ALIAS        = 0x20000000,
     TF_ENUMITEM     = 0x40000000,   // CodeReverse extension

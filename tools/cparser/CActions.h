@@ -184,6 +184,22 @@ namespace cparser
             return shared_ptr<Decl>(decl);
         }
 
+        shared_ptr<Decl> DoDecl1v(
+            shared_ptr<CR_TokenNode>& def, shared_ptr<DeclSpecs>& ds,
+            shared_ptr<DeclorList>& dl, shared_ptr<CR_TokenNode>& constant)
+        {
+            #ifdef DEEPDEBUG
+                printf("DoDecl1v\n");
+            #endif
+            Decl *decl = new Decl;
+            decl->location() = def->location();
+            decl->m_decl_type = Decl::TYPEDEF;
+            decl->m_decl_specs = ds;
+            decl->m_declor_list = dl;
+            decl->m_constant = constant->m_text;
+            return shared_ptr<Decl>(decl);
+        }
+
         shared_ptr<Decl> DoDecl1(
             shared_ptr<CR_TokenNode>& def,
             shared_ptr<DeclSpecs>& ds, shared_ptr<DeclorList>& dl)

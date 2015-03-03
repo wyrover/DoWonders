@@ -41,7 +41,7 @@ enum {
     TF_ATOMIC       = 0x01000000,
     TF_PTR32        = 0x02000000,
     TF_INACCURATE   = 0x04000000,   // size and/or alignment is not accurate
-    //                0x08000000 is absent
+    TF_VECTOR       = 0x08000000,
     TF_BITFIELD     = 0x10000000,
     TF_ALIAS        = 0x20000000,
     TF_ENUMITEM     = 0x40000000,   // CodeReverse extension
@@ -138,6 +138,7 @@ struct CR_LogType {
     // For TF_ARRAY:                A type ID (CR_TypeID).
     // For TF_CONST:                A type ID (CR_TypeID).
     // For TF_CONST | TF_POINTER:   A type ID (CR_TypeID).
+    // For TF_VECTOR:               A type ID (CR_TypeID).
     // For TF_FUNCTION:             A function ID (CR_FuncID).
     // For TF_STRUCT:               A struct ID (CR_StructID).
     // For TF_ENUM:                 An enum ID (CR_EnumID).
@@ -146,6 +147,8 @@ struct CR_LogType {
     // otherwise: zero
 
     size_t          m_count;        // for TF_ARRAY, TF_STRUCT, TF_UNION
+                                    //     TF_VECTOR
+
     int             m_size;         // the size of type
     int             m_align;        // alignment requirement of type
     int             m_alignas;      // # of alignas(#) if specified
@@ -517,6 +520,10 @@ public:
             type1.m_flags = TF_ARRAY;
             type1.m_size = type2.m_size * count;
             type1.m_align = type2.m_align;
+            if (type1.m_alignas < type2.m_alignas) {
+                type1.m_alignas = type2.m_alignas;
+                type1.m_align = type2.m_alignas;
+            }
         }
         if (type2.m_flags & TF_BITFIELD) {
             type1.m_flags |= TF_BITFIELD;
@@ -528,6 +535,33 @@ public:
         m_mTypeIDToName[tid] = "";
         return tid;
     } // AddArrayType
+
+    CR_TypeID AddVectorType(
+        const std::string& name, CR_TypeID tid, int vector_size,
+        const CR_Location& location)
+    {
+        assert(tid != cr_invalid_id);
+        CR_LogType type1;
+        auto& type2 = LogType(tid);
+        if (type2.m_flags & TF_INCOMPLETE) {
+            type1.m_flags = TF_VECTOR | TF_INCOMPLETE;
+        } else {
+            type1.m_flags = TF_VECTOR;
+            type1.m_count = vector_size / type2.m_size;
+        }
+        type1.m_size = vector_size;
+        type1.m_align = vector_size;
+        type1.m_alignas = vector_size;
+        if (type2.m_flags & TF_BITFIELD) {
+            type1.m_flags |= TF_BITFIELD;
+        }
+        type1.m_sub_id = tid;
+        type1.location() = location;
+        tid = m_types.AddUnique(type1);
+        m_mNameToTypeID[name] = tid;
+        m_mTypeIDToName[tid] = name;
+        return tid;
+    } // AddVectorSize
 
     CR_TypeID AddFuncType(const CR_LogFunc& lf, const CR_Location& location) {
         CR_LogFunc func(lf);
@@ -944,6 +978,9 @@ public:
                 type.m_alignas = type2.m_alignas;
                 if (type2.m_alignas) {
                     type.m_align = type2.m_alignas;
+                    if (type.m_alignas < type2.m_alignas) {
+                        type.m_alignas = type2.m_alignas;
+                    }
                 }
                 #ifdef __GNUC__
                     if (type2.m_flags & TF_INACCURATE) {
@@ -963,8 +1000,28 @@ public:
                 const auto& type2 = LogType(type.m_sub_id);
                 type.m_size = type2.m_size * static_cast<int>(type.m_count);
                 type.m_align = type2.m_align;
-                type.m_alignas = type2.m_alignas;
-                if (type2.m_alignas) {
+                if (type.m_alignas < type2.m_alignas) {
+                    type.m_alignas = type2.m_alignas;
+                    type.m_align = type2.m_alignas;
+                }
+                #ifdef __GNUC__
+                    if (type2.m_flags & TF_INACCURATE) {
+                        type.m_flags |= TF_INACCURATE;
+                    }
+                #endif
+                type.m_flags &= ~TF_INCOMPLETE;
+                return true;
+            }
+            return false;
+        }
+        if (type.m_flags & TF_VECTOR) {
+            if (CompleteType(type.m_sub_id)) {
+                const auto& type2 = LogType(type.m_sub_id);
+                if (type2.m_size) {
+                    type.m_count = type.m_size / type2.m_size;
+                }
+                if (type.m_alignas < type2.m_alignas) {
+                    type.m_alignas = type2.m_alignas;
                     type.m_align = type2.m_alignas;
                 }
                 #ifdef __GNUC__
@@ -985,6 +1042,9 @@ public:
                 type.m_alignas = type2.m_alignas;
                 if (type2.m_alignas) {
                     type.m_align = type2.m_alignas;
+                    if (type.m_alignas < type2.m_alignas) {
+                        type.m_alignas = type2.m_alignas;
+                    }
                 }
                 #ifdef __GNUC__
                     if (type2.m_flags & TF_INACCURATE) {
@@ -1152,8 +1212,8 @@ public:
             // if type was enumitem (CodeReverse extension)
             return "enumitem " + type_name + " = " + name;
         }
-        if (type.m_flags & TF_ARRAY) {
-            // if type was array
+        if (type.m_flags & (TF_ARRAY | TF_VECTOR)) {
+            // if type was array or vector
             if (type.m_count) {
                 std::string s = "[";
                 s += std::to_string(type.m_count);
@@ -1212,7 +1272,7 @@ public:
                 } else {
                     return StringOfType(sub_id, "(*" + name + ")", false);
                 }
-            } else if (type2.m_flags & TF_ARRAY) {
+            } else if (type2.m_flags & (TF_ARRAY | TF_VECTOR)) {
                 // pointer to array
                 if (type.m_flags & TF_CONST) {
                     // pointer to const array
@@ -1292,7 +1352,7 @@ public:
     // Is the type a CodeReverse extension type?
     bool IsCrExtendedType(CR_TypeID tid) const {
         const auto& type = LogType(tid);
-        if (type.m_flags & (TF_POINTER | TF_ARRAY | TF_CONST)) {
+        if (type.m_flags & (TF_POINTER | TF_ARRAY | TF_VECTOR | TF_CONST)) {
             return IsCrExtendedType(type.m_sub_id);
         }
         const CR_TypeFlags flags = TF_ENUMITEM;
@@ -1321,7 +1381,7 @@ public:
         }
         const CR_TypeFlags flags =
             (TF_ALIAS | TF_FUNCTION | TF_STRUCT | TF_ENUM |
-             TF_UNION | TF_ENUMITEM);
+             TF_UNION | TF_ENUMITEM | TF_VECTOR);
         if (type.m_flags & flags) {
             return false;
         }
@@ -1335,8 +1395,8 @@ public:
             return false;
         tid = ResolveAlias(tid);
         const CR_TypeFlags not_flags =
-            (TF_DOUBLE | TF_FLOAT | TF_POINTER | TF_ARRAY | TF_FUNCTION |
-             TF_VA_LIST | TF_STRUCT | TF_UNION | TF_ENUM);
+            (TF_DOUBLE | TF_FLOAT | TF_POINTER | TF_ARRAY | TF_VECTOR |
+             TF_FUNCTION | TF_VA_LIST | TF_STRUCT | TF_UNION | TF_ENUM);
         if (m_types[tid].m_flags & not_flags)
             return false;
         const CR_TypeFlags flags =

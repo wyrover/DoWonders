@@ -903,13 +903,19 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
 
 // 1. Convert __declspec(align(#)) to _Alignas(#).
 // 2. Convert __attribute__((__aligned__(#))) to _Alignas(#).
+// 3. Convert __attribute__((__vector_size__(#))) to __vector_size__(#).
+// 4. Convert __attribute__((__vector_size__(#), __may_alias__)) to __vector_size__(#).
 void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
     node_container newc;
     newc.reserve(c.size());
 
-    node_iterator it, it2, end = c.end();
+    node_iterator it, it0, end = c.end();
     bool flag;
     for (it = c.begin(); it != end; ++it) {
+        if (it->m_token == T_TYPEDEF) {
+            it0 = it;
+        }
+
         // __declspec(align(#))
         flag = token_pattern_match(base, it, end,
             {T_DECLSPEC, T_L_PAREN, eof, T_L_PAREN, eof, T_R_PAREN, T_R_PAREN}
@@ -927,14 +933,19 @@ void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
             ++it;
             continue;
         }
-        // __attribute__((__aligned__(#)))
+        // __attribute__((...(#)))
         flag = token_pattern_match(base, it, end,
             {
                 T_ATTRIBUTE, T_L_PAREN, T_L_PAREN,
-                    eof, T_L_PAREN, eof, T_R_PAREN, T_R_PAREN, T_R_PAREN
+                    eof, T_L_PAREN, eof, T_R_PAREN,
+                T_R_PAREN, T_R_PAREN
             }
         );
-        if (flag && (it + 3)->m_text == "__aligned__") {
+        if (flag && ((it + 3)->m_text == "__aligned__" ||
+                     (it + 3)->m_text == "__aligned" ||
+                     (it + 3)->m_text == "aligned"))
+        {
+            // __attribute__((__aligned__(#)))
             it += 3;
             it->m_token = T_ALIGNAS;
             newc.push_back(*it);    // _Alignas
@@ -945,6 +956,51 @@ void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
             ++it;
             newc.push_back(*it);    // )
             it += 2;
+            continue;
+        }
+        if (flag && ((it + 3)->m_text == "__vector_size__" ||
+                     (it + 3)->m_text == "__vector_size" ||
+                     (it + 3)->m_text == "vector_size"))
+        {
+            // __attribute__((__vector_size__(#)))
+            it += 3;
+            it->m_token = T_VECTOR_SIZE;
+            newc.push_back(*it);    // __vector_size__
+            ++it;
+            newc.push_back(*it);    // (
+            ++it;
+            newc.push_back(*it);    // #
+            ++it;
+            newc.push_back(*it);    // )
+            it += 2;
+            continue;
+        }
+        // __attribute__((...(#), ?))
+        flag = token_pattern_match(base, it, end,
+            {
+                T_ATTRIBUTE, T_L_PAREN, T_L_PAREN,
+                    eof, T_L_PAREN, eof, T_R_PAREN, T_COMMA, eof,
+                T_R_PAREN, T_R_PAREN
+            }
+        );
+        if (flag && ((it + 3)->m_text == "__vector_size__" ||
+                     (it + 3)->m_text == "__vector_size" ||
+                     (it + 3)->m_text == "vector_size") &&
+                    ((it + 8)->m_text == "__may_alias__" ||
+                     (it + 8)->m_text == "__may_alias" ||
+                     (it + 8)->m_text == "may_alias"))
+        {
+            // __attribute__((__vector_size__(#), __may_alias__))
+            it += 3;
+            it->m_token = T_VECTOR_SIZE;
+            newc.push_back(*it);    // __vector_size__
+            ++it;
+            newc.push_back(*it);    // (
+            ++it;
+            newc.push_back(*it);    // #
+            ++it;
+            newc.push_back(*it);    // )
+            it += 4;
             continue;
         }
         newc.push_back(*it);
@@ -1009,7 +1065,9 @@ void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
             }
             if (it->m_token == T_IDENTIFIER) {
                 it->set_token(T_TAGNAME);
-                if ((it + 1)->m_token == T_SEMICOLON) {
+                if ((it + 1)->m_token == T_SEMICOLON ||
+                    (it + 1)->m_token == T_VECTOR_SIZE)
+                {
                     // struct tag_name; fixup
                     m_type_names.insert(it->m_text);
                 }
@@ -1039,7 +1097,7 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
     int paren_nest = 0, brace_nest = 0, bracket_nest = 0;
     node_iterator it;
     for (it = begin; it != end; ++it) {
-        if (brace_nest == 0 && it->m_token == T_SEMICOLON)
+        if (brace_nest == 0 && (it->m_token == T_SEMICOLON || it->m_token == T_VECTOR_SIZE))
             break;
         else if (it->m_token == T_L_BRACE)
             brace_nest++;
@@ -1063,7 +1121,8 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
             if (brace_nest == 0 && bracket_nest == 0) {
                 if (m_type_names.count(it->m_text)) {
                     ++it;
-                    if (it->m_token == T_SEMICOLON || it->m_token == T_R_PAREN ||
+                    if (it->m_token == T_SEMICOLON || it->m_token == T_VECTOR_SIZE ||
+                        it->m_token == T_R_PAREN ||
                         it->m_token == T_L_BRACKET || it->m_token == T_COMMA)
                     {
                         // type name followed by ;)[,
@@ -1105,7 +1164,7 @@ cparser::Lexer::resynth_parameter_list(
     bool fresh = true;
     node_iterator it;
     for (it = begin; it != end; ++it) {
-        if (it->m_token == T_SEMICOLON)
+        if (it->m_token == T_SEMICOLON || it->m_token == T_VECTOR_SIZE)
             break;
         else if (it->m_token == T_L_PAREN) {
             paren_nest++;
@@ -2382,6 +2441,91 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
     }
 }
 
+void CrAnalyseTypedefDeclorListVector(
+    CR_NameScope& namescope, CR_TypeID tid,
+    DeclorList *dl, AlignSpec *as, int vector_size,
+    const CR_Location& location)
+{
+    assert(dl);
+    for (auto& declor : *dl) {
+        CR_TypeID tid2 = tid;
+
+        int value;
+        Declor *d = declor.get();
+        while (d) {
+            CR_String name;
+            switch (d->m_declor_type) {
+            case Declor::TYPEDEF_TAG:
+                assert(!d->m_name.empty());
+                name = d->m_name;
+                if (as) {
+                    int alignas_ = 0;
+                    switch (as->m_align_spec_type) {
+                    case AlignSpec::TYPENAME:
+                        // TODO: 
+                        assert(0);
+                        break;
+
+                    case AlignSpec::CONSTEXPR:
+                        alignas_ =
+                            CrCalcConstIntCondExpr(namescope,
+                                as->m_const_expr.get());
+                    }
+                    namescope.SetAlignas(tid2, alignas_);
+                }
+                if (d->m_flags && namescope.IsFuncType(tid2)) {
+                    namescope.AddTypeFlags(tid2, d->m_flags);
+                }
+                namescope.AddVectorType(name, tid2, vector_size, location);
+                d = NULL;
+                break;
+
+            case Declor::POINTERS:
+                if (namescope.IsFuncType(tid2)) {
+                    Pointers *pointers = d->m_pointers.get();
+                    auto ac = (*pointers)[0];
+                    namescope.AddTypeFlags(tid2, ac->m_flags);
+                }
+                tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, location);
+                d = d->m_declor.get();
+                continue;
+
+            case Declor::ARRAY:
+                if (d->m_const_expr)
+                    value = CrCalcConstIntCondExpr(namescope, d->m_const_expr.get());
+                else
+                    value = 0;
+                tid2 = namescope.AddArrayType(tid2, value, location);
+                d = d->m_declor.get();
+                continue;
+
+            case Declor::FUNCTION:
+                {
+                    CR_LogFunc func;
+                    func.m_return_type = tid2;
+                    if (d->m_param_list) {
+                        CrAnalyseParamList(namescope, func, d->m_param_list.get());
+                    }
+                    tid2 = namescope.AddFuncType(func, d->location());
+                    d = d->m_declor.get();
+                }
+                continue;
+
+            case Declor::BITS:
+                // TODO:
+                assert(0);
+                d = NULL;
+                break;
+
+            default:
+                assert(0);
+                d = NULL;
+                break;
+            }
+        }
+    }
+}
+
 void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                          DeclorList *dl)
 {
@@ -2524,9 +2668,16 @@ void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl) {
         switch (decl->m_decl_type) {
         case Decl::TYPEDEF:
             if (decl->m_declor_list.get()) {
-                CrAnalyseTypedefDeclorList(namescope, tid,
-                    decl->m_declor_list.get(), decl->m_align_spec.get(),
-                    decl->location());
+                if (decl->m_constant.size()) {
+                    int vector_size = std::stoul(decl->m_constant, NULL, 0);
+                    CrAnalyseTypedefDeclorListVector(namescope, tid,
+                        decl->m_declor_list.get(), decl->m_align_spec.get(),
+                        vector_size, decl->location());
+                } else {
+                    CrAnalyseTypedefDeclorList(namescope, tid,
+                        decl->m_declor_list.get(), decl->m_align_spec.get(),
+                        decl->location());
+                }
             }
             break;
 
@@ -3150,10 +3301,17 @@ int CrSemanticAnalysis(
                 if (decl->m_decl_type == Decl::TYPEDEF) {
                     fflush(stderr);
                     if (dl.get()) {
-                        CrAnalyseTypedefDeclorList(
-                            namescope, tid, dl.get(),
-                            decl->m_align_spec.get(),
-                            decl->location());
+                        if (decl->m_constant.size()) {
+                            int vector_size = std::stoul(decl->m_constant, NULL, 0);
+                            CrAnalyseTypedefDeclorListVector(namescope, tid,
+                                decl->m_declor_list.get(), decl->m_align_spec.get(),
+                                vector_size, decl->location());
+                        } else {
+                            CrAnalyseTypedefDeclorList(
+                                namescope, tid, dl.get(),
+                                decl->m_align_spec.get(),
+                                decl->location());
+                        }
                     }
                 } else {
                     fflush(stderr);
