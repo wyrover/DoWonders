@@ -41,6 +41,9 @@ ________
 "sanitize-cl-32.bat" か "sanitize-cl-64.bat" でデータベースをチェックできま
 す。
 
+すべてのデータは、ここからダウンロードできます：
+http://drive.google.com/uc?export=view&id=0B3nA8ShVAS4OOFMxUnBJemNJRFE
+
 ______
 |状態|
 ~~~~~~
