@@ -58,3 +58,5 @@ tools/won32_sanitizer/x64
 !tools/won32_sanitizer/x64/Release/redirector64.exe
 Wonders*/sanitize-*.c
 Wonders*/sanitize-*.exe
+pack-cl-32/
+pack-cl-64/
