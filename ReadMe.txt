@@ -20,7 +20,7 @@ _______
 |USAGE|
 ~~~~~~~
 At first, please build all tools by Visual C++ in folder "tools". Be careful:
-there is 4 ways to build:
+there are 4 ways to build:
 
     * Win32 + Debug
     * Win32 + Release
