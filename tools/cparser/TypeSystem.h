@@ -116,6 +116,15 @@ struct CR_Value {
     size_t m_size;
 
     CR_Value() : m_ptr(NULL), m_size(0) { }
+
+    CR_Value(void *ptr, size_t size) : m_ptr(NULL), m_size(0) {
+        m_ptr = malloc(size + 1);
+        if (m_ptr) {
+            memcpy(m_ptr, ptr, size);
+            m_size = size;
+        }
+    }
+
     virtual ~CR_Value() { free(m_ptr); }
 
     void Copy(const CR_Value& value) {
@@ -162,6 +171,9 @@ struct CR_Value {
         assert(sizeof(T_VALUE) <= m_size);
         return *reinterpret_cast<const T_VALUE *>(m_ptr);
     }
+
+    bool empty() const { return m_size == 0; }
+    size_t size() const { return m_size; }
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -174,6 +186,11 @@ struct CR_TypedValue {
     CR_TypedValue() : m_tid(0), m_value() { }
     CR_TypedValue(CR_TypeID tid, const CR_Value& value) :
         m_tid(tid), m_value(value) { }
+    CR_TypedValue(CR_TypeID tid, void *ptr, size_t size) :
+        m_tid(tid), m_value(ptr, size) { }
+
+    bool empty() const { return m_value.empty(); }
+    size_t size() const { return m_value.size(); }
 };
 
 ////////////////////////////////////////////////////////////////////////////
