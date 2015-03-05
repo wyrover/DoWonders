@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////////////////
+// Main.cpp
+// Copyright (C) 2014-2015 Katayama Hirofumi MZ.  All rights reserved.
+////////////////////////////////////////////////////////////////////////////
+// This file is part of CodeReverse. See file ReadMe.txt and License.txt.
+////////////////////////////////////////////////////////////////////////////
+
 #include "stdafx.h"
 #include "CParseHeader.h"
 
@@ -7,21 +14,21 @@ const char * const cr_logo =
     "///////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser 0.2.7 (64-bit) for gcc        //\n"
+    "// CParser 0.2.8 (64-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.2.7 (64-bit) for clang      //\n"
+    "// CParser 0.2.8 (64-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.2.7 (64-bit) for cl (VC++)  //\n"
+    "// CParser 0.2.8 (64-bit) for cl (VC++)  //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser 0.2.7 (32-bit) for gcc        //\n"
+    "// CParser 0.2.8 (32-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.2.7 (32-bit) for clang      //\n"
+    "// CParser 0.2.8 (32-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.2.7 (32-bit) for cl (VC++)  //\n"
+    "// CParser 0.2.8 (32-bit) for cl (VC++)  //\n"
 # else
 #  error You lose!
 # endif

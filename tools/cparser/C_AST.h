@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////////////////
+// C_AST.h
+// Copyright (C) 2014-2015 Katayama Hirofumi MZ.  All rights reserved.
+////////////////////////////////////////////////////////////////////////////
+// This file is part of CodeReverse. See file ReadMe.txt and License.txt.
+////////////////////////////////////////////////////////////////////////////
+
 #ifndef CPARSER_AST_H_
 #define CPARSER_AST_H_
 
@@ -67,14 +74,14 @@ namespace cparser
     //
     struct Node {
         Node() { }
-        Node(const CR_Location& location) : m_loc(location) { }
+        Node(const CR_Location& location) : m_location(location) { }
         virtual ~Node() { }
 
-              CR_Location& location()       { return m_loc; }
-        const CR_Location& location() const { return m_loc; }
+              CR_Location& location()       { return m_location; }
+        const CR_Location& location() const { return m_location; }
 
     protected:
-        CR_Location  m_loc;
+        CR_Location  m_location;
     };
 
     struct Declor : Node {

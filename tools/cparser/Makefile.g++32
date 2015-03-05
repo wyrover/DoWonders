@@ -18,19 +18,21 @@ CXXFLAGS = -std=c++11
 OBJS = \
 	Main$(DOTOBJ) \
 	mzc2mini$(DOTOBJ) \
+	TypeSystem$(DOTOBJ) \
 
 CR_HEADERS = \
 	stdafx.h \
+	Location.h \
 	Main.h \
+	TypeSystem.h \
+	C_AST.h \
 	mzc2mini.h \
 
 CPARSER_HEADER = \
 	CParseHeader.h \
-	CLexer.h \
-	C_AST.h \
-	CActions.h \
 	CParser.h \
-	TypeSystem.h \
+	CLexer.h \
+	CActions.h \
 
 all: cparser$(DOTEXE)
 
@@ -41,6 +43,8 @@ Main$(DOTOBJ): $(CR_HEADERS) $(CPARSER_HEADER) Main.cpp
 	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o Main$(DOTOBJ) Main.cpp
 mzc2mini$(DOTOBJ): $(CR_HEADERS) mzc2mini.cpp
 	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o mzc2mini$(DOTOBJ) mzc2mini.cpp
+TypeSystem$(DOTOBJ): $(CR_HEADERS) TypeSystem.cpp
+	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o TypeSystem$(DOTOBJ) TypeSystem.cpp
 
 CParser.h: $(CAPER) CParser.cpg
 	$(CAPER) CParser.cpg CParser.h

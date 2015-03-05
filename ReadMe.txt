@@ -5,9 +5,9 @@
                               by katahiromz
                       ------------------------------
 
-__________
++--------+
 |ABSTRACT|
-~~~~~~~~~~
++--------+
 This is Win32 API Database Project (DoWonders). 100% open technology.
 
 DoWonders contains C/Win32 parser (cparser), a hacked C preprocessor 
@@ -16,9 +16,9 @@ DoWonders contains C/Win32 parser (cparser), a hacked C preprocessor
 cparser extracts type information on Win32 API. mcpp-hacked extracts macro 
 information. dllexpdumper extracts DLL information.
 
-_______
++-----+
 |USAGE|
-~~~~~~~
++-----+
 At first, please build all tools by Visual C++ in folder "tools". Be careful:
 there are 4 ways to build:
 
@@ -38,9 +38,9 @@ You can check the database by "sanitize-cl-32.bat" or "sanitize-cl-64.bat".
 All data are downloadable from here:
 http://drive.google.com/uc?export=view&id=0B3nA8ShVAS4OOFMxUnBJemNJRFE
 
-________
++------+
 |STATUS|
-~~~~~~~~
++------+
 We tested on Visual C++ 2013 and TDM-GCC-64 + MSYS.
 
 API Database was sanitized on Visual C++!!!
@@ -49,9 +49,9 @@ NOTE: We couldn't sanitize database on GCC, because GCC contains specific
       bugs and differences from Visual C++. We just trust Visual C++'s 
       behavior.
 
-_______
++-----+
 |TO DO|
-~~~~~~~
++-----+
  * Improve C parser.
  * Create a Web site of the Win32 API database.
  * Provide accessibility to Win32 API for major languages.

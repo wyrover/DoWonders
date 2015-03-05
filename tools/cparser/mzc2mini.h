@@ -2,7 +2,7 @@
 // mzc2mini.h - MZC2 mini
 // Copyright (C) 2012-2013 Katayama Hirofumi MZ.  All rights reserved.
 ////////////////////////////////////////////////////////////////////////////
-// This file is part of CodeReverse and in the Public Domain.
+// This file is part of CodeReverse. See file ReadMe.txt and License.txt.
 ////////////////////////////////////////////////////////////////////////////
 #ifndef MZC2MINI
 #define MZC2MINI
