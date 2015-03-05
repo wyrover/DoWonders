@@ -414,6 +414,15 @@ public:
 
     void CompleteTypeInfo();
 
+    void SetAlignas(CR_TypeID tid, int alignas_) {
+        auto& type = LogType(tid);
+        type.m_align = alignas_;
+        type.m_alignas = alignas_;
+        if (type.m_flags & (TF_STRUCT | TF_UNION)) {
+            LogStruct(type.m_sub_id).m_align = alignas_;
+        }
+    }
+
     //
     // getters
     //
@@ -425,15 +434,6 @@ public:
             return 0;
         auto& type = LogType(tid);
         return type.m_size;
-    }
-
-    void SetAlignas(CR_TypeID tid, int alignas_) {
-        auto& type = LogType(tid);
-        type.m_align = alignas_;
-        type.m_alignas = alignas_;
-        if (type.m_flags & (TF_STRUCT | TF_UNION)) {
-            LogStruct(type.m_sub_id).m_align = alignas_;
-        }
     }
 
     CR_String
