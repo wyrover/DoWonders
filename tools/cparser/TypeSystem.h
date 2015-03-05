@@ -116,6 +116,15 @@ struct CR_Value {
     size_t m_size;
 
     CR_Value() : m_ptr(NULL), m_size(0) { }
+    virtual ~CR_Value() { free(m_ptr); }
+
+    void Copy(const CR_Value& value) {
+        m_ptr = malloc(value.m_size + 1);
+        if (m_ptr) {
+            memcpy(m_ptr, value.m_ptr, value.m_size);
+            m_size = value.m_size;
+        }
+    }
 
     CR_Value(const CR_Value& value) : m_ptr(NULL), m_size(0) {
         Copy(value);
@@ -126,17 +135,33 @@ struct CR_Value {
             free(m_ptr);
             Copy(value);
         }
+        return *this;
     }
 
-    void Copy(const CR_Value& value) {
-        m_ptr = malloc(value.m_size + 1);
-        if (m_ptr) {
-            memcpy(m_ptr, value.m_ptr, value.m_size);
-            m_size = value.m_size;
+    CR_Value(CR_Value&& value) : m_ptr(NULL), m_size(0) {
+        std::swap(m_ptr, value.m_ptr);
+        std::swap(m_size, value.m_size);
+    }
+
+    CR_Value& operator=(CR_Value&& value) {
+        if (this != &value) {
+            std::swap(m_ptr, value.m_ptr);
+            std::swap(m_size, value.m_size);
         }
+        return *this;
     }
 
-	~CR_Value() { free(m_ptr); }
+    template <typename T_VALUE>
+    T_VALUE& get() {
+        assert(sizeof(T_VALUE) <= m_size);
+        return *reinterpret_cast<T_VALUE *>(m_ptr);
+    }
+
+    template <typename T_VALUE>
+    const T_VALUE& get() const {
+        assert(sizeof(T_VALUE) <= m_size);
+        return *reinterpret_cast<const T_VALUE *>(m_ptr);
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////
