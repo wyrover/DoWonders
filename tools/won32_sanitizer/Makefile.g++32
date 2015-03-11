@@ -16,6 +16,7 @@ CXXFLAGS =
 
 OBJS = \
 	won32_sanitizer$(DOTOBJ) \
+	TypeSystem$(DOTOBJ) \
 
 LIBS = 
 
@@ -24,8 +25,10 @@ all: won32_sanitizer$(DOTEXE)
 won32_sanitizer$(DOTEXE): $(OBJS)
 	$(CXX) -o won32_sanitizer$(DOTEXE) $(CXXFLAGS) $(OPTIONS) $(OBJS) $(LIBS)
 
-won32_sanitizer$(DOTOBJ): won32_sanitizer.cpp
+won32_sanitizer$(DOTOBJ): TypeSystem.h won32_sanitizer.cpp
 	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o won32_sanitizer$(DOTOBJ) won32_sanitizer.cpp
+TypeSystem$(DOTOBJ): TypeSystem.h TypeSystem.cpp
+	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o TypeSystem$(DOTOBJ) TypeSystem.cpp
 
 clean:
 	rm -f *$(DOTOBJ)

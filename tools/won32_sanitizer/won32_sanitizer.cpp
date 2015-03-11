@@ -1,56 +1,8 @@
-#define _CRT_SECURE_NO_WARNINGS
-
-#include <iostream>
-#include <fstream>
-
-#include <string>
-#include <vector>
-
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-using namespace std;
-
-enum {
-    TF_VOID         = 0x00000001,
-    TF_CHAR         = 0x00000002,
-    TF_SHORT        = 0x00000004,
-    TF_LONG         = 0x00000008,
-    TF_LONGLONG     = 0x00000010,
-    TF_INT          = 0x00000020,
-    TF_VA_LIST      = 0x00000040,
-    TF_FLOAT        = 0x00000080,
-    TF_DOUBLE       = 0x00000100,
-    TF_SIGNED       = 0,
-    TF_UNSIGNED     = 0x00000200,
-    TF_PTR64        = 0x00000400,
-    TF_STRUCT       = 0x00000800,
-    TF_UNION        = 0x00001000,
-    TF_ENUM         = 0x00002000,
-    TF_POINTER      = 0x00004000,
-    TF_ARRAY        = 0x00008000,
-    TF_FUNCTION     = 0x00010000,
-    TF_INCOMPLETE   = 0x00020000,
-    TF_CDECL        = 0,
-    TF_STDCALL      = 0x00040000,
-    TF_FASTCALL     = 0x00080000,
-    TF_CONST        = 0x00100000,
-    TF_VOLATILE     = 0x00200000,
-    TF_COMPLEX      = 0x00400000,
-    TF_IMAGINARY    = 0x00800000,
-    TF_ATOMIC       = 0x01000000,
-    TF_PTR32        = 0x02000000,
-    TF_INACCURATE   = 0x04000000,   // size and/or alignment is not accurate
-    TF_VECTOR       = 0x08000000,
-    TF_BITFIELD     = 0x10000000,
-    TF_ALIAS        = 0x20000000,
-    TF_ENUMITEM     = 0x40000000,   // CodeReverse extension
-    TF_INT128       = 0x80000000
-};
+#include "stdafx.h"
 
 void WsShowHelp(void) {
     std::cout <<
-        "won32_sanitizer --- Won32 sanitizer" << endl <<
+        "won32_sanitizer --- Won32 sanitizer" << std::endl <<
         "Usage: won32_sanitizer [--prefix ...] [--suffix ...]" << std::endl;
 }
 
@@ -71,23 +23,6 @@ void WsShowVersion(void) {
 #endif
         "Version 0.2" << std::endl;
 }
-
-void WsSplit(std::vector<std::string>& v, const std::string& s, char separator) {
-    std::size_t i = 0, j = s.find_first_of(separator);
-
-    v.clear();
-    while (j != std::string::npos) {
-        v.push_back(s.substr(i, j - i));
-        i = j + 1;
-        j = s.find_first_of(separator, i);
-    }
-    v.push_back(s.substr(i, -1));
-}
-
-void WsSplitByTabs(std::vector<std::string>& fields, const std::string& buf) {
-    WsSplit(fields, buf, '\t');
-}
-
 bool WsJustDoIt(
     const std::string& prefix, const std::string& suffix)
 {
@@ -97,13 +32,24 @@ bool WsJustDoIt(
     }
     std::string strOutput = prefix + "sanitize" + suffix2 + ".c";
 
+    auto error_info = make_shared<CR_ErrorInfo>();
+    #ifdef _WIN64
+        CR_NameScope ns(error_info, true);
+    #else
+        CR_NameScope ns(error_info, false);
+    #endif
+
+    if (!ns.LoadFromFiles(prefix, suffix)) {
+        std::cerr << "ERROR: cannot load data" << std::endl;
+        return false;
+    }
+
     std::fstream out(strOutput, std::ios::out | std::ios::trunc);
     if (!out) {
         std::cerr << "ERROR: cannot create file '" <<
                      strOutput << "'" << std::endl;
         return false;
     }
-
     out <<
         "#include \"win32.h\"\n" << 
         "#include <stdio.h>\n" << 
@@ -137,112 +83,39 @@ bool WsJustDoIt(
         "\n" <<
         "int main(void) {" << std::endl;
 
-    std::vector<std::string> fields;
-
-    out << "\t/* sanitize types */" << std::endl;
-    std::fstream in1((prefix + "types" + suffix), std::ios::in);
-    if (in1) {
-        std::string line;
-
-        // skip title line
-        std::getline(in1, line);
-
-        while (std::getline(in1, line)) {
-            WsSplitByTabs(fields, line);
-
-            //auto type_id = atoi(fields[0].data());
-            auto name = fields[1];
-            auto flags = strtol(fields[2].data(), NULL, 0);
-            //auto sub_id = atoi(fields[3].data());
-            //auto count = atoi(fields[4].data());
-            auto size = atoi(fields[5].data());
-            auto align = atoi(fields[6].data());
-            if (size && name.size() && name.find("*") == std::string::npos) {
-                const long excl_flags =
-                    (TF_STRUCT | TF_UNION | TF_ENUM | TF_ENUMITEM |
-                     TF_INCOMPLETE | TF_FUNCTION | TF_INACCURATE);
-                if (!(flags & excl_flags)) {
-                    out << "\tcheck_align(" << name << ", " << align << ");" <<
-                           std::endl;
-                    out << "\tcheck_size(" << name << ", " << size << ");" <<
-                           std::endl;
-                }
+    for (size_t i = 0; i < ns.LogTypes().size(); ++i) {
+        auto type_id = i;
+        auto name = ns.NameFromTypeID(type_id);
+        auto& type = ns.LogType(type_id);
+        auto flags = type.m_flags;
+        auto size = type.m_size;
+        auto align = type.m_align;
+        if (size && name.size() && name.find("*") == std::string::npos) {
+            const long excl_flags =
+                (TF_ENUM | TF_INCOMPLETE | TF_FUNCTION | TF_INACCURATE);
+            if (!(flags & excl_flags)) {
+                out << "\tcheck_align(" << name << ", " << align << ");" <<
+                       std::endl;
+                out << "\tcheck_size(" << name << ", " << size << ");" <<
+                       std::endl;
             }
         }
-    } else {
-        out.close();
-        //remove(strOutput.data());
-        return false;
     }
 
-    out << "\t/* sanitize structures */" << std::endl;
-    std::fstream in2((prefix + "structures" + suffix), std::ios::in);
-    if (in2) {
-        std::string line;
+    for (size_t i = 0; i < ns.LogTypes().size(); ++i) {
+        auto type_id = i;
+        auto name = ns.NameFromTypeID(type_id);
+        auto& type = ns.LogType(type_id);
+        auto flags = type.m_flags;
+        if ((flags & (TF_ENUM | TF_ALIAS)) == TF_ENUM) {
+            auto eid = type.m_sub_id;
+            auto& le = ns.LogEnum(eid);
 
-        // skip title line
-        std::getline(in2, line);
-
-        while (std::getline(in2, line)) {
-            WsSplitByTabs(fields, line);
-
-            //auto struct_id = atoi(fields[0].data());
-            auto name = fields[1];
-            //auto type_id = atoi(fields[2].data());
-            auto flags = strtol(fields[3].data(), NULL, 0);
-            //auto is_struct = atoi(fields[4].data());
-            auto size = atoi(fields[5].data());
-            auto count = atoi(fields[6].data());
-            //auto pack = atoi(fields[7].data());
-            auto align = atoi(fields[8].data());
-            //auto alignas = atoi(fields[9].data());
-            #ifdef __GNUC__
-                // NOTE: MinGW gcc wrongly calculates size and alignment. ignore 'em
-                if (size && name.size() && count && !(flags & TF_INACCURATE)) {
-                    out << "\tcheck_align(" << name << ", " << align << ");" <<
-                           std::endl;
-                    out << "\tcheck_size(" << name << ", " << size << ");" <<
-                           std::endl;
-                }
-            #else
-                if (size && name.size() && count) {
-                    out << "\tcheck_align(" << name << ", " << align << ");" <<
-                           std::endl;
-                    out << "\tcheck_size(" << name << ", " << size << ");" <<
-                           std::endl;
-                }
-            #endif
-        }
-    } else {
-        out.close();
-        //remove(strOutput.data());
-        return false;
-    }
-
-    out << "\t/* sanitize enumitems */" << std::endl;
-    std::fstream in3((prefix + "enumitems" + suffix), std::ios::in);
-    if (in3) {
-        std::string line;
-
-        // skip title line
-        std::getline(in3, line);
-
-        while (std::getline(in3, line)) {
-            WsSplitByTabs(fields, line);
-
-            auto name = fields[1];
-            //auto enum_type_id = atoi(fields[1].data());
-            auto value = atoi(fields[2].data());
-            //auto enum_name = fields[3];
-            if (name.size()) {
-                out << "\tcheck_value(" << name << ", " << value << ");" <<
-                       std::endl; 
+            for (auto& it : le.m_mNameToValue) {
+                out << "\tcheck_value(" << it.first << ", " <<
+                       it.second << ");" << std::endl; 
             }
         }
-    } else {
-        out.close();
-        //remove(strOutput.data());
-        return false;
     }
 
     out <<

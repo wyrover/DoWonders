@@ -153,8 +153,6 @@ void CR_NameScope::Init() {
     #else
         AddType("long double", TF_LONG | TF_DOUBLE, 8);
     #endif
-
-    AddType("va_list", TF_VA_LIST, (Is64Bit() ? 8 : 4));
 }
 
 CR_TypeID CR_NameScope::AddAliasType(
@@ -840,7 +838,7 @@ std::string CR_NameScope::StringOfEnum(
     if (!e.empty()) {
         str += "{ ";
         std::vector<std::string> array;
-        for (auto it : e.MapNameToValue()) {
+        for (auto it : e.m_mNameToValue) {
             array.emplace_back(it.first + " = " + std::to_string(it.second));
         }
         str += CrJoin(array, ", ");
@@ -1082,7 +1080,7 @@ bool CR_NameScope::IsIntegralType(CR_TypeID tid) const {
     auto& type = LogType(tid);
     const CR_TypeFlags not_flags =
         (TF_DOUBLE | TF_FLOAT | TF_POINTER | TF_ARRAY | TF_VECTOR |
-         TF_FUNCTION | TF_VA_LIST | TF_STRUCT | TF_UNION | TF_ENUM);
+         TF_FUNCTION | TF_STRUCT | TF_UNION | TF_ENUM);
     if (type.m_flags & not_flags)
         return false;
     const CR_TypeFlags flags =
@@ -1194,14 +1192,16 @@ bool CR_NameScope::LoadFromFiles(
 
     std::ifstream in1(prefix + "types" + suffix);
     if (in1) {
-        for (std::string line; std::getline(in1, line); ) {
+        std::string line;
+        std::getline(in1, line); // skip header
+        for (; std::getline(in1, line); ) {
             CrChop(line);
             std::vector<std::string> fields;
             CrSplit(fields, line, '\t');
 
             CR_TypeID type_id = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
-            CR_TypeFlags flags = std::stol(fields[2], NULL, 0);
+            CR_TypeFlags flags = std::stoul(fields[2], NULL, 0);
             CR_TypeID sub_id = std::stol(fields[3], NULL, 0);
             int count = std::stol(fields[4], NULL, 0);
             int size = std::stol(fields[5], NULL, 0);
@@ -1225,6 +1225,7 @@ bool CR_NameScope::LoadFromFiles(
             type.m_alignas = alignas_;
             type.m_alignas_explicit = alignas_explicit;
             type.m_location.set(file, lineno);
+			m_types.emplace_back(type);
         }
     } else {
         return false;
@@ -1232,7 +1233,9 @@ bool CR_NameScope::LoadFromFiles(
 
     std::ifstream in2(prefix + "structures" + suffix);
     if (in2) {
-        for (std::string line; std::getline(in2, line); ) {
+        std::string line;
+        std::getline(in2, line); // skip header
+        for (; std::getline(in2, line);) {
             CrChop(line);
             std::vector<std::string> fields;
             CrSplit(fields, line, '\t');
@@ -1240,7 +1243,7 @@ bool CR_NameScope::LoadFromFiles(
             //CR_StructID struct_id = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
             CR_TypeID type_id = std::stol(fields[2], NULL, 0);
-            CR_TypeFlags flags = std::stol(fields[3], NULL, 0);
+            CR_TypeFlags flags = std::stoul(fields[3], NULL, 0);
             bool is_struct = !!std::stol(fields[4], NULL, 0);
             //int size = std::stol(fields[5], NULL, 0);
             int count = std::stol(fields[6], NULL, 0);
@@ -1276,7 +1279,9 @@ bool CR_NameScope::LoadFromFiles(
 
     std::ifstream in3(prefix + "enums" + suffix);
     if (in3) {
-        for (std::string line; std::getline(in3, line); ) {
+        std::string line;
+        std::getline(in3, line); // skip header
+        for (; std::getline(in3, line);) {
             CrChop(line);
             std::vector<std::string> fields;
             CrSplit(fields, line, '\t');
@@ -1300,7 +1305,9 @@ bool CR_NameScope::LoadFromFiles(
 
     std::ifstream in4(prefix + "functions" + suffix);
     if (in4) {
-        for (std::string line; std::getline(in4, line); ) {
+        std::string line;
+        std::getline(in4, line); // skip header
+        for (; std::getline(in4, line);) {
             CrChop(line);
             std::vector<std::string> fields;
             CrSplit(fields, line, '\t');
@@ -1335,7 +1342,9 @@ bool CR_NameScope::LoadFromFiles(
 
     std::ifstream in5(prefix + "vars" + suffix);
     if (in5) {
-        for (std::string line; std::getline(in4, line); ) {
+        std::string line;
+        std::getline(in5, line); // skip header
+        for (; std::getline(in4, line);) {
             CrChop(line);
             std::vector<std::string> fields;
             CrSplit(fields, line, '\t');
@@ -1387,7 +1396,7 @@ bool CR_NameScope::SaveToFiles(
             out1 <<
                 tid << "\t" <<
                 name << "\t0x" <<
-                std::hex << type.m_flags << "\t" <<
+                std::hex << type.m_flags << std::dec << "\t" <<
                 type.m_sub_id << "\t" <<
                 type.m_count << "\t" <<
                 type.m_size << "\t" <<
@@ -1420,7 +1429,7 @@ bool CR_NameScope::SaveToFiles(
                 sid << "\t" <<
                 name << "\t" <<
                 tid << "\t0x" <<
-                std::hex << type.m_flags << "\t" <<
+                std::hex << type.m_flags << std::dec << "\t" <<
                 ls.m_is_struct << "\t" <<
                 type.m_size << "\t" <<
                 ls.m_members.size() << "\t" <<
@@ -1451,12 +1460,12 @@ bool CR_NameScope::SaveToFiles(
             std::endl;
         for (CR_EnumID eid = 0; eid < LogEnums().size(); ++eid) {
             auto& le = LogEnum(eid);
-            size_t num_items = le.MapNameToValue().size();
+            size_t num_items = le.m_mNameToValue.size();
 
             out3 <<
                 eid << "\t" <<
                 num_items;
-            for (auto& item : le.MapNameToValue()) {
+            for (auto& item : le.m_mNameToValue) {
                 out3 << "\t" <<
                     item.first << "\t" <<
                     item.second;

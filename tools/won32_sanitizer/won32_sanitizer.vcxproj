@@ -149,7 +149,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="TypeSystem.cpp" />
     <ClCompile Include="won32_sanitizer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Location.h" />
+    <ClInclude Include="Main.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="TypeSystem.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

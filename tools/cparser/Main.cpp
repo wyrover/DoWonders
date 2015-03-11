@@ -2916,8 +2916,8 @@ CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
         else
             value = next_value;
 
-        le.MapNameToValue()[e->m_name.data()] = value;
-        le.MapValueToName()[value] = e->m_name.data();
+        le.m_mNameToValue[e->m_name.data()] = value;
+        le.m_mValueToName[value] = e->m_name.data();
         next_value = value + 1;
     }
 

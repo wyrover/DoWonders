@@ -18,7 +18,7 @@ enum {
     TF_LONG         = 0x00000008,
     TF_LONGLONG     = 0x00000010,
     TF_INT          = 0x00000020,
-    TF_VA_LIST      = 0x00000040,
+    //
     TF_FLOAT        = 0x00000080,
     TF_DOUBLE       = 0x00000100,
     TF_SIGNED       = 0,
@@ -44,6 +44,7 @@ enum {
     TF_VECTOR       = 0x08000000,
     TF_BITFIELD     = 0x10000000,
     TF_ALIAS        = 0x20000000,
+    //
     TF_INT128       = 0x80000000
 };
 typedef unsigned long CR_TypeFlags;
@@ -316,20 +317,6 @@ struct CR_LogStruct {
 struct CR_LogEnum {
     std::unordered_map<std::string, int>     m_mNameToValue;
     std::unordered_map<int, std::string>     m_mValueToName;
-
-    CR_LogEnum() { }
-
-    std::unordered_map<std::string, int>& MapNameToValue()
-    { return m_mNameToValue; }
-
-    std::unordered_map<int, std::string>& MapValueToName()
-    { return m_mValueToName; }
-
-    const std::unordered_map<std::string, int>& MapNameToValue() const
-    { return m_mNameToValue; }
-
-    const std::unordered_map<int, std::string>& MapValueToName() const
-    { return m_mValueToName; }
 
     bool empty() const {
         return m_mNameToValue.empty() && m_mValueToName.empty();
