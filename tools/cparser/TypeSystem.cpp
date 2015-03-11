@@ -7,7 +7,33 @@
 
 #include "stdafx.h"
 
-static std::string
+CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags) {
+    if (flags & TF_INT) {
+        // remove "int" if wordy
+        if (flags & TF_SHORT)
+            flags &= ~TF_INT;
+        else if (flags & TF_LONG)
+            flags &= ~TF_INT;
+        else if (flags & TF_LONGLONG)
+            flags &= ~TF_INT;
+        else if (flags & TF_INT128)
+            flags &= ~TF_INT;
+    }
+    if ((flags & TF_UNSIGNED) &&
+        !(flags & (TF_CHAR | TF_SHORT | TF_LONG | TF_LONGLONG |
+                   TF_INT128 | TF_INT)))
+    {
+        // add "int" for single "unsigned"
+        flags |= TF_INT;
+    }
+    // add "int" if no type specified
+    if (flags == 0)
+        flags = TF_INT;
+    // remove storage class specifiers
+    return flags & ~TF_INCOMPLETE;
+} // CrNormalizeTypeFlags
+
+std::string
 CrJoin(const std::vector<std::string>& array, const std::string sep) {
     std::string str;
     if (array.size()) {
@@ -20,8 +46,8 @@ CrJoin(const std::vector<std::string>& array, const std::string sep) {
     return str;
 }
 
-static void CrSplit(
-    std::vector<std::string>& v, const std::string& s, char separator)
+void
+CrSplit(std::vector<std::string>& v, const std::string& s, char separator)
 {
     std::size_t i = 0, j = s.find(separator);
     v.clear();
@@ -33,7 +59,7 @@ static void CrSplit(
     v.push_back(s.substr(i, -1));
 }
 
-static void CrChop(std::string& str) {
+void CrChop(std::string& str) {
     if (str.size() && str[str.size() - 1] == '\n') {
         str.resize(str.size() - 1);
     }
@@ -57,26 +83,40 @@ bool CR_LogType::operator!=(const CR_LogType& type) const {
 }
 
 ////////////////////////////////////////////////////////////////////////////
+// CR_StructMember
+
+bool operator==(const CR_StructMember& mem1, const CR_StructMember& mem2) {
+    return
+        mem1.m_type_id      == mem2.m_type_id &&
+        mem1.m_name         == mem2.m_name &&
+        mem1.m_bit_offset   == mem2.m_bit_offset &&
+        mem1.m_bits         == mem2.m_bits;
+
+}
+
+bool operator!=(const CR_StructMember& mem1, const CR_StructMember& mem2) {
+    return
+        mem1.m_type_id      != mem2.m_type_id ||
+        mem1.m_name         != mem2.m_name ||
+        mem1.m_bit_offset   != mem2.m_bit_offset ||
+        mem1.m_bits         != mem2.m_bits;
+}
+
+////////////////////////////////////////////////////////////////////////////
 // CR_LogStruct
 
 bool CR_LogStruct::operator==(const CR_LogStruct& ls) const {
-    return m_is_struct == ls.m_is_struct &&
-           m_type_list == ls.m_type_list &&
-           m_name_list == ls.m_name_list &&
-           m_bit_offset_list == ls.m_bit_offset_list &&
-           m_bits_list == ls.m_bits_list &&
-           m_pack == ls.m_pack &&
-           m_align == ls.m_align;
+    return m_is_struct  == ls.m_is_struct &&
+           m_pack       == ls.m_pack &&
+           m_align      == ls.m_align &&
+           m_members    == ls.m_members;
 }
 
 bool CR_LogStruct::operator!=(const CR_LogStruct& ls) const {
-    return m_is_struct != ls.m_is_struct ||
-           m_type_list != ls.m_type_list ||
-           m_name_list != ls.m_name_list ||
-           m_bit_offset_list != ls.m_bit_offset_list ||
-           m_bits_list != ls.m_bits_list ||
-           m_pack != ls.m_pack ||
-           m_align != ls.m_align;
+    return m_is_struct  != ls.m_is_struct ||
+           m_pack       != ls.m_pack ||
+           m_align      != ls.m_align ||
+           m_members    != ls.m_members;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -296,10 +336,9 @@ CR_TypeID CR_NameScope::AddFuncType(
     const CR_LogFunc& lf, const CR_Location& location)
 {
     CR_LogFunc func(lf);
-    if (func.m_type_list.size() == 1 && func.m_type_list[0] == 0) {
+    if (func.m_params.size() == 1 && func.m_params[0].m_type_id == 0) {
         // parameter list is void
-        func.m_type_list.clear();
-        func.m_name_list.clear();
+        func.m_params.clear();
     }
     auto fid = m_funcs.insert(func);
     CR_LogType type1;
@@ -322,7 +361,7 @@ CR_TypeID CR_NameScope::AddStructType(
         CR_StructID sid = m_structs.insert(ls);
         type1.m_flags = TF_STRUCT | TF_INCOMPLETE;
         type1.m_sub_id = sid;
-        type1.m_count = ls.m_type_list.size();
+        type1.m_count = ls.m_members.size();
         type1.m_alignas = alignas_;
         type1.location() = location;
         CR_TypeID tid2 = m_types.AddUnique(type1);
@@ -336,7 +375,7 @@ CR_TypeID CR_NameScope::AddStructType(
         CR_StructID sid = m_structs.insert(ls);
         type1.m_flags = TF_STRUCT | TF_INCOMPLETE;
         type1.m_sub_id = sid;
-        type1.m_count = ls.m_type_list.size();
+        type1.m_count = ls.m_members.size();
         type1.m_alignas = alignas_;
         type1.location() = location;
         CR_TypeID tid2 = m_types.AddUnique(type1);
@@ -348,10 +387,10 @@ CR_TypeID CR_NameScope::AddStructType(
     } else {    // name was found
         CR_TypeID tid2 = it->second;
         assert(m_types[tid2].m_flags & TF_STRUCT);
-        if (ls.m_type_list.size()) {
+        if (ls.m_members.size()) {
             // overwrite the definition if type list not empty
             auto& type1 = LogType(tid2);
-            type1.m_count = ls.m_type_list.size();
+            type1.m_count = ls.m_members.size();
             type1.m_alignas = alignas_;
             type1.location() = location;
             CR_StructID sid = type1.m_sub_id;
@@ -372,7 +411,7 @@ CR_TypeID CR_NameScope::AddUnionType(
         CR_StructID sid = m_structs.insert(ls);
         type1.m_flags = TF_UNION | TF_INCOMPLETE;
         type1.m_sub_id = sid;
-        type1.m_count = ls.m_type_list.size();
+        type1.m_count = ls.m_members.size();
         type1.m_alignas = alignas_;
         type1.location() = location;
         CR_TypeID tid1 = m_types.AddUnique(type1);
@@ -386,7 +425,7 @@ CR_TypeID CR_NameScope::AddUnionType(
         CR_StructID sid = m_structs.insert(ls);
         type1.m_flags = TF_UNION | TF_INCOMPLETE;
         type1.m_sub_id = sid;
-        type1.m_count = ls.m_type_list.size();
+        type1.m_count = ls.m_members.size();
         type1.m_alignas = alignas_;
         type1.location() = location;
         CR_TypeID tid1 = m_types.AddUnique(type1);
@@ -398,10 +437,10 @@ CR_TypeID CR_NameScope::AddUnionType(
     } else {    // name was found
         CR_TypeID tid2 = it->second;
         assert(m_types[tid2].m_flags & TF_UNION);
-        if (ls.m_type_list.size()) {
+        if (ls.m_members.size()) {
             // overwrite the definition if type list not empty
             auto& type1 = LogType(tid2);
-            type1.m_count = ls.m_type_list.size();
+            type1.m_count = ls.m_members.size();
             type1.m_alignas = alignas_;
             type1.location() = location;
             CR_StructID sid = type1.m_sub_id;
@@ -467,21 +506,21 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
     }
 
     // check completeness for each field
-    const size_t siz = ls.m_type_list.size();
+    const size_t siz = ls.m_members.size();
     bool is_complete = true;
     for (std::size_t i = 0; i < siz; ++i) {
-        auto tid2 = ls.m_type_list[i];
+        auto tid2 = ls.m_members[i].m_type_id;
         auto& type2 = LogType(tid2);
         if (type2.m_flags & TF_INCOMPLETE) {
             if (!CompleteType(tid2, type2)) {
-                auto& name = ls.m_name_list[i];
+                auto& name = ls.m_members[i].m_name;
                 m_error_info.get()->add_warning(
                     type2.location(), "'" +
                         name + "' has incomplete type");
                 is_complete = false;
             }
         }
-        if (ls.m_bits_list[i] != -1 || (type2.m_flags & TF_BITFIELD)) {
+        if (ls.m_members[i].m_bits != -1 || (type2.m_flags & TF_BITFIELD)) {
             type1.m_flags |= TF_BITFIELD;
         }
         #ifdef __GNUC__
@@ -497,16 +536,15 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
     int byte_offset = 0, prev_item_size = 0;
     int bits_remain = 0, max_align = 1;
     if (is_complete) {
-        ls.m_bit_offset_list.clear();
         for (std::size_t i = 0; i < siz; ++i) {
-            auto tid2 = ls.m_type_list[i];
+            auto tid2 = ls.m_members[i].m_type_id;
             auto& type2 = LogType(tid2);
-            int item_size = type2.m_size;            // size of type
-            int item_align = type2.m_align;          // alignment requirement
+            int item_size = type2.m_size;           // size of type
+            int item_align = type2.m_align;         // alignment requirement
             if (type1.m_alignas < type2.m_alignas) {
                 type1.m_alignas = type2.m_alignas;
             }
-            int bits = ls.m_bits_list[i];            // bits of bitfield
+            int bits = ls.m_members[i].m_bits;      // bits of bitfield
             if (bits != -1) {
                 // the bits specified as bitfield
                 assert(bits <= item_size * 8);
@@ -515,7 +553,7 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
                 }
                 if (prev_item_size == item_size || bits_remain == 0) {
                     // bitfield continuous
-                    ls.m_bit_offset_list.push_back(byte_offset * 8 + bits_remain);
+                    ls.m_members[i].m_bit_offset = byte_offset * 8 + bits_remain;
                     bits_remain += bits;
                 } else {
                     // bitfield discontinuous
@@ -531,7 +569,7 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
                         assert(item_align);
                         byte_offset = (byte_offset + item_align - 1) / item_align * item_align;
                     }
-                    ls.m_bit_offset_list.push_back(byte_offset * 8);
+                    ls.m_members[i].m_bit_offset = byte_offset * 8;
                     bits_remain = bits;
                 }
             } else {
@@ -557,7 +595,7 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
                         byte_offset = (byte_offset + item_align - 1) / item_align * item_align;
                     }
                 }
-                ls.m_bit_offset_list.push_back(byte_offset * 8);
+                ls.m_members[i].m_bit_offset = byte_offset * 8;
                 byte_offset += item_size;
             }
             if (max_align < item_align) {
@@ -565,10 +603,7 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
             }
             prev_item_size = item_size;
         }
-    } else {
-        ls.m_bit_offset_list.assign(siz, -1);
     }
-    assert(ls.m_bit_offset_list.size() == ls.m_type_list.size());
 
     // alignment requirement and tail padding
     if (bits_remain) {
@@ -603,7 +638,7 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
     type1.m_size = byte_offset;
 
     // complete
-    if (is_complete && ls.m_type_list.size()) {
+    if (is_complete && ls.m_members.size()) {
         type1.m_flags &= ~TF_INCOMPLETE;
         ls.m_is_complete = true;
     }
@@ -619,19 +654,15 @@ bool CR_NameScope::CompleteUnionType(CR_TypeID tid, CR_StructID sid) {
         return true;
     }
 
-    // every field offset of union is zero
-    ls.m_bit_offset_list.assign(ls.m_type_list.size(), 0);
-    assert(ls.m_bit_offset_list.size() == ls.m_type_list.size());
-
     // check completeness for each field
-    const size_t siz = ls.m_type_list.size();
+    const size_t siz = ls.m_members.size();
     bool is_complete = true;
     for (std::size_t i = 0; i < siz; ++i) {
-        auto tid2 = ls.m_type_list[i];
+        auto tid2 = ls.m_members[i].m_type_id;
         auto& type2 = LogType(tid2);
         if (type2.m_flags & TF_INCOMPLETE) {
             if (!CompleteType(tid2, type2)) {
-                auto& name = ls.m_name_list[i];
+                auto& name = ls.m_members[i].m_name;
                 m_error_info.get()->add_warning(
                     type2.location(), "'" + name + "' has incomplete type");
                 is_complete = false;
@@ -647,7 +678,7 @@ bool CR_NameScope::CompleteUnionType(CR_TypeID tid, CR_StructID sid) {
     // calculate alignment and size
     int item_size, item_align, max_size = 0, max_align = 1;
     for (std::size_t i = 0; i < siz; ++i) {
-        auto tid2 = ls.m_type_list[i];
+        auto tid2 = ls.m_members[i].m_type_id;
         auto& type2 = LogType(tid2);
         item_size = type2.m_size;
         item_align = type2.m_align;
@@ -683,7 +714,7 @@ bool CR_NameScope::CompleteUnionType(CR_TypeID tid, CR_StructID sid) {
     type1.m_size = max_size;
 
     // complete
-    if (is_complete && ls.m_type_list.size()) {
+    if (is_complete && ls.m_members.size()) {
         type1.m_flags &= ~TF_INCOMPLETE;
         ls.m_is_complete = true;
     }
@@ -780,8 +811,8 @@ bool CR_NameScope::CompleteType(CR_TypeID tid, CR_LogType& type) {
     }
     if (type.m_flags & (TF_STRUCT | TF_UNION)) {
         auto& ls = LogStruct(type.m_sub_id);
-        for (auto tid : ls.m_type_list) {
-            CompleteType(tid);
+        for (auto mem : ls.m_members) {
+            CompleteType(mem.m_type_id);
         }
         if (type.m_flags & TF_STRUCT) {
             return CompleteStructType(tid, type.m_sub_id);
@@ -857,12 +888,12 @@ std::string CR_NameScope::StringOfStruct(
     std::string str = StringOfStructTag(name, s);
     if (!s.empty()) {
         str += "{ ";
-        const std::size_t siz = s.m_type_list.size();
+        const std::size_t siz = s.m_members.size();
         for (std::size_t i = 0; i < siz; i++) {
-            str += StringOfType(s.m_type_list[i], s.m_name_list[i], false);
-            if (s.m_bits_list[i] != -1) {
+            str += StringOfType(s.m_members[i].m_type_id, s.m_members[i].m_name, false);
+            if (s.m_members[i].m_bits != -1) {
                 str += " : ";
-                str += std::to_string(s.m_bits_list[i]);
+                str += std::to_string(s.m_members[i].m_bits);
             }
             str += "; ";
         }
@@ -916,7 +947,7 @@ std::string CR_NameScope::StringOfType(
         // if type was function
         const auto& func = LogFunc(type.m_sub_id);
         auto rettype = StringOfType(func.m_return_type, "", false);
-        auto paramlist = StringOfParamList(func.m_type_list, func.m_name_list);
+        auto paramlist = StringOfParamList(func.m_params);
         std::string convension;
         if (!no_convension) {
             if (type.m_flags & TF_STDCALL)
@@ -1004,19 +1035,15 @@ std::string CR_NameScope::StringOfType(
 } // StringOfType
 
 std::string CR_NameScope::StringOfParamList(
-    const CR_TypeSet& type_list,
-    const CR_StringSet& name_list) const
+    const std::vector<CR_FuncParam>& params) const
 {
-    assert(type_list.size() == name_list.size());
-    std::size_t i, size = type_list.size();
+    std::size_t i, size = params.size();
     std::string str;
     if (size > 0) {
-        assert(type_list[0] != cr_invalid_id);
-        str += StringOfType(type_list[0], name_list[0], false);
+        str += StringOfType(params[0].m_type_id, params[0].m_name, false);
         for (i = 1; i < size; i++) {
             str += ", ";
-            assert(type_list[i] != cr_invalid_id);
-            str += StringOfType(type_list[i], name_list[i], false);
+            str += StringOfType(params[i].m_type_id, params[i].m_name, false);
         }
     } else {
         str += "void";
@@ -1215,10 +1242,7 @@ bool CR_NameScope::LoadFromFiles(
                 auto tid = std::stol(fields[j + 1], NULL, 0);
                 auto bit_offset = std::stol(fields[j + 2], NULL, 0);
                 auto bits = std::stol(fields[j + 3], NULL, 0);
-                ls.m_type_list.emplace_back(tid);
-                ls.m_name_list.emplace_back(name);
-                ls.m_bit_offset_list.emplace_back(bit_offset);
-                ls.m_bits_list.emplace_back(bits);
+                ls.m_members.emplace_back(tid, name, bit_offset, bits);
             }
             m_structs.emplace_back(ls);
         }
@@ -1277,8 +1301,7 @@ bool CR_NameScope::LoadFromFiles(
                 int j = 5 + i * 2;
                 CR_TypeID tid = std::stol(fields[j + 0], NULL, 0);
                 std::string name = fields[j + 1];
-                func.m_type_list.emplace_back(tid);
-                func.m_name_list.emplace_back(name);
+                func.m_params.emplace_back(tid, name);
             }
             m_funcs.emplace_back(func);
         }
@@ -1376,7 +1399,7 @@ bool CR_NameScope::SaveToFiles(
                 std::hex << type.m_flags << "\t" <<
                 ls.m_is_struct << "\t" <<
                 type.m_size << "\t" <<
-                ls.m_type_list.size() << "\t" <<
+                ls.m_members.size() << "\t" <<
                 ls.m_pack << "\t" <<
                 ls.m_align << "\t" <<
                 ls.m_alignas << "\t" <<
@@ -1384,13 +1407,13 @@ bool CR_NameScope::SaveToFiles(
                 location.m_file << "\t" <<
                 location.m_line;
 
-            const size_t siz = ls.m_type_list.size();
+            const size_t siz = ls.m_members.size();
             for (size_t i = 0; i < siz; ++i) {
                 out2 << "\t" <<
-                    ls.m_name_list[i] << "\t" <<
-                    ls.m_type_list[i] << "\t" <<
-                    ls.m_bit_offset_list[i] << "\t" <<
-                    ls.m_bits_list[i];
+                    ls.m_members[i].m_name << "\t" <<
+                    ls.m_members[i].m_type_id << "\t" <<
+                    ls.m_members[i].m_bit_offset << "\t" <<
+                    ls.m_members[i].m_bits;
             }
             out2 << std::endl;
         }
@@ -1432,12 +1455,12 @@ bool CR_NameScope::SaveToFiles(
                 func.m_return_type << "\t" <<
                 func.m_func_type << "\t" <<
                 func.m_ellipsis << "\t" <<
-                func.m_type_list.size();
-            const size_t siz = func.m_type_list.size();
+                func.m_params.size();
+            const size_t siz = func.m_params.size();
             for (size_t j = 0; j < siz; ++j) {
                 out4 << "\t" <<
-                    func.m_type_list[j] << "\t" <<
-                    func.m_name_list[j];
+                    func.m_params[j].m_type_id << "\t" <<
+                    func.m_params[j].m_name;
             }
             out4 << std::endl;
         }

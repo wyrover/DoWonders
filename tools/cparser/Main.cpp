@@ -2670,10 +2670,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 break;
             }
         }
-        ls.m_type_list.push_back(tid2);
-        ls.m_name_list.push_back(name);
-        ls.m_bit_offset_list.push_back(-1);
-        ls.m_bits_list.push_back(bits);
+        ls.m_members.emplace_back(tid2, name, 0, bits);
     }
 }
 
@@ -2786,8 +2783,7 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
                 d = NULL;
             }
         }
-        func.m_type_list.push_back(tid2);
-        func.m_name_list.push_back(name);
+        func.m_params.emplace_back(tid2, name);
     }
 }
 
@@ -2839,10 +2835,7 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
         case Decl::SINGLE:
             tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
             if (tid != cr_invalid_id) {
-                ls.m_type_list.push_back(tid);
-                ls.m_name_list.push_back("");
-                ls.m_bit_offset_list.push_back(-1);
-                ls.m_bits_list.push_back(-1);
+                ls.m_members.emplace_back(tid, "");
             }
             break;
 
@@ -2886,10 +2879,7 @@ CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
         case Decl::SINGLE:
             tid = CrAnalyseDeclSpecs(namescope, decl->m_decl_specs.get());
             if (tid != cr_invalid_id) {
-                ls.m_type_list.push_back(tid);
-                ls.m_name_list.push_back("");
-                ls.m_bit_offset_list.push_back(-1);
-                ls.m_bits_list.push_back(-1);
+                ls.m_members.emplace_back(tid, "");
             }
             break;
 

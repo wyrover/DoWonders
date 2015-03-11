@@ -49,35 +49,20 @@ enum {
 typedef unsigned long CR_TypeFlags;
 
 ////////////////////////////////////////////////////////////////////////////
-// CrNormalizeTypeFlags
+// functions
 
-inline CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags) {
-    if (flags & TF_INT) {
-        // remove "int" if wordy
-        if (flags & TF_SHORT)
-            flags &= ~TF_INT;
-        else if (flags & TF_LONG)
-            flags &= ~TF_INT;
-        else if (flags & TF_LONGLONG)
-            flags &= ~TF_INT;
-        else if (flags & TF_INT128)
-            flags &= ~TF_INT;
-    }
-    if ((flags & TF_UNSIGNED) &&
-        !(flags & (TF_CHAR | TF_SHORT | TF_LONG | TF_LONGLONG |
-                   TF_INT128 | TF_INT)))
-    {
-        // add "int" for single "unsigned"
-        flags |= TF_INT;
-    }
-    // add "int" if no type specified
-    if (flags == 0)
-        flags = TF_INT;
-    // remove storage class specifiers
-    return flags & ~TF_INCOMPLETE;
-} // CrNormalizeTypeFlags
+CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags);
+
+std::string
+CrJoin(const std::vector<std::string>& array, const std::string sep);
+
+void
+CrSplit(std::vector<std::string>& v, const std::string& s, char separator);
+
+void CrChop(std::string& str);
 
 ////////////////////////////////////////////////////////////////////////////
+// IDs
 
 // CR_ID --- ID
 typedef std::size_t             CR_ID;
@@ -254,55 +239,75 @@ struct CR_LogType {
 }; // struct CR_LogType
 
 ////////////////////////////////////////////////////////////////////////////
+// CR_FuncParam --- parameter of function
+
+struct CR_FuncParam {
+    CR_TypeID   m_type_id;
+    std::string  m_name;
+
+    CR_FuncParam(CR_TypeID tid, const std::string& name) :
+        m_type_id(tid), m_name(name) { }
+};
+
+////////////////////////////////////////////////////////////////////////////
 // CR_LogFunc --- logical function
 
 struct CR_LogFunc {
-    bool                    m_ellipsis;
-    CR_TypeSet              m_type_list;
-    CR_StringSet            m_name_list;
-    CR_TypeID               m_return_type;
     enum Type {
         FT_CDECL, FT_STDCALL, FT_FASTCALL
     };
-    Type m_func_type;  // calling convention
+
+    bool                        m_ellipsis;
+    CR_TypeID                   m_return_type;
+    Type                        m_func_type;  // calling convention
+    std::vector<CR_FuncParam>   m_params;
 
     CR_LogFunc() :
         m_ellipsis(false), m_return_type(0), m_func_type(FT_CDECL) { }
 }; // struct CR_LogFunc
 
 ////////////////////////////////////////////////////////////////////////////
+// CR_StructMember --- member of structure
+
+struct CR_StructMember {
+    CR_TypeID       m_type_id;
+    std::string     m_name;
+    int             m_bit_offset;
+    int             m_bits;
+    CR_StructMember(
+        CR_TypeID tid, const std::string& name,
+        int bit_offset = 0, int bits = -1
+    ) : m_type_id(tid),
+        m_name(name),
+        m_bit_offset(bit_offset),
+        m_bits(bits) { }
+};
+
+bool operator==(const CR_StructMember& mem1, const CR_StructMember& mem2);
+bool operator!=(const CR_StructMember& mem1, const CR_StructMember& mem2);
+
+////////////////////////////////////////////////////////////////////////////
 // CR_LogStruct --- logical structure or union
 
 struct CR_LogStruct {
     CR_TypeID               m_tid;              // type ID
-    bool                    m_is_struct;        // it's not union if true
-    CR_TypeSet              m_type_list;        // list of type IDs
-    CR_StringSet            m_name_list;        // list of names
-    CR_DeqSet<int>          m_bit_offset_list;  // list of offset
-    CR_DeqSet<int>          m_bits_list;        // list of bits
+    bool                    m_is_struct;        // struct or union?
     int                     m_pack;             // pack
     int                     m_align;            // alignment requirement
     int                     m_alignas;          // _Alignas(#)
     bool                    m_alignas_explicit;
     bool                    m_is_complete;      // is it complete?
+    std::vector<CR_StructMember>    m_members;  // members
 
     CR_LogStruct(bool is_struct = true) :
         m_is_struct(is_struct), m_pack(8), m_align(0),
         m_alignas_explicit(false), m_is_complete(false) { }
 
-    size_t FindName(const std::string& name) const {
-        for (size_t i = 0; i < m_name_list.size(); i++) {
-            if (m_name_list[i] == name)
-                return i;
-        }
-        return cr_invalid_id;
-    }
-
     // incomplete comparison
     bool operator==(const CR_LogStruct& ls) const;
     bool operator!=(const CR_LogStruct& ls) const;
 
-    bool empty() const { return m_type_list.empty(); }
+    bool empty() const { return m_members.empty(); }
 }; // struct CR_LogStruct
 
 ////////////////////////////////////////////////////////////////////////////
@@ -507,8 +512,7 @@ public:
                            bool expand = true, bool no_convension = false) const;
 
     // get string of parameter list
-    std::string StringOfParamList(
-        const CR_TypeSet& type_list, const CR_StringSet& name_list) const;
+    std::string StringOfParamList(const std::vector<CR_FuncParam>& params) const;
 
     //
     // type judgements
