@@ -242,8 +242,8 @@ struct CR_LogType {
 // CR_FuncParam --- parameter of function
 
 struct CR_FuncParam {
-    CR_TypeID   m_type_id;
-    std::string  m_name;
+    CR_TypeID       m_type_id;
+    std::string     m_name;
 
     CR_FuncParam(CR_TypeID tid, const std::string& name) :
         m_type_id(tid), m_name(name) { }

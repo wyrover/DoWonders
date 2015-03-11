@@ -1207,7 +1207,7 @@ bool CR_NameScope::LoadFromFiles(
             int size = std::stol(fields[5], NULL, 0);
             int align = std::stol(fields[6], NULL, 0);
             int alignas_ = std::stol(fields[7], NULL, 0);
-            bool alignas_explicit = std::stol(fields[8], NULL, 0);
+            bool alignas_explicit = !!std::stol(fields[8], NULL, 0);
             std::string file = fields[9];
             int lineno = std::stol(fields[10], NULL, 0);
 
@@ -1247,7 +1247,7 @@ bool CR_NameScope::LoadFromFiles(
             int pack = std::stol(fields[7], NULL, 0);
             int align = std::stol(fields[8], NULL, 0);
             int alignas_ = std::stol(fields[9], NULL, 0);
-            int alignas_explicit = std::stol(fields[10], NULL, 0);
+            bool alignas_explicit = !!std::stol(fields[10], NULL, 0);
             //std::string file = fields[11];
             //int lineno = std::stol(fields[12], NULL, 0);
 
