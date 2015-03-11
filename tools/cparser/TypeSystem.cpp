@@ -515,8 +515,7 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
             if (!CompleteType(tid2, type2)) {
                 auto& name = ls.m_members[i].m_name;
                 m_error_info.get()->add_warning(
-                    type2.location(), "'" +
-                        name + "' has incomplete type");
+                    type2.location(), "'" + name + "' has incomplete type");
                 is_complete = false;
             }
         }
@@ -726,7 +725,7 @@ bool CR_NameScope::CompleteType(CR_TypeID tid, CR_LogType& type) {
         return true;
     if (type.m_flags & TF_ALIAS) {
         if (CompleteType(type.m_sub_id)) {
-            const auto& type2 = LogType(type.m_sub_id);
+            auto& type2 = LogType(type.m_sub_id);
             type.m_size = type2.m_size;
             type.m_align = type2.m_align;
             type.m_alignas = type2.m_alignas;
@@ -751,7 +750,7 @@ bool CR_NameScope::CompleteType(CR_TypeID tid, CR_LogType& type) {
     }
     if (type.m_flags & TF_ARRAY) {
         if (CompleteType(type.m_sub_id)) {
-            const auto& type2 = LogType(type.m_sub_id);
+            auto& type2 = LogType(type.m_sub_id);
             type.m_size = type2.m_size * static_cast<int>(type.m_count);
             type.m_align = type2.m_align;
             if (type.m_alignas < type2.m_alignas) {
@@ -770,7 +769,7 @@ bool CR_NameScope::CompleteType(CR_TypeID tid, CR_LogType& type) {
     }
     if (type.m_flags & TF_VECTOR) {
         if (CompleteType(type.m_sub_id)) {
-            const auto& type2 = LogType(type.m_sub_id);
+            auto& type2 = LogType(type.m_sub_id);
             if (type2.m_size) {
                 type.m_count = type.m_size / type2.m_size;
             }
@@ -790,7 +789,7 @@ bool CR_NameScope::CompleteType(CR_TypeID tid, CR_LogType& type) {
     }
     if (type.m_flags & TF_CONST) {
         if (CompleteType(type.m_sub_id)) {
-            const auto& type2 = LogType(type.m_sub_id);
+            auto& type2 = LogType(type.m_sub_id);
             type.m_size = type2.m_size;
             type.m_align = type2.m_align;
             type.m_alignas = type2.m_alignas;
@@ -836,7 +835,7 @@ std::string CR_NameScope::StringOfEnum(
     if (eid == cr_invalid_id) {
         return "";  // invalid ID
     }
-    const auto& e = m_enums[eid];
+    auto& e = m_enums[eid];
     std::string str = StringOfEnumTag(name);
     if (!e.empty()) {
         str += "{ ";
@@ -861,7 +860,7 @@ CR_NameScope::StringOfStructTag(
     else
         str += "union ";
 
-    const auto& type = LogType(s.m_tid);
+    auto& type = LogType(s.m_tid);
     if (type.m_alignas && type.m_alignas_explicit) {
         str += "_Alignas(";
         str += std::to_string(type.m_alignas);
@@ -884,7 +883,7 @@ CR_NameScope::StringOfStructTag(
 std::string CR_NameScope::StringOfStruct(
     const std::string& name, CR_StructID sid) const
 {
-    const auto& s = LogStruct(sid);
+    auto& s = LogStruct(sid);
     std::string str = StringOfStructTag(name, s);
     if (!s.empty()) {
         str += "{ ";
@@ -906,7 +905,7 @@ std::string CR_NameScope::StringOfType(
     CR_TypeID tid, const std::string& name,
     bool expand/* = true*/, bool no_convension/* = false*/) const
 {
-    const auto& type = LogType(tid);
+    auto& type = LogType(tid);
     auto type_name = NameFromTypeID(tid);
     if (type.m_flags & TF_ALIAS) {
         // if type was alias
@@ -945,7 +944,7 @@ std::string CR_NameScope::StringOfType(
     }
     if (type.m_flags & TF_FUNCTION) {
         // if type was function
-        const auto& func = LogFunc(type.m_sub_id);
+        auto& func = LogFunc(type.m_sub_id);
         auto rettype = StringOfType(func.m_return_type, "", false);
         auto paramlist = StringOfParamList(func.m_params);
         std::string convension;
@@ -964,7 +963,7 @@ std::string CR_NameScope::StringOfType(
     if (type.m_flags & TF_POINTER) {
         // if type was pointer
         auto sub_id = type.m_sub_id;
-        const auto& type2 = LogType(sub_id);
+        auto& type2 = LogType(sub_id);
         if (type2.m_flags & TF_FUNCTION) {
             // function pointer
             if (type.m_flags & TF_CONST) {
@@ -1062,7 +1061,7 @@ bool CR_NameScope::IsFuncType(CR_TypeID tid) const {
 } // IsFuncType
 
 bool CR_NameScope::IsPredefinedType(CR_TypeID tid) const {
-    const auto& type = LogType(tid);
+    auto& type = LogType(tid);
     if (type.m_flags & (TF_POINTER | TF_ARRAY | TF_CONST)) {
         return IsPredefinedType(type.m_sub_id);
     }
@@ -1080,7 +1079,7 @@ bool CR_NameScope::IsIntegralType(CR_TypeID tid) const {
     if (tid == cr_invalid_id)
         return false;
     tid = ResolveAlias(tid);
-    const auto& type = LogType(tid);
+    auto& type = LogType(tid);
     const CR_TypeFlags not_flags =
         (TF_DOUBLE | TF_FLOAT | TF_POINTER | TF_ARRAY | TF_VECTOR |
          TF_FUNCTION | TF_VA_LIST | TF_STRUCT | TF_UNION | TF_ENUM);
@@ -1100,7 +1099,7 @@ bool CR_NameScope::IsFloatingType(CR_TypeID tid) const {
     if (tid == cr_invalid_id)
         return false;
     tid = ResolveAlias(tid);
-    const auto& type = LogType(tid);
+    auto& type = LogType(tid);
     if (type.m_flags & (TF_DOUBLE | TF_FLOAT))
         return true;
     if (type.m_flags & TF_CONST)
@@ -1113,7 +1112,7 @@ bool CR_NameScope::IsUnsignedType(CR_TypeID tid) const {
     if (tid == cr_invalid_id)
         return false;
     tid = ResolveAlias(tid);
-    const auto& type = LogType(tid);
+    auto& type = LogType(tid);
     if (type.m_flags & TF_UNSIGNED)
         return true;
     if (type.m_flags & TF_CONST)
@@ -1151,6 +1150,31 @@ std::string CR_NameScope::NameFromTypeID(CR_TypeID tid) const {
         return it->second;
     else
         return "";
+}
+
+void
+CR_NameScope::GetStructMemberList(
+    CR_StructID sid, std::vector<CR_StructMember>& members) const
+{
+    members.clear();
+    auto& ls = LogStruct(sid);
+    for (auto& mem : ls.m_members) {
+        if (mem.m_name.size()) {
+            members.emplace_back(mem);
+        } else {
+            CR_TypeID tid = ResolveAlias(mem.m_type_id);
+            auto& type = LogType(tid);
+            if (type.m_flags & (TF_STRUCT | TF_UNION)) {
+                std::vector<CR_StructMember> children;
+                GetStructMemberList(type.m_sub_id, children);
+                for (auto& child : children) {
+                    child.m_bit_offset += mem.m_bit_offset;
+                }
+                members.insert(members.end(),
+                    children.begin(), children.end());
+            }
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1345,8 +1369,8 @@ bool CR_NameScope::SaveToFiles(
         out1 << "(type_id)\t(name)\t(flags)\t(sub_id)\t(count)\t(size)\t(align)\t(alignas)\t(alignas_explicit)\t(file)\t(line)" <<
             std::endl;
         for (CR_TypeID tid = 0; tid < LogTypes().size(); ++tid) {
-            const auto& type = LogType(tid);
-            const auto& location = type.location();
+            auto& type = LogType(tid);
+            auto& location = type.location();
             std::string name;
             auto it = MapTypeIDToName().find(tid);
             if (it != MapTypeIDToName().end()) {
@@ -1382,10 +1406,10 @@ bool CR_NameScope::SaveToFiles(
         out2 << "(struct_id)\t(name)\t(type_id)\t(flags)\t(is_struct)\t(size)\t(count)\t(pack)\t(align)\t(alignas)\t(alignas_explicit)\t(file)\t(line)\t(item_1_name)\t(item_1_type_id)\t(item_1_bit_offset)\t(item_1_bits)\t(item_2_type_id)\t..." <<
             std::endl;
         for (CR_TypeID sid = 0; sid < LogStructs().size(); ++sid) {
-            const auto& ls = LogStruct(sid);
+            auto& ls = LogStruct(sid);
             auto tid = ls.m_tid;
-            const auto& type = LogType(tid);
-            const auto& location = type.location();
+            auto& type = LogType(tid);
+            auto& location = type.location();
             std::string name;
             auto it = MapTypeIDToName().find(tid);
             if (it != MapTypeIDToName().end()) {
@@ -1432,7 +1456,7 @@ bool CR_NameScope::SaveToFiles(
             out3 <<
                 eid << "\t" <<
                 num_items;
-            for (const auto& item : le.MapNameToValue()) {
+            for (auto& item : le.MapNameToValue()) {
                 out3 << "\t" <<
                     item.first << "\t" <<
                     item.second;
@@ -1448,7 +1472,7 @@ bool CR_NameScope::SaveToFiles(
         out4 << "(func_id)\t(return_type)\t(func_type)\t(ellipsis)\t(param_count)\t(param_1_typeid)\t(param_1_name)\t(param_2_typeid)\t..." <<
             std::endl;
         for (size_t fid = 0; fid < LogFuncs().size(); ++fid) {
-            const auto& func = LogFunc(fid);
+            auto& func = LogFunc(fid);
 
             out4 <<
                 fid << "\t" <<
@@ -1472,13 +1496,13 @@ bool CR_NameScope::SaveToFiles(
     if (out5) {
         out5 << "(var_id)\t(name)\t(type_id)\t(file)\t(line)" << std::endl;
         for (size_t vid = 0; vid < LogVars().size(); ++vid) {
-            const auto& var = LogVar(vid);
+            auto& var = LogVar(vid);
             std::string name;
             auto it = MapVarIDToName().find(vid);
             if (it != MapVarIDToName().end()) {
                 name = it->second;
             }
-            const auto& location = var.location();
+            auto& location = var.location();
 
             out5 <<
                 vid << "\t" <<

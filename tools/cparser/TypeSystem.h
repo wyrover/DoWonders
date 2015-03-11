@@ -514,6 +514,10 @@ public:
     // get string of parameter list
     std::string StringOfParamList(const std::vector<CR_FuncParam>& params) const;
 
+    // get member list of struct or union
+    void GetStructMemberList(
+        CR_StructID sid, std::vector<CR_StructMember>& members) const;
+
     //
     // type judgements
     //
