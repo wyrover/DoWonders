@@ -8,126 +8,126 @@
 %token_prefix;
 %smart_pointer<shared_ptr>;
 
-%token T_ADD_ASSIGN<CR_TokenNode>;
-%token T_ALIGNAS<CR_TokenNode>;
-%token T_ALIGNOF<CR_TokenNode>;
-%token T_AND_ASSIGN<CR_TokenNode>;
-%token T_AND<CR_TokenNode>;
-%token T_ARROW<CR_TokenNode>;
-%token T_ASM<CR_TokenNode>;
-%token T_ASSIGN<CR_TokenNode>;
-%token T_ASTERISK<CR_TokenNode>;
-%token T_ATOMIC<CR_TokenNode>;
-%token T_AUTO<CR_TokenNode>;
-%token T_BITWISE_NOT<CR_TokenNode>;
-%token T_BOOL<CR_TokenNode>;
-%token T_BREAK<CR_TokenNode>;
-%token T_CASE<CR_TokenNode>;
-%token T_CDECL<CR_TokenNode>;
-%token T_CHAR<CR_TokenNode>;
-%token T_COLON<CR_TokenNode>;
-%token T_COMMA<CR_TokenNode>;
-%token T_COMPLEX<CR_TokenNode>;
-%token T_CONST<CR_TokenNode>;
-%token T_CONSTANT<CR_TokenNode>;
-%token T_CONTINUE<CR_TokenNode>;
-%token T_CPP_COMMENT<CR_TokenNode>;
-%token T_C_COMMENT_BEGIN<CR_TokenNode>;
-%token T_C_COMMENT_END<CR_TokenNode>;
-%token T_DEC<CR_TokenNode>;
-%token T_DECLSPEC<CR_TokenNode>;
-%token T_DEFAULT<CR_TokenNode>;
-%token T_DIV_ASSIGN<CR_TokenNode>;
-%token T_DO<CR_TokenNode>;
-%token T_DOT<CR_TokenNode>;
-%token T_DOUBLE<CR_TokenNode>;
-%token T_ELLIPSIS<CR_TokenNode>;
-%token T_ELSE<CR_TokenNode>;
-%token T_ENUM<CR_TokenNode>;
-%token T_EQUAL<CR_TokenNode>;
-%token T_EXTERN<CR_TokenNode>;
-%token T_FASTCALL<CR_TokenNode>;
-%token T_FLOAT<CR_TokenNode>;
-%token T_FOR<CR_TokenNode>;
-%token T_FORCEINLINE<CR_TokenNode>;
-%token T_GENERIC<CR_TokenNode>;
-%token T_GE<CR_TokenNode>;
-%token T_ATTRIBUTE<CR_TokenNode>;
-%token T_GNU_EXTENSION<CR_TokenNode>;
-%token T_GOTO<CR_TokenNode>;
-%token T_GT<CR_TokenNode>;
-%token T_IDENTIFIER<CR_TokenNode>;
-%token T_IF<CR_TokenNode>;
-%token T_IMAGINARY<CR_TokenNode>;
-%token T_INC<CR_TokenNode>;
-%token T_INLINE<CR_TokenNode>;
-%token T_INT<CR_TokenNode>;
-%token T_INT32<CR_TokenNode>;
-%token T_INT64<CR_TokenNode>;
-%token T_INT128<CR_TokenNode>;
+%token T_ADD_ASSIGN<CR_TokenNode>;      // +=
+%token T_ALIGNAS<CR_TokenNode>;         // _Alignas
+%token T_ALIGNOF<CR_TokenNode>;         // _Alignof
+%token T_AND_ASSIGN<CR_TokenNode>;      // &=
+%token T_AND<CR_TokenNode>;             // &
+%token T_ARROW<CR_TokenNode>;           // ->
+%token T_ASM<CR_TokenNode>;             // asm
+%token T_ASSIGN<CR_TokenNode>;          // =
+%token T_ASTERISK<CR_TokenNode>;        // *
+%token T_ATOMIC<CR_TokenNode>;          // _Atomic
+%token T_AUTO<CR_TokenNode>;            // auto
+%token T_TILDA<CR_TokenNode>;           // ~
+%token T_BOOL<CR_TokenNode>;            // _Bool
+%token T_BREAK<CR_TokenNode>;           // break
+%token T_CASE<CR_TokenNode>;            // case
+%token T_CDECL<CR_TokenNode>;           // __cdecl
+%token T_CHAR<CR_TokenNode>;            // char
+%token T_COLON<CR_TokenNode>;           // :
+%token T_COMMA<CR_TokenNode>;           // ,
+%token T_COMPLEX<CR_TokenNode>;         // _Complex
+%token T_CONST<CR_TokenNode>;           // const
+%token T_CONSTANT<CR_TokenNode>;        // (constant)
+%token T_CONTINUE<CR_TokenNode>;        // continue
+%token T_CPP_COMMENT<CR_TokenNode>;     // //
+%token T_C_COMMENT_BEGIN<CR_TokenNode>; // /*
+%token T_C_COMMENT_END<CR_TokenNode>;   // */
+%token T_DEC<CR_TokenNode>;             // --
+%token T_DECLSPEC<CR_TokenNode>;        // __declspec
+%token T_DEFAULT<CR_TokenNode>;         // default
+%token T_DIV_ASSIGN<CR_TokenNode>;      // /=
+%token T_DO<CR_TokenNode>;              // do
+%token T_DOT<CR_TokenNode>;             // .
+%token T_DOUBLE<CR_TokenNode>;          // double
+%token T_ELLIPSIS<CR_TokenNode>;        // ...
+%token T_ELSE<CR_TokenNode>;            // else
+%token T_ENUM<CR_TokenNode>;            // enum
+%token T_EQUAL<CR_TokenNode>;           // ==
+%token T_EXTERN<CR_TokenNode>;          // extern
+%token T_FASTCALL<CR_TokenNode>;        // __fastcall
+%token T_FLOAT<CR_TokenNode>;           // float
+%token T_FOR<CR_TokenNode>;             // for
+%token T_FORCEINLINE<CR_TokenNode>;     // __forceinline
+%token T_GENERIC<CR_TokenNode>;         // _Generic
+%token T_GE<CR_TokenNode>;              // >=
+%token T_ATTRIBUTE<CR_TokenNode>;       // __attribute__
+%token T_GNU_EXTENSION<CR_TokenNode>;   // __extension__
+%token T_GOTO<CR_TokenNode>;            // goto
+%token T_GT<CR_TokenNode>;              // >
+%token T_IDENTIFIER<CR_TokenNode>;      // (identifier)
+%token T_IF<CR_TokenNode>;              // if
+%token T_IMAGINARY<CR_TokenNode>;       // _Imaginary
+%token T_INC<CR_TokenNode>;             // ++
+%token T_INLINE<CR_TokenNode>;          // inline
+%token T_INT<CR_TokenNode>;             // int
+%token T_INT32<CR_TokenNode>;           // __int32
+%token T_INT64<CR_TokenNode>;           // __int64
+%token T_INT128<CR_TokenNode>;          // __int128
 %token T_INVALID_CHAR<CR_TokenNode>;    // invalid character (to be deleted)
-%token T_LE<CR_TokenNode>;
-%token T_LONG<CR_TokenNode>;
-%token T_LT<CR_TokenNode>;
-%token T_L_AND<CR_TokenNode>;
-%token T_L_SHIFT_ASSIGN<CR_TokenNode>;
-%token T_L_BRACE<CR_TokenNode>;
-%token T_L_BRACKET<CR_TokenNode>;
-%token T_L_SHIFT<CR_TokenNode>;
-%token T_L_OR<CR_TokenNode>;
-%token T_L_PAREN<CR_TokenNode>;
-%token T_MINUS<CR_TokenNode>;
-%token T_MOD_ASSIGN<CR_TokenNode>;
-%token T_MUL_ASSIGN<CR_TokenNode>;
-%token T_NE<CR_TokenNode>;
+%token T_LE<CR_TokenNode>;              // <=
+%token T_LONG<CR_TokenNode>;            // long
+%token T_LT<CR_TokenNode>;              // <
+%token T_L_AND<CR_TokenNode>;           // &&
+%token T_L_SHIFT_ASSIGN<CR_TokenNode>;  // <<=
+%token T_L_BRACE<CR_TokenNode>;         // {
+%token T_L_BRACKET<CR_TokenNode>;       // [
+%token T_L_SHIFT<CR_TokenNode>;         // <<
+%token T_L_OR<CR_TokenNode>;            // ||
+%token T_L_PAREN<CR_TokenNode>;         // (
+%token T_MINUS<CR_TokenNode>;           // -
+%token T_MOD_ASSIGN<CR_TokenNode>;      // %=
+%token T_MUL_ASSIGN<CR_TokenNode>;      // *=
+%token T_NE<CR_TokenNode>;              // !=
 %token T_NEWLINE<CR_TokenNode>;         // new line (to be deleted)
-%token T_NORETURN<CR_TokenNode>;
-%token T_NOTHROW<CR_TokenNode>;
-%token T_NOT<CR_TokenNode>;
-%token T_OR_ASSIGN<CR_TokenNode>;
-%token T_OR<CR_TokenNode>;
-%token T_PERCENT<CR_TokenNode>;
-%token T_PLUS<CR_TokenNode>;
-%token T_PRAGMA<CR_TokenNode>;
-%token T_PTR32<CR_TokenNode>;
-%token T_PTR64<CR_TokenNode>;
-%token T_QUESTION<CR_TokenNode>;
-%token T_REGISTER<CR_TokenNode>;
-%token T_RESTRICT<CR_TokenNode>;
-%token T_RETURN<CR_TokenNode>;
-%token T_R_SHIFT_ASSIGN<CR_TokenNode>;
-%token T_R_BRACE<CR_TokenNode>;
-%token T_R_BRACKET<CR_TokenNode>;
-%token T_R_SHIFT<CR_TokenNode>;
-%token T_R_PAREN<CR_TokenNode>;
-%token T_SEMICOLON<CR_TokenNode>;
-%token T_SHARP<CR_TokenNode>;
-%token T_SHORT<CR_TokenNode>;
-%token T_SIGNED<CR_TokenNode>;
-%token T_SIZEOF<CR_TokenNode>;
-%token T_SLASH<CR_TokenNode>;
-%token T_STATIC<CR_TokenNode>;
-%token T_STATIC_ASSERT<CR_TokenNode>;
-%token T_STDCALL<CR_TokenNode>;
-%token T_STRING<CR_TokenNode>;
-%token T_STRUCT<CR_TokenNode>;
-%token T_SUB_ASSIGN<CR_TokenNode>;
-%token T_SWITCH<CR_TokenNode>;
-%token T_TAGNAME<CR_TokenNode>;
-%token T_THREAD_LOCAL<CR_TokenNode>;
-%token T_TYPEDEF<CR_TokenNode>;
-%token T_TYPEDEF_NAME<CR_TokenNode>;
-%token T_TYPEDEF_TAG<CR_TokenNode>;
-%token T_UNALIGNED<CR_TokenNode>;
-%token T_UNION<CR_TokenNode>;
-%token T_UNSIGNED<CR_TokenNode>;
-%token T_VECTOR_SIZE<CR_TokenNode>;
-%token T_VOID<CR_TokenNode>;
-%token T_VOLATILE<CR_TokenNode>;
-%token T_WHILE<CR_TokenNode>;
-%token T_W64<CR_TokenNode>;
-%token T_XOR_ASSIGN<CR_TokenNode>;
-%token T_XOR<CR_TokenNode>;
+%token T_NORETURN<CR_TokenNode>;        // _Noreturn
+%token T_NOTHROW<CR_TokenNode>;         // __nothrow__
+%token T_BANG<CR_TokenNode>;            // !
+%token T_OR_ASSIGN<CR_TokenNode>;       // |=
+%token T_OR<CR_TokenNode>;              // |
+%token T_PERCENT<CR_TokenNode>;         // %
+%token T_PLUS<CR_TokenNode>;            // +
+%token T_PRAGMA<CR_TokenNode>;          // __pragma
+%token T_PTR32<CR_TokenNode>;           // __ptr32
+%token T_PTR64<CR_TokenNode>;           // __ptr64
+%token T_QUESTION<CR_TokenNode>;        // ?s
+%token T_REGISTER<CR_TokenNode>;        // register
+%token T_RESTRICT<CR_TokenNode>;        // restrict
+%token T_RETURN<CR_TokenNode>;          // return
+%token T_R_SHIFT_ASSIGN<CR_TokenNode>;  // >>=
+%token T_R_BRACE<CR_TokenNode>;         // }
+%token T_R_BRACKET<CR_TokenNode>;       // ]
+%token T_R_SHIFT<CR_TokenNode>;         // >>
+%token T_R_PAREN<CR_TokenNode>;         // )
+%token T_SEMICOLON<CR_TokenNode>;       // ;
+%token T_SHARP<CR_TokenNode>;           // #
+%token T_SHORT<CR_TokenNode>;           // short
+%token T_SIGNED<CR_TokenNode>;          // signed
+%token T_SIZEOF<CR_TokenNode>;          // sizeof
+%token T_SLASH<CR_TokenNode>;           // /
+%token T_STATIC<CR_TokenNode>;          // static
+%token T_STATIC_ASSERT<CR_TokenNode>;   // _Static_assert
+%token T_STDCALL<CR_TokenNode>;         // __stdcall
+%token T_STRING<CR_TokenNode>;          // "..."
+%token T_STRUCT<CR_TokenNode>;          // struct
+%token T_SUB_ASSIGN<CR_TokenNode>;      // -=
+%token T_SWITCH<CR_TokenNode>;          // switch
+%token T_TAGNAME<CR_TokenNode>;         // (tag name)
+%token T_THREAD_LOCAL<CR_TokenNode>;    // _Thread_local
+%token T_TYPEDEF<CR_TokenNode>;         // typedef
+%token T_TYPEDEF_NAME<CR_TokenNode>;    // (typedef name)
+%token T_TYPEDEF_TAG<CR_TokenNode>;     // (typedef tag)
+%token T_UNALIGNED<CR_TokenNode>;       // __unaligned
+%token T_UNION<CR_TokenNode>;           // union
+%token T_UNSIGNED<CR_TokenNode>;        // unsigned
+%token T_VECTOR_SIZE<CR_TokenNode>;     // __vector_size__
+%token T_VOID<CR_TokenNode>;            // void
+%token T_VOLATILE<CR_TokenNode>;        // volatile
+%token T_WHILE<CR_TokenNode>;           // while
+%token T_W64<CR_TokenNode>;             // __w64
+%token T_XOR_ASSIGN<CR_TokenNode>;      // ^=
+%token T_XOR<CR_TokenNode>;             // ^
 
 %namespace cparser;
 
@@ -575,8 +575,8 @@ unary_expression<UnaryExpr>
     | [DoUnaryExpr5] T_ASTERISK cast_expression(0)
     | [DoUnaryExpr6] T_PLUS cast_expression(0)
     | [DoUnaryExpr7] T_MINUS cast_expression(0)
-    | [DoUnaryExpr8] T_BITWISE_NOT cast_expression(0)
-    | [DoUnaryExpr9] T_NOT cast_expression(0)
+    | [DoUnaryExpr8] T_TILDA cast_expression(0)
+    | [DoUnaryExpr9] T_BANG cast_expression(0)
     | [DoUnaryExpr10] T_SIZEOF unary_expression(0)
     | [DoUnaryExpr11] T_SIZEOF T_L_PAREN type_name(0) T_R_PAREN
     | [DoUnaryExpr12] T_ALIGNOF T_L_PAREN type_name T_R_PAREN

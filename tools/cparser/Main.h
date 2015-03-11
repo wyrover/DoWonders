@@ -109,20 +109,9 @@ namespace std
 }
 
 ////////////////////////////////////////////////////////////////////////////
-// CR_String
-
-typedef std::string CR_String;
-
-////////////////////////////////////////////////////////////////////////////
 // CR_StringSet
 
-typedef CR_DeqSet<CR_String> CR_StringSet;
-
-////////////////////////////////////////////////////////////////////////////
-// CR_Map<from, to>, CR_UnorderedMap<from, to>
-
-#define CR_Map              std::map
-#define CR_UnorderedMap     std::unordered_map
+typedef CR_DeqSet<std::string> CR_StringSet;
 
 ////////////////////////////////////////////////////////////////////////////
 // CR_ErrorInfo
@@ -179,16 +168,26 @@ public:
           error_container& errors()         { return m_errors; }
     const error_container& errors() const   { return m_errors; }
 
-    void emit_all(FILE *fp = stderr) {
+    void emit_all(std::ostream& out = std::cerr) {
         for (auto& e : errors()) {
-            fprintf(fp, "%s\n", e.data());
+            out << e << std::endl;
         }
         for (auto& w : warnings()) {
-            fprintf(fp, "%s\n", w.data());
+            out << w << std::endl;
         }
         for (auto& n : notices()) {
-            fprintf(fp, "%s\n", n.data());
+            out << n << std::endl;
         }
+    }
+
+    void clear_notices()    { m_notices.clear(); }
+    void clear_warnings()   { m_warnings.clear(); }
+    void clear_errors()     { m_errors.clear(); }
+
+    void clear() {
+        m_notices.clear();
+        m_warnings.clear();
+        m_errors.clear();
     }
 
 protected:

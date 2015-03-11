@@ -85,7 +85,7 @@ namespace cparser
 
         shared_ptr<Node> node;
         if (parser.accept(node)) {
-            std::fprintf(stderr, "Parser accepted!\n");
+            std::cerr << "Parser accepted!" << std::endl;
             tu = static_pointer_cast<TransUnit, Node>(node);
             return true;
         }

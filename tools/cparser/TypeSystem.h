@@ -44,7 +44,6 @@ enum {
     TF_VECTOR       = 0x08000000,
     TF_BITFIELD     = 0x10000000,
     TF_ALIAS        = 0x20000000,
-    TF_ENUMITEM     = 0x40000000,   // CodeReverse extension
     TF_INT128       = 0x80000000
 };
 typedef unsigned long CR_TypeFlags;
@@ -79,67 +78,76 @@ inline CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags) {
 } // CrNormalizeTypeFlags
 
 ////////////////////////////////////////////////////////////////////////////
-// IDs
 
 // CR_ID --- ID
-typedef std::size_t CR_ID;
-
-// CR_TypeID --- type ID
-typedef CR_ID CR_TypeID;
-
-// CR_FuncID --- function ID
-typedef CR_ID CR_FuncID;
-
-// CR_VarID --- variable ID
-typedef CR_ID CR_VarID;
-
-// CR_StructID --- struct or union ID
-typedef CR_ID CR_StructID;
-
-// CR_EnumID --- enum ID
-typedef CR_ID CR_EnumID;
+typedef std::size_t             CR_ID;
 
 // cr_invalid_id --- invalid ID
-#define cr_invalid_id   static_cast<CR_ID>(-1)
+#define cr_invalid_id           static_cast<CR_ID>(-1)
 
-////////////////////////////////////////////////////////////////////////////
-// CR_TypeSet, CR_IDSet --- set of type IDs and set of IDs
+// CR_TypeID --- type ID
+typedef CR_ID                   CR_TypeID;
 
-typedef CR_DeqSet<CR_TypeID>    CR_TypeSet;
+// CR_FuncID --- function ID
+typedef CR_ID                   CR_FuncID;
+
+// CR_StructID --- struct or union ID
+typedef CR_ID                   CR_StructID;
+
+// CR_EnumID --- enum ID
+typedef CR_ID                   CR_EnumID;
+
+// CR_VarID --- variable ID
+typedef CR_ID                   CR_VarID;
+
+// a set of ID 
 typedef CR_DeqSet<CR_ID>        CR_IDSet;
 
+// a set of type id
+typedef CR_DeqSet<CR_TypeID>    CR_TypeSet;
+
 ////////////////////////////////////////////////////////////////////////////
-// CR_Value --- value
+// CR_TypedValue --- typed value
 
-struct CR_Value {
-    void *m_ptr;
-    size_t m_size;
+struct CR_TypedValue {
+    void *      m_ptr;
+    size_t      m_size;
+    CR_TypeID   m_type_id;
 
-    CR_Value() : m_ptr(NULL), m_size(0) { }
+    CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id) { }
 
-    CR_Value(void *ptr, size_t size) : m_ptr(NULL), m_size(0) {
+    CR_TypedValue(void *ptr, size_t size) :
+        m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id)
+    {
         m_ptr = malloc(size + 1);
         if (m_ptr) {
             memcpy(m_ptr, ptr, size);
             m_size = size;
+        } else {
+            throw std::bad_alloc();
         }
     }
 
-    virtual ~CR_Value() { free(m_ptr); }
+    virtual ~CR_TypedValue() { free(m_ptr); }
 
-    void Copy(const CR_Value& value) {
+    void Copy(const CR_TypedValue& value) {
+        m_type_id = value.m_type_id;
         m_ptr = malloc(value.m_size + 1);
         if (m_ptr) {
             memcpy(m_ptr, value.m_ptr, value.m_size);
             m_size = value.m_size;
+        } else {
+            throw std::bad_alloc();
         }
     }
 
-    CR_Value(const CR_Value& value) : m_ptr(NULL), m_size(0) {
+    CR_TypedValue(const CR_TypedValue& value) :
+        m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id)
+    {
         Copy(value);
     }
 
-    CR_Value& operator=(const CR_Value& value) {
+    CR_TypedValue& operator=(const CR_TypedValue& value) {
         if (this != &value) {
             free(m_ptr);
             Copy(value);
@@ -147,18 +155,24 @@ struct CR_Value {
         return *this;
     }
 
-    CR_Value(CR_Value&& value) : m_ptr(NULL), m_size(0) {
+    CR_TypedValue(CR_TypedValue&& value) : m_ptr(NULL), m_size(0) {
         std::swap(m_ptr, value.m_ptr);
         std::swap(m_size, value.m_size);
+        m_type_id = value.m_type_id;
     }
 
-    CR_Value& operator=(CR_Value&& value) {
+    CR_TypedValue& operator=(CR_TypedValue&& value) {
         if (this != &value) {
             std::swap(m_ptr, value.m_ptr);
             std::swap(m_size, value.m_size);
+            m_type_id = value.m_type_id;
         }
         return *this;
     }
+
+
+    bool empty() const { return m_size == 0 || m_ptr == NULL; }
+    size_t size() const { return m_size; }
 
     template <typename T_VALUE>
     T_VALUE& get() {
@@ -172,42 +186,16 @@ struct CR_Value {
         return *reinterpret_cast<const T_VALUE *>(m_ptr);
     }
 
-    bool empty() const { return m_size == 0; }
-    size_t size() const { return m_size; }
+    template <typename T_VALUE>
+    void assign(const T_VALUE& v) {
+        m_ptr = realloc(m_ptr, sizeof(v));
+        if (m_ptr) {
+            *reinterpret_cast<T_VALUE *>(m_ptr) = v;
+        } else {
+            throw std::bad_alloc();
+        }
+    }
 };
-
-////////////////////////////////////////////////////////////////////////////
-// CR_TypedValue --- typed value
-
-struct CR_TypedValue {
-    CR_TypeID   m_tid;
-    CR_Value    m_value;
-
-    CR_TypedValue() : m_tid(0), m_value() { }
-    CR_TypedValue(CR_TypeID tid, const CR_Value& value) :
-        m_tid(tid), m_value(value) { }
-    CR_TypedValue(CR_TypeID tid, void *ptr, size_t size) :
-        m_tid(tid), m_value(ptr, size) { }
-
-    bool empty() const { return m_value.empty(); }
-    size_t size() const { return m_value.size(); }
-};
-
-////////////////////////////////////////////////////////////////////////////
-// CR_LogFunc --- logical function
-
-struct CR_LogFunc {
-    bool                    m_ellipsis;
-    CR_TypeSet              m_type_list;
-    CR_StringSet            m_name_list;
-    CR_TypeID               m_return_type;
-    enum {
-        FT_CDECL, FT_STDCALL, FT_FASTCALL
-    } m_func_type;  // calling convention
-
-    CR_LogFunc() :
-        m_ellipsis(false), m_return_type(0), m_func_type(FT_CDECL) { }
-}; // struct CR_LogFunc
 
 ////////////////////////////////////////////////////////////////////////////
 // CR_LogType --- logical type
@@ -228,7 +216,6 @@ struct CR_LogType {
     // For TF_STRUCT:               A struct ID (CR_StructID).
     // For TF_ENUM:                 An enum ID (CR_EnumID).
     // For TF_UNION:                A struct ID (CR_StructID).
-    // For TF_ENUMITEM:             An enum ID (CR_EnumID).
     // otherwise: zero
 
     size_t          m_count;        // for TF_ARRAY, TF_STRUCT, TF_UNION
@@ -237,24 +224,26 @@ struct CR_LogType {
     int             m_size;         // the size of type
     int             m_align;        // alignment requirement of type
     int             m_alignas;      // # of alignas(#) if specified
+    bool            m_alignas_explicit;
     CR_Location     m_location;          // the location
 
     CR_LogType() : m_flags(0), m_sub_id(0), m_count(0), m_size(0), m_align(0),
-                   m_alignas(0) { }
+                   m_alignas(0), m_alignas_explicit(false) { }
 
     CR_LogType(CR_TypeFlags flags, int size, const CR_Location& location) :
         m_flags(flags), m_sub_id(0), m_count(0), m_size(size), m_align(size),
-        m_alignas(0), m_location(location) { }
+        m_alignas(0), m_alignas_explicit(false), m_location(location) { }
 
     CR_LogType(CR_TypeFlags flags, int size, int align,
                const CR_Location& location) :
         m_flags(flags), m_sub_id(0), m_count(0), m_size(size), m_align(align),
-            m_alignas(0), m_location(location) { }
+            m_alignas(0), m_alignas_explicit(false), m_location(location) { }
 
     CR_LogType(CR_TypeFlags flags, int size, int align, int alignas_,
                const CR_Location& location) :
         m_flags(flags), m_sub_id(0), m_count(0), m_size(size), m_align(align),
-            m_alignas(alignas_), m_location(location) { }
+            m_alignas(alignas_), m_alignas_explicit(false),
+                m_location(location) { }
 
     // incomplete comparison 
     bool operator==(const CR_LogType& type) const;
@@ -263,6 +252,23 @@ struct CR_LogType {
           CR_Location& location()       { return m_location; }
     const CR_Location& location() const { return m_location; }
 }; // struct CR_LogType
+
+////////////////////////////////////////////////////////////////////////////
+// CR_LogFunc --- logical function
+
+struct CR_LogFunc {
+    bool                    m_ellipsis;
+    CR_TypeSet              m_type_list;
+    CR_StringSet            m_name_list;
+    CR_TypeID               m_return_type;
+    enum Type {
+        FT_CDECL, FT_STDCALL, FT_FASTCALL
+    };
+    Type m_func_type;  // calling convention
+
+    CR_LogFunc() :
+        m_ellipsis(false), m_return_type(0), m_func_type(FT_CDECL) { }
+}; // struct CR_LogFunc
 
 ////////////////////////////////////////////////////////////////////////////
 // CR_LogStruct --- logical structure or union
@@ -276,12 +282,15 @@ struct CR_LogStruct {
     CR_DeqSet<int>          m_bits_list;        // list of bits
     int                     m_pack;             // pack
     int                     m_align;            // alignment requirement
+    int                     m_alignas;          // _Alignas(#)
+    bool                    m_alignas_explicit;
     bool                    m_is_complete;      // is it complete?
 
     CR_LogStruct(bool is_struct = true) :
-        m_is_struct(is_struct), m_pack(8), m_align(0), m_is_complete(false) { }
+        m_is_struct(is_struct), m_pack(8), m_align(0),
+        m_alignas_explicit(false), m_is_complete(false) { }
 
-    size_t FindName(const CR_String& name) const {
+    size_t FindName(const std::string& name) const {
         for (size_t i = 0; i < m_name_list.size(); i++) {
             if (m_name_list[i] == name)
                 return i;
@@ -300,21 +309,21 @@ struct CR_LogStruct {
 // CR_LogEnum
 
 struct CR_LogEnum {
-    CR_UnorderedMap<CR_String, int>     m_mNameToValue;
-    CR_UnorderedMap<int, CR_String>     m_mValueToName;
+    std::unordered_map<std::string, int>     m_mNameToValue;
+    std::unordered_map<int, std::string>     m_mValueToName;
 
     CR_LogEnum() { }
 
-    CR_UnorderedMap<CR_String, int>& MapNameToValue()
+    std::unordered_map<std::string, int>& MapNameToValue()
     { return m_mNameToValue; }
 
-    CR_UnorderedMap<int, CR_String>& MapValueToName()
+    std::unordered_map<int, std::string>& MapValueToName()
     { return m_mValueToName; }
 
-    const CR_UnorderedMap<CR_String, int>& MapNameToValue() const
+    const std::unordered_map<std::string, int>& MapNameToValue() const
     { return m_mNameToValue; }
 
-    const CR_UnorderedMap<int, CR_String>& MapValueToName() const
+    const std::unordered_map<int, std::string>& MapValueToName() const
     { return m_mValueToName; }
 
     bool empty() const {
@@ -326,23 +335,8 @@ struct CR_LogEnum {
 // CR_LogVar --- logical variable
 
 struct CR_LogVar {
-    CR_LogVar() : m_has_value(false) { }
-
-    bool            m_has_value;        // whether it has value
     CR_TypeID       m_type_id;          // the type ID of a variable
     CR_Location     m_location;         // the location
-    CR_ID           m_enum_type_id;     // the type ID of an enum type
-    union { // variant value
-        char        m_char_value;
-        short       m_short_value;
-        long        m_long_value;
-        long long   m_long_long_value;
-        int         m_int_value;
-        float       m_float_value;
-        double      m_double_value;
-        long double m_long_double_value;
-        void *      m_pointer_value;
-    };
 
           CR_Location& location()       { return m_location; }
     const CR_Location& location() const { return m_location; }
@@ -361,12 +355,19 @@ public:
 
     // is 64-bit mode or not?
     bool Is64Bit() const { return m_is_64bit; }
-    void Set64Bit(bool is_64bit) { m_is_64bit = is_64bit; }
 
     // initialize
     void Init();
 
-    CR_TypeID AddType(const CR_String& name, const CR_LogType& lt) {
+    bool LoadFromFiles(
+        const std::string& prefix = "",
+        const std::string& suffix = ".dat");
+    
+    bool SaveToFiles(
+        const std::string& prefix = "",
+        const std::string& suffix = ".dat") const;
+
+    CR_TypeID AddType(const std::string& name, const CR_LogType& lt) {
         auto tid = m_types.AddUnique(lt);
         if (!name.empty()) {
             m_mNameToTypeID[name] = tid;
@@ -375,19 +376,19 @@ public:
         return tid;
     }
 
-    CR_TypeID AddType(const CR_String& name, CR_TypeFlags flags, int size,
+    CR_TypeID AddType(const std::string& name, CR_TypeFlags flags, int size,
                       const CR_Location& location = CR_Location())
     {
         return AddType(name, CR_LogType(flags, size, location));
     }
 
-    CR_TypeID AddType(const CR_String& name, CR_TypeFlags flags, int size,
+    CR_TypeID AddType(const std::string& name, CR_TypeFlags flags, int size,
                       int align, const CR_Location& location = CR_Location())
     {
         return AddType(name, CR_LogType(flags, size, align, location));
     }
 
-    CR_TypeID AddType(const CR_String& name, CR_TypeFlags flags, int size,
+    CR_TypeID AddType(const std::string& name, CR_TypeFlags flags, int size,
                       int align, int alignas_,
                       const CR_Location& location = CR_Location())
     {
@@ -395,15 +396,15 @@ public:
     }
 
     // add alias type
-    CR_TypeID AddAliasType(const CR_String& name, CR_TypeID tid,
+    CR_TypeID AddAliasType(const std::string& name, CR_TypeID tid,
                            const CR_Location& location);
 
     // add a variable
-    CR_VarID AddVar(const CR_String& name, CR_TypeID tid,
+    CR_VarID AddVar(const std::string& name, CR_TypeID tid,
                     const CR_Location& location);
 
     // add a variable
-    CR_VarID AddVar(const CR_String& name, const CR_LogType& type) {
+    CR_VarID AddVar(const std::string& name, const CR_LogType& type) {
         auto tid = m_types.AddUnique(type);
         if (!name.empty()) {
             m_mNameToTypeID[name] = tid;
@@ -430,14 +431,14 @@ public:
     CR_TypeID AddFuncType(const CR_LogFunc& lf, const CR_Location& location);
 
     // add struct type
-    CR_TypeID AddStructType(const CR_String& name, const CR_LogStruct& ls,
+    CR_TypeID AddStructType(const std::string& name, const CR_LogStruct& ls,
                             int alignas_, const CR_Location& location);
 
     // add union type
-    CR_TypeID AddUnionType(const CR_String& name, const CR_LogStruct& ls,
+    CR_TypeID AddUnionType(const std::string& name, const CR_LogStruct& ls,
                            int alignas_, const CR_Location& location);
 
-    CR_TypeID AddEnumType(const CR_String& name, const CR_LogEnum& le,
+    CR_TypeID AddEnumType(const std::string& name, const CR_LogEnum& le,
                           const CR_Location& location);
 
     void AddTypeFlags(CR_TypeID tid, CR_TypeFlags flags) {
@@ -460,8 +461,11 @@ public:
         auto& type = LogType(tid);
         type.m_align = alignas_;
         type.m_alignas = alignas_;
+        type.m_alignas_explicit = true;
         if (type.m_flags & (TF_STRUCT | TF_UNION)) {
             LogStruct(type.m_sub_id).m_align = alignas_;
+            LogStruct(type.m_sub_id).m_alignas = alignas_;
+            LogStruct(type.m_sub_id).m_alignas_explicit = true;
         }
     }
 
@@ -478,9 +482,9 @@ public:
         return type.m_size;
     }
 
-    CR_String
-    StringOfEnumTag(const CR_String& name) const {
-        CR_String str = "enum ";
+    std::string
+    StringOfEnumTag(const std::string& name) const {
+        std::string str = "enum ";
         if (name.size()) {
             assert(name.find("enum ") == 0);
             str += name.substr(5);
@@ -490,36 +494,25 @@ public:
     }
 
     // get string of enum
-    CR_String StringOfEnum(const CR_String& name, CR_EnumID eid) const;
+    std::string StringOfEnum(const std::string& name, CR_EnumID eid) const;
 
-    CR_String
-    StringOfStructTag(const CR_String& name, const CR_LogStruct& s) const;
+    std::string
+    StringOfStructTag(const std::string& name, const CR_LogStruct& s) const;
 
     // get string of struct or union
-    CR_String StringOfStruct(const CR_String& name, CR_StructID sid) const;
+    std::string StringOfStruct(const std::string& name, CR_StructID sid) const;
 
     // get string of type
-    CR_String StringOfType(CR_TypeID tid, const CR_String& name,
+    std::string StringOfType(CR_TypeID tid, const std::string& name,
                            bool expand = true, bool no_convension = false) const;
 
     // get string of parameter list
-    CR_String StringOfParamList(
+    std::string StringOfParamList(
         const CR_TypeSet& type_list, const CR_StringSet& name_list) const;
-
-    // get integer value of a variable
-    int GetIntValueFromVarName(const CR_String& name) const {
-        auto it = m_mNameToVarID.find(name);
-        if (it == m_mNameToVarID.end())
-            return 0;
-        return m_vars[it->second].m_int_value;
-    }
 
     //
     // type judgements
     //
-
-    // Is the type a CodeReverse-extended type?
-    bool IsCrExtendedType(CR_TypeID tid) const;
 
     // is it function type?
     bool IsFuncType(CR_TypeID tid) const;
@@ -528,7 +521,7 @@ public:
     bool IsPredefinedType(CR_TypeID tid) const;
 
     // is it integer type?
-    bool IsIntegerType(CR_TypeID tid) const;
+    bool IsIntegralType(CR_TypeID tid) const;
 
     // is it floating type?
     bool IsFloatingType(CR_TypeID tid) const;
@@ -554,9 +547,9 @@ public:
 
     CR_TypeID TypeIDFromFlags(CR_TypeFlags flags) const;
 
-    CR_TypeID TypeIDFromName(const CR_String& name) const;
+    CR_TypeID TypeIDFromName(const std::string& name) const;
 
-    CR_String NameFromTypeID(CR_TypeID tid) const;
+    std::string NameFromTypeID(CR_TypeID tid) const;
 
     CR_LogType& LogType(CR_TypeID tid) {
         assert(tid < m_types.size());
@@ -578,28 +571,28 @@ public:
         return m_vars[vid];
     }
 
-    CR_Map<CR_String, CR_TypeID>& MapNameToTypeID()
+    std::map<std::string, CR_TypeID>& MapNameToTypeID()
     { return m_mNameToTypeID; }
 
-    const CR_Map<CR_String, CR_TypeID>& MapNameToTypeID() const
+    const std::map<std::string, CR_TypeID>& MapNameToTypeID() const
     { return m_mNameToTypeID; }
 
-    CR_Map<CR_TypeID, CR_String>& MapTypeIDToName()
+    std::map<CR_TypeID, std::string>& MapTypeIDToName()
     { return m_mTypeIDToName; }
 
-    const CR_Map<CR_TypeID, CR_String>& MapTypeIDToName() const
+    const std::map<CR_TypeID, std::string>& MapTypeIDToName() const
     { return m_mTypeIDToName; }
 
-    CR_Map<CR_String, CR_VarID>& MapNameToVarID()
+    std::map<std::string, CR_VarID>& MapNameToVarID()
     { return m_mNameToVarID; }
 
-    const CR_Map<CR_String, CR_VarID>& MapNameToVarID() const
+    const std::map<std::string, CR_VarID>& MapNameToVarID() const
     { return m_mNameToVarID; }
 
-    CR_Map<CR_VarID, CR_String>& MapVarIDToName()
+    std::map<CR_VarID, std::string>& MapVarIDToName()
     { return m_mVarIDToName; }
 
-    const CR_Map<CR_VarID, CR_String>& MapVarIDToName() const
+    const std::map<CR_VarID, std::string>& MapVarIDToName() const
     { return m_mVarIDToName; }
 
           CR_DeqSet<CR_LogVar>& Vars()       { return m_vars; }
@@ -641,19 +634,28 @@ public:
           CR_DeqSet<CR_LogStruct>& LogStructs()       { return m_structs; }
     const CR_DeqSet<CR_LogStruct>& LogStructs() const { return m_structs; }
 
+          CR_DeqSet<CR_LogFunc>& LogFuncs()       { return m_funcs; }
+    const CR_DeqSet<CR_LogFunc>& LogFuncs() const { return m_funcs; }
+
+          CR_DeqSet<CR_LogEnum>& LogEnums()       { return m_enums; }
+    const CR_DeqSet<CR_LogEnum>& LogEnums() const { return m_enums; }
+
+          CR_DeqSet<CR_LogVar>& LogVars()       { return m_vars; }
+    const CR_DeqSet<CR_LogVar>& LogVars() const { return m_vars; }
+
 protected:
-    shared_ptr<CR_ErrorInfo>        m_error_info;
-    bool                            m_is_64bit;
-    CR_Map<CR_String, CR_TypeID>    m_mNameToTypeID;
-    CR_Map<CR_TypeID, CR_String>    m_mTypeIDToName;
-    CR_Map<CR_String, CR_VarID>     m_mNameToVarID;
-    CR_Map<CR_VarID, CR_String>     m_mVarIDToName;
-    CR_Map<CR_String, CR_TypeID>    m_mNameToFuncTypeID;
-    CR_DeqSet<CR_LogType>           m_types;
-    CR_DeqSet<CR_LogFunc>           m_funcs;
-    CR_DeqSet<CR_LogStruct>         m_structs;
-    CR_DeqSet<CR_LogEnum>           m_enums;
-    CR_DeqSet<CR_LogVar>            m_vars;
+    shared_ptr<CR_ErrorInfo>            m_error_info;
+    bool                                m_is_64bit;
+    std::map<std::string, CR_TypeID>    m_mNameToTypeID;
+    std::map<CR_TypeID, std::string>    m_mTypeIDToName;
+    std::map<std::string, CR_VarID>     m_mNameToVarID;
+    std::map<CR_VarID, std::string>     m_mVarIDToName;
+    std::map<std::string, CR_TypeID>    m_mNameToFuncTypeID;
+    CR_DeqSet<CR_LogType>               m_types;
+    CR_DeqSet<CR_LogFunc>               m_funcs;
+    CR_DeqSet<CR_LogStruct>             m_structs;
+    CR_DeqSet<CR_LogEnum>               m_enums;
+    CR_DeqSet<CR_LogVar>                m_vars;
 }; // class CR_NameScope
 
 #endif  // ndef TYPESYSTEM_H_

@@ -10,12 +10,13 @@
     #define __NO_INLINE__   // https://github.com/g-truc/glm/issues/300
 #endif
 
-#include <cstdlib>          // standard library
-#include <cstdio>           // standard I/O
+#include <cstdlib>          // C standard library
 #include <cstring>          // C string
 #include <cassert>          // for assert
 #include <cctype>           // for isdigit, isalpha, isalnum, ...
 
+#include <iostream>         // for std::cout, std::cerr
+#include <fstream>          // for std::ifstream
 #include <vector>           // for std::vector
 #include <string>           // for std::string
 #include <map>              // for std::map
@@ -23,14 +24,13 @@
 #include <set>              // for std::set
 #include <deque>            // for std::deque
 #include <algorithm>        // for std::sort, std::unique
+#include <new>              // for std::bad_alloc
 
 #include <memory>
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
 using std::static_pointer_cast;
 using std::make_shared;
-
-#include <regex>            // std::regex
 
 #include "Location.h"       // CR_Location
 #include "Main.h"

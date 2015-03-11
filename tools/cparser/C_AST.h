@@ -90,7 +90,7 @@ namespace cparser
         enum {
             TYPEDEF_TAG, ARRAY, FUNCTION, IDENTIFIER, BITS, POINTERS
         } m_declor_type;
-        CR_String               m_name;
+        std::string             m_name;
         shared_ptr<Declor>      m_declor;       // can be NULL
         shared_ptr<CondExpr>    m_const_expr;   // can be NULL
         shared_ptr<ParamList>   m_param_list;   // can be NULL
@@ -105,7 +105,7 @@ namespace cparser
         enum {
             STRING, IDENTIFIER, COMMA, COLON, PAREN, BRACKET
         } m_operand_type;
-        CR_String                 m_text;
+        std::string                 m_text;
         shared_ptr<Expr>            m_expr;
     };
 
@@ -155,7 +155,7 @@ namespace cparser
         CR_TypeFlags                m_flag;
         int                         m_pack;
         // struct/union/enum tag name or typedef name
-        CR_String                   m_name;
+        std::string                 m_name;
         shared_ptr<DeclList>        m_decl_list;            // for struct, union or enum
         shared_ptr<EnumorList>      m_enumor_list;
         shared_ptr<AtomicTypeSpec>  m_atomic_type_spec;
@@ -202,7 +202,7 @@ namespace cparser
     };
 
     struct Enumor : Node {
-        CR_String             m_name;
+        std::string             m_name;
         shared_ptr<CondExpr>    m_const_expr;
     };
 
@@ -219,7 +219,7 @@ namespace cparser
         ParamList() : m_ellipsis(false) { }
     };
 
-    struct IdentList : Node, std::vector<CR_String> {
+    struct IdentList : Node, std::vector<std::string> {
     };
 
     struct Initer : Node {
@@ -349,8 +349,8 @@ namespace cparser
         enum {
             IDENTIFIER, I_CONSTANT, F_CONSTANT, STRING, PAREN, SELECTION
         } m_prim_type;
-        CR_String           m_text;
-        CR_String           m_extra;
+        std::string         m_text;
+        std::string         m_extra;
         shared_ptr<Expr>    m_expr;
         shared_ptr<GeneSel> m_gen_sel;
         CR_TypeFlags        m_flags;
@@ -379,9 +379,9 @@ namespace cparser
         enum {
             LABEL, CASE, DEFAULT
         } m_labeled_type;
-        CR_String m_label;
-        shared_ptr<CondExpr> m_const_expr;
-        shared_ptr<Stmt>     m_stmt;
+        std::string             m_label;
+        shared_ptr<CondExpr>    m_const_expr;
+        shared_ptr<Stmt>        m_stmt;
     };
     
     struct ExprStmt : Node {
@@ -416,7 +416,7 @@ namespace cparser
         enum {
             GOTO, CONTINUE, BREAK, RETURN_VOID, RETURN_EXPR
         } m_jump_type;
-        CR_String         m_label;
+        std::string         m_label;
         shared_ptr<Expr>    m_expr;
     };
     
@@ -445,7 +445,7 @@ namespace cparser
 
     struct StaticAssertDecl : Node {
         shared_ptr<CondExpr>    m_const_expr;
-        CR_String             m_str;
+        std::string             m_str;
     };
 
     //
@@ -456,8 +456,8 @@ namespace cparser
         typedef TokenType token_type;
 
         token_type      m_token;
-        CR_String       m_text;
-        CR_String       m_extra;
+        std::string     m_text;
+        std::string     m_extra;
         int             m_pack;
         CR_TypeFlags    m_flags;
 

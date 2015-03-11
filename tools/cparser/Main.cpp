@@ -14,21 +14,21 @@ const char * const cr_logo =
     "///////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser 0.2.8 (64-bit) for gcc        //\n"
+    "// CParser 0.2.9 (64-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.2.8 (64-bit) for clang      //\n"
+    "// CParser 0.2.9 (64-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.2.8 (64-bit) for cl (VC++)  //\n"
+    "// CParser 0.2.9 (64-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser 0.2.8 (32-bit) for gcc        //\n"
+    "// CParser 0.2.9 (32-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.2.8 (32-bit) for clang      //\n"
+    "// CParser 0.2.9 (32-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.2.8 (32-bit) for cl (VC++)  //\n"
+    "// CParser 0.2.9 (32-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
@@ -710,7 +710,7 @@ retry:
                 --it;
                 infos.emplace_back(T_NE, "!=");
             } else {
-                infos.emplace_back(T_NOT, "!");
+                infos.emplace_back(T_BANG, "!");
             }
             break;
 
@@ -734,7 +734,7 @@ retry:
         case ')': infos.emplace_back(T_R_PAREN, ")"); break;
         case '[': infos.emplace_back(T_L_BRACKET, "["); break;
         case ']': infos.emplace_back(T_R_BRACKET, "]"); break;
-        case '~': infos.emplace_back(T_BITWISE_NOT, "~"); break;
+        case '~': infos.emplace_back(T_TILDA, "~"); break;
         case '?': infos.emplace_back(T_QUESTION, "?"); break;
 
 label_default:
@@ -1454,22 +1454,25 @@ cparser::Lexer::parse_pack(
     if (flag) {
         if ((it + 1)->m_text == "pop") {
             // #pragma pack(pop)
-            if (c_show_pack)
-                fprintf(stderr, "%s: pragma pack(pop)\n",
-                    base.location().str().data());
+            if (c_show_pack) {
+                std::cerr << base.location().str() <<
+                    ": pragma pack(pop)" << std::endl;
+            }
             base.packing().pop();
         } else if ((it + 1)->m_text == "push"){
             // #pragma pack(push)
-            if (c_show_pack)
-                fprintf(stderr, "%s: pragma pack(push)\n",
-                    base.location().str().data());
+            if (c_show_pack) {
+                std::cerr << base.location().str() <<
+                    ": pragma pack(push)" << std::endl;
+            }
             base.packing().push(base.packing());
         } else {
             // #pragma pack(#)
             int pack = std::stoi((it + 1)->m_text, NULL, 0);
-            if (c_show_pack)
-                fprintf(stderr, "%s: pragma pack(%d)\n",
-                    base.location().str().data(), pack);
+            if (c_show_pack) {
+                std::cerr << base.location().str() <<
+                    ": pragma pack(" << pack << ")" << std::endl;
+            }
             base.packing().set(pack);
         }
         return CR_ErrorInfo::NOTHING;
@@ -1485,16 +1488,18 @@ cparser::Lexer::parse_pack(
             // #pragma pack(..., ident)
             if ((it + 1)->m_text == "pop") {
                 // #pragma pack(pop, ident)
-                if (c_show_pack)
-                    fprintf(stderr, "%s: pragma pack(pop,%s)\n",
-                        base.location().str().data(), param.data());
+                if (c_show_pack) {
+                    std::cerr << base.location().str() <<
+                        ": pragma pack(pop," << param << ")" << std::endl;
+                }
                 base.packing().pop(param);
                 return CR_ErrorInfo::NOTHING;
             } else if ((it + 1)->m_text == "push") {
                 // #pragma pack(push, ident)
-                if (c_show_pack)
-                    fprintf(stderr, "%s: pragma pack(push,%s)\n",
-                        base.location().str().data(), param.data());
+                if (c_show_pack) {
+                    std::cerr << base.location().str() <<
+                        ": pragma pack(push," << param << ")" << std::endl;
+                }
                 base.packing().push(param);
                 return CR_ErrorInfo::NOTHING;
             }
@@ -1503,17 +1508,19 @@ cparser::Lexer::parse_pack(
             if ((it + 1)->m_text == "pop") {
                 // #pragma pack(pop, #)
                 int pack = std::stoi(param, NULL, 0);
-                if (c_show_pack)
-                    fprintf(stderr, "%s: pragma pack(pop,%d)\n",
-                        base.location().str().data(), pack);
+                if (c_show_pack) {
+                    std::cerr << base.location().str() <<
+                        ": pragma pack(pop," << pack << ")" << std::endl;
+                }
                 base.packing().pop(pack);
                 return CR_ErrorInfo::NOTHING;
             } else if ((it + 1)->m_text == "push") {
                 // #pragma pack(push, #)
                 int pack = std::stoi(param, NULL, 0);
-                if (c_show_pack)
-                    fprintf(stderr, "%s: pragma pack(push,%d)\n",
-                        base.location().str().data(), pack);
+                if (c_show_pack) {
+                    std::cerr << base.location().str() <<
+                        ": pragma pack(push," << pack << ")" << std::endl;
+                }
                 base.packing().push(pack);
                 return CR_ErrorInfo::NOTHING;
             }
@@ -1531,19 +1538,21 @@ cparser::Lexer::parse_pack(
         auto ident = (it + 3)->m_text;
         auto param = (it + 5)->m_text;
         if (op == "push") {
-            if (c_show_pack)
-                fprintf(stderr, "%s: pragma pack(push,%s,%s)\n",
-                    base.location().str().data(),
-                    ident.data(), param.data());
+            if (c_show_pack) {
+                std::cerr << base.location().str() <<
+                    ": pragma pack(push," << ident << "," <<
+                        param << ")" << std::endl;
+            }
             base.packing().push(ident);
             base.packing().set(base.packing());
             return CR_ErrorInfo::NOTHING;
         } else if (op == "pop") {
             int pack = std::stoi(param, NULL, 0);
-            if (c_show_pack)
-                fprintf(stderr, "%s: pragma pack(pop,%s,%s)\n",
-                    base.location().str().data(),
-                    ident.data(), param.data());
+            if (c_show_pack) {
+                std::cerr << base.location().str() <<
+                    ": pragma pack(pop," << ident << "," <<
+                        param << ")" << std::endl;
+            }
             if (base.packing().pop(ident)) {
                 base.packing().set(pack);
             } else {
@@ -1627,7 +1636,7 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     int n;
     switch (pe->m_prim_type) {
     case PrimExpr::IDENTIFIER:
-        n = namescope.GetIntValueFromVarName(pe->m_text);
+        n = 0; // TODO:
         return n;
 
     case PrimExpr::F_CONSTANT:
@@ -2332,15 +2341,15 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
 void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
                    Declor *declor, DeclList *decl_list);
 CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
-                                  const CR_String& name, DeclList *dl,
+                                  const std::string& name, DeclList *dl,
                                   int pack, int alignas_,
                                   const CR_Location& location);
 CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
-                                 const CR_String& name, DeclList *dl,
+                                 const std::string& name, DeclList *dl,
                                  int pack, int alignas_,
                                  const CR_Location& location);
 CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
-                              const CR_String& name, EnumorList *el,
+                              const std::string& name, EnumorList *el,
                               const CR_Location& location);
 CR_TypeID CrAnalyseAtomic(CR_NameScope& namescope, AtomicTypeSpec *ats);
 CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
@@ -2371,7 +2380,7 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
         int value;
         Declor *d = declor.get();
         while (d) {
-            CR_String name;
+            std::string name;
             switch (d->m_declor_type) {
             case Declor::TYPEDEF_TAG:
                 assert(!d->m_name.empty());
@@ -2460,7 +2469,7 @@ void CrAnalyseTypedefDeclorListVector(
         int value;
         Declor *d = declor.get();
         while (d) {
-            CR_String name;
+            std::string name;
             switch (d->m_declor_type) {
             case Declor::TYPEDEF_TAG:
                 assert(!d->m_name.empty());
@@ -2605,7 +2614,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
         CR_TypeID tid2 = tid;
 
         int value, bits = -1;
-        CR_String name;
+        std::string name;
         Declor *d = declor.get();
         while (d) {
             switch (d->m_declor_type) {
@@ -2731,7 +2740,7 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
         #endif
 
         CR_TypeID tid2 = tid;
-        CR_String name;
+        std::string name;
         while (d) {
             switch (d->m_declor_type) {
             case Declor::IDENTIFIER:
@@ -2810,7 +2819,7 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
 }
 
 CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
-                                  const CR_String& name, DeclList *dl,
+                                  const std::string& name, DeclList *dl,
                                   int pack, int alignas_,
                                   const CR_Location& location)
 {
@@ -2857,7 +2866,7 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
 }
 
 CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
-                                 const CR_String& name, DeclList *dl,
+                                 const std::string& name, DeclList *dl,
                                  int pack, int alignas_,
                                  const CR_Location& location)
 {
@@ -2904,15 +2913,13 @@ CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
 }
 
 CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
-                              const CR_String& name, EnumorList *el,
+                              const std::string& name, EnumorList *el,
                               const CR_Location& location)
 {
     CR_LogEnum le;
 
     int value, next_value = 0;
     assert(el);
-    CR_TypeID tid_enumitem = namescope.TypeIDFromName("enumitem");
-    CR_IDSet vids;
     for (auto& e : *el) {
         if (e->m_const_expr)
             value = CrCalcConstIntCondExpr(namescope, e->m_const_expr.get());
@@ -2921,17 +2928,10 @@ CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
 
         le.MapNameToValue()[e->m_name.data()] = value;
         le.MapValueToName()[value] = e->m_name.data();
-        CR_VarID vid = namescope.AddVar(e->m_name, tid_enumitem, location);
-        namescope.LogVar(vid).m_has_value = true;
-        namescope.LogVar(vid).m_int_value = value;
-        vids.push_back(vid);
         next_value = value + 1;
     }
 
     CR_TypeID tid = namescope.AddEnumType(name, le, location);
-    for (const auto& vid : vids) {
-        namescope.LogVar(vid).m_enum_type_id = tid;
-    }
     return tid;
 }
 
@@ -2948,7 +2948,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
         return namescope.TypeIDFromName("int");
 
     while (ds) {
-        CR_String name;
+        std::string name;
         switch (ds->m_spec_type) {
         case DeclSpecs::STORCLSSPEC:
             // TODO: ds->m_stor_cls_spec->m_scs_type;
@@ -3181,11 +3181,11 @@ int CrInputCSrc(
 
         // build command line
         #ifdef __GNUC__
-            CR_String cmdline("gcc -E");
+            std::string cmdline("gcc -E");
         #elif defined(__clang__)
-            CR_String cmdline("clang -E");
+            std::string cmdline("clang -E");
         #elif defined(_MSC_VER)
-            CR_String cmdline("cl /nologo /E");
+            std::string cmdline("cl /nologo /E");
         #else
             #error You lose.
         #endif
@@ -3198,7 +3198,7 @@ int CrInputCSrc(
             cmdline += ' ';
             cmdline += CrConvertCmdLineParam(argv[i]);
         }
-        fprintf(stderr, "CommandLine: %s\n", cmdline.data());
+        std::cerr << "CommandLine: " << cmdline << std::endl;
 
         MProcessMaker pmaker;
         MFile input, output, error;
@@ -3348,176 +3348,34 @@ int CrSemanticAnalysis(
 
 void CrDumpSemantic(
     CR_NameScope& namescope,
-    const CR_String& strPrefix, const CR_String& strSuffix)
+    const std::string& strPrefix, const std::string& strSuffix)
 {
-    FILE *fp;
-
-    fp = fopen((strPrefix + "types" + strSuffix).data(), "w");
-    if (fp) {
-        fprintf(fp, "(type_id)\t(name)\t(flags)\t(sub_id)\t(count)\t(size)\t(align)\t(file)\t(line)\t(definition)\n");
-        for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
-            const auto& name = namescope.MapTypeIDToName()[tid];
-            const auto& type = namescope.LogType(tid);
-            const auto& location = type.location();
-            if (namescope.IsCrExtendedType(tid)) {
-                ;
-            } else if (namescope.IsPredefinedType(tid)) {
-                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t(predefined)\t0\t(predefined)\n",
-                    static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
-                    type.m_size, type.m_align);
-            } else if (!(type.m_flags & TF_ALIAS) &&
-                       type.m_flags & (TF_STRUCT | TF_UNION | TF_ENUM))
-            {
-                auto strDef = namescope.StringOfType(tid, "", true);
-                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\t%s;\n",
-                    static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
-                    type.m_size, type.m_align,
-                    location.m_file.data(), location.m_line, strDef.data());
-            } else if (type.m_flags & (TF_POINTER | TF_FUNCTION | TF_ARRAY)) {
-                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\t\n",
-                    static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
-                    type.m_size, type.m_align,
-                    location.m_file.data(), location.m_line);
-            } else {
-                auto strDef = namescope.StringOfType(tid, name, true);
-                fprintf(fp, "%d\t%s\t0x%08lX\t%d\t%d\t%d\t%d\t%s\t%d\ttypedef %s;\n",
-                    static_cast<int>(tid), name.data(), type.m_flags,
-                    static_cast<int>(type.m_sub_id), static_cast<int>(type.m_count),
-                    type.m_size, type.m_align,
-                    location.m_file.data(), location.m_line, strDef.data());
-            }
-        }
-        fclose(fp);
-    }
-
-    fp = fopen((strPrefix + "structures" + strSuffix).data(), "w");
-    if (fp) {
-        fprintf(fp, "(struct_id)\t(name)\t(type_id)\t(flags)\t(is_struct)\t(size)\t(count)\t(pack)\t(align)\t(alignas)\t(file)\t(line)\t(definition)\t(item_1_name)\t(item_1_type_id)\t(item_1_offset)\t(item_1_bits)\t(item_2_type_id)\t...\n");
-        for (CR_TypeID sid = 0; sid < namescope.LogStructs().size(); ++sid) {
-            const auto& ls = namescope.LogStruct(sid);
-            auto tid = ls.m_tid;
-            const auto& type = namescope.LogType(tid);
-            const auto& location = type.location();
-            const auto& name = namescope.MapTypeIDToName()[tid];
-            auto strDef = namescope.StringOfType(tid, "");
-            assert(ls.m_type_list.size() == ls.m_name_list.size());
-            fprintf(fp, "%d\t%s\t%d\t0x%08lX\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%d\t%s;",
-                static_cast<int>(sid), name.data(), static_cast<int>(tid), 
-                type.m_flags, ls.m_is_struct,
-                type.m_size, static_cast<int>(ls.m_type_list.size()),
-                ls.m_pack, ls.m_align, static_cast<int>(type.m_alignas),
-                location.m_file.data(), location.m_line, strDef.data());
-            assert(ls.m_type_list.size() == ls.m_bit_offset_list.size());
-            assert(ls.m_type_list.size() == ls.m_bits_list.size());
-            for (size_t i = 0; i < ls.m_type_list.size(); ++i) {
-                fprintf(fp, "\t%s\t%d\t%d\t%d",
-                    ls.m_name_list[i].data(),
-                    static_cast<int>(ls.m_type_list[i]),
-                    ls.m_bit_offset_list[i],
-                    ls.m_bits_list[i]);
-            }
-            fprintf(fp, "\n");
-        }
-        fclose(fp);
-    }
-
-    fp = fopen((strPrefix + "enums" + strSuffix).data(), "w");
-    if (fp) {
-        fprintf(fp, "(type_id)\t(name)\t(num_items)\t(file)\t(line)\t(item_name_1)\t(item_value_1)\t(item_name_2)\t...\n");
-        for (CR_TypeID tid = 0; tid < namescope.LogTypes().size(); ++tid) {
-            const auto& type = namescope.LogType(tid);
-            if ((type.m_flags & TF_ENUM) && (type.m_flags & TF_ALIAS) == 0) {
-                const auto& name = namescope.MapTypeIDToName()[tid];
-                const auto& le = namescope.LogEnum(type.m_sub_id);
-                size_t num_items = le.MapNameToValue().size();
-                const auto& location = type.location();
-                fprintf(fp, "%d\t%s\t%d\t%s\t%d",
-                    static_cast<int>(tid), name.data(), static_cast<int>(num_items),
-                    location.m_file.data(), location.m_line);
-                for (const auto& item : le.MapNameToValue()) {
-                    fprintf(fp, "\t%s\t%d", item.first.data(), item.second);
-                }
-                fprintf(fp, "\n");
-            }
-        }
-        fclose(fp);
-    }
-
-    fp = fopen((strPrefix + "enumitems" + strSuffix).data(), "w");
-    if (fp) {
-        fprintf(fp, "(enum_type_id)\t(name)\t(value)\t(enum_name)\t(file)\t(line)\n");
-        const auto& vars = namescope.Vars();
-        for (CR_VarID i = 0; i < vars.size(); ++i) {
-            const auto& var = vars[i];
-            const auto& type = namescope.LogType(var.m_type_id);
-            if (var.m_has_value && (type.m_flags & TF_ENUMITEM)) {
-                const auto& name = namescope.MapVarIDToName()[i];
-                const auto& enum_name = namescope.MapTypeIDToName()[var.m_enum_type_id];
-                const auto& location = var.location();
-                fprintf(fp, "%d\t%s\t%d\t%s\t%s\t%d\n",
-                    static_cast<int>(var.m_enum_type_id), name.data(), var.m_int_value,
-                    enum_name.data(), location.m_file.data(), location.m_line);
-            }
-        }
-        fclose(fp);
-    }
-
-    fp = fopen((strPrefix + "functions" + strSuffix).data(), "w");
-    if (fp) {
-        fprintf(fp, "(type_id)\t(name)\t(param_count)\t(file)\t(line)\t(definition)\t(retval_type)\t(param_1_typeid)\t(param_1_name)\t(param_2_typeid)\t...\n");
-        auto& vars = namescope.Vars();
-        for (CR_VarID i = 0; i < vars.size(); ++i) {
-            const auto& var = vars[i];
-            CR_TypeID tid = namescope.ResolveAlias(var.m_type_id);
-            if (namescope.IsFuncType(tid)) {
-                const auto& name = namescope.MapVarIDToName()[i];
-                const auto& type = namescope.LogType(tid);
-                const auto& lf = namescope.LogFunc(type.m_sub_id);
-                const auto& location = var.location();
-                fprintf(fp, "%d\t%s\t%d\t%s\t%d\t%s;\t%d",
-                    static_cast<int>(tid), name.data(), 
-                    static_cast<int>(lf.m_type_list.size()),
-                    location.m_file.data(), location.m_line,
-                    namescope.StringOfType(tid, name).data(),
-                    static_cast<int>(lf.m_return_type));
-                for (size_t j = 0; j < lf.m_type_list.size(); j++) {
-                    fprintf(fp, "\t%d\t%s",
-                        static_cast<int>(lf.m_type_list[j]),
-                        lf.m_name_list[j].data());
-                }
-                fprintf(fp, "\n");
-            }
-        }
-        fclose(fp);
-    }
+    namescope.SaveToFiles(strPrefix, strSuffix);
 }
 
 ////////////////////////////////////////////////////////////////////////////
 
 void CrShowHelp(void) {
+    std::cerr <<
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
-    fprintf(stderr,
-        " Usage: cparser64 [options] [input-file.h [compiler_options]]\n");
+    " Usage: cparser64 [options] [input-file.h [compiler_options]]\n"
 #else
-    fprintf(stderr,
-        " Usage: cparser [options] [input-file.h [compiler_options]]\n");
+    " Usage: cparser [options] [input-file.h [compiler_options]]\n"
 #endif
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Options:\n");
+    "\n"
+    "Options:\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
-    fprintf(stderr, " -32               32-bit mode\n");
-    fprintf(stderr, " -64               64-bit mode (default)\n");
+    " -32               32-bit mode\n"
+    " -64               64-bit mode (default)\n"
 #else
-    fprintf(stderr, " -32               32-bit mode (default)\n");
-    fprintf(stderr, " -64               64-bit mode\n");
+    " -32               32-bit mode (default)\n"
+    " -64               64-bit mode\n"
 #endif
-    fprintf(stderr, "--nologo           Don't show logo.\n");
-    fprintf(stderr, "--version          Show version only.\n");
-    fprintf(stderr, "--prefix prefix    The prefix of output file names (default is empty).\n");
-    fprintf(stderr, "--suffix suffix    The suffix of output file names (default is '.dat').\n");
+    "--nologo           Don't show logo.\n"
+    "--version          Show version only.\n"
+    "--prefix prefix    The prefix of output file names (default is empty).\n"
+    "--suffix suffix    The suffix of output file names (default is '.dat')."
+    << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -3540,7 +3398,7 @@ int main(int argc, char **argv) {
     bool show_help = false;
     bool show_version = false;
     bool no_logo = false;
-    CR_String strPrefix, strSuffix = ".dat";
+    std::string strPrefix, strSuffix = ".dat";
     for (i = 1; i < argc; ++i) {
         if (::lstrcmpiA(argv[i], "/?") == 0 ||
             ::lstrcmpiA(argv[i], "--help") == 0)
@@ -3571,10 +3429,12 @@ int main(int argc, char **argv) {
         } else {
             if (::GetFileAttributesA(argv[i]) == 0xFFFFFFFF) {
                 if (argv[i][0] == '-' || argv[i][0] == '/') {
-                    fprintf(stderr, "ERROR: Invalid option '%s'.\n", argv[i]);
+                    std::cerr << "ERROR: Invalid option '" <<
+                        argv[i] << "'." << std::endl;
                     return cr_exit_invalid_option;
                 } else {
-                    fprintf(stderr, "ERROR: File '%s' doesn't exist.\n", argv[i]);
+                    std::cerr << "ERROR: File '" << argv[i] <<
+                        "' doesn't exist." << std::endl;
                     return cr_exit_cannot_open_input;
                 }
             }
@@ -3600,7 +3460,7 @@ int main(int argc, char **argv) {
     shared_ptr<TransUnit> tu;
     auto error_info = make_shared<CR_ErrorInfo>();
     if (i < argc) {
-        fprintf(stderr, "Parsing...\n");
+        std::cerr << "Parsing..." << std::endl;
         // argv[i] == input-file
         // argv[i + 1] == compiler option #1
         // argv[i + 2] == compiler option #2
@@ -3617,7 +3477,7 @@ int main(int argc, char **argv) {
     }
 
     if (tu) {
-        fprintf(stderr, "Semantic analysis...\n");
+        std::cerr << "Semantic analysis..." << std::endl;
         if (is_64bit) {
             CR_NameScope namescope(error_info, true);
 
@@ -3639,7 +3499,7 @@ int main(int argc, char **argv) {
 
     error_info->emit_all();
 
-    fprintf(stderr, "Done.\n");
+    std::cerr << "Done." << std::endl;
     return result;
 }
 
