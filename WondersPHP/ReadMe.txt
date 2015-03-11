@@ -1,3 +1,0 @@
-Wonders API database will be available on PHP.
-
-Coming soon...
