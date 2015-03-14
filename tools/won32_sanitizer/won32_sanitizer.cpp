@@ -92,7 +92,7 @@ bool WsJustDoIt(
         auto align = type.m_align;
         if (size && name.size() && name.find("*") == std::string::npos) {
             const long excl_flags =
-                (TF_ENUM | TF_INCOMPLETE | TF_FUNCTION | TF_INACCURATE);
+                (TF_ENUM | TF_FUNCTION | TF_INCOMPLETE | TF_INACCURATE);
             if (!(flags & excl_flags)) {
                 out << "\tcheck_align(" << name << ", " << align << ");" <<
                        std::endl;

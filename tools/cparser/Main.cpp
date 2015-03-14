@@ -1636,8 +1636,11 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     int n;
     switch (pe->m_prim_type) {
     case PrimExpr::IDENTIFIER:
-        n = 0; // TODO:
-        return n;
+		if (namescope.GetVarIntValue(n, pe->m_text)) {
+			return n;
+		}
+		// TODO: error info
+        return 0;
 
     case PrimExpr::F_CONSTANT:
         return std::stold(pe->m_text, NULL) != 0;
@@ -2908,6 +2911,8 @@ CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
 {
     CR_LogEnum le;
 
+    auto const_int_tid = namescope.GetConstIntType();
+
     int value, next_value = 0;
     assert(el);
     for (auto& e : *el) {
@@ -2918,6 +2923,8 @@ CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
 
         le.m_mNameToValue[e->m_name.data()] = value;
         le.m_mValueToName[value] = e->m_name.data();
+        namescope.AddVar(e->m_name, const_int_tid, value, location);
+
         next_value = value + 1;
     }
 

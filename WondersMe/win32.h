@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <float.h>
+#include <limits.h>
 #include <malloc.h>
 #include <math.h>
 #include <process.h>
@@ -26,9 +27,11 @@
 
 /* windows */
 #include <windows.h>
+#include <winreg.h>
+#include <winnls.h>
 #include <commdlg.h>
 #include <commctrl.h>
-#include <winver.h>
+#include <dlgs.h>
 
 /* multimedia */
 #include <mmsystem.h>

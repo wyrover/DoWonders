@@ -35,7 +35,7 @@ enum {
     TF_STDCALL      = 0x00040000,
     TF_FASTCALL     = 0x00080000,
     TF_CONST        = 0x00100000,
-    TF_VOLATILE     = 0x00200000,
+    //
     TF_COMPLEX      = 0x00400000,
     TF_IMAGINARY    = 0x00800000,
     TF_ATOMIC       = 0x01000000,
@@ -99,63 +99,22 @@ struct CR_TypedValue {
     void *      m_ptr;
     size_t      m_size;
     CR_TypeID   m_type_id;
+    std::string m_string;
+    std::string m_extra;
 
     CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id) { }
-
-    CR_TypedValue(void *ptr, size_t size) :
-        m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id)
-    {
-        m_ptr = malloc(size + 1);
-        if (m_ptr) {
-            memcpy(m_ptr, ptr, size);
-            m_size = size;
-        } else {
-            throw std::bad_alloc();
-        }
-    }
-
+    CR_TypedValue(CR_TypeID tid) : m_ptr(NULL), m_size(0), m_type_id(tid) { }
+    CR_TypedValue(void *ptr, size_t size);
     virtual ~CR_TypedValue() { free(m_ptr); }
 
-    void Copy(const CR_TypedValue& value) {
-        m_type_id = value.m_type_id;
-        m_ptr = malloc(value.m_size + 1);
-        if (m_ptr) {
-            memcpy(m_ptr, value.m_ptr, value.m_size);
-            m_size = value.m_size;
-        } else {
-            throw std::bad_alloc();
-        }
-    }
+    // copy
+    void Copy(const CR_TypedValue& value);
+    CR_TypedValue(const CR_TypedValue& value);
+    CR_TypedValue& operator=(const CR_TypedValue& value);
 
-    CR_TypedValue(const CR_TypedValue& value) :
-        m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id)
-    {
-        Copy(value);
-    }
-
-    CR_TypedValue& operator=(const CR_TypedValue& value) {
-        if (this != &value) {
-            free(m_ptr);
-            Copy(value);
-        }
-        return *this;
-    }
-
-    CR_TypedValue(CR_TypedValue&& value) : m_ptr(NULL), m_size(0) {
-        std::swap(m_ptr, value.m_ptr);
-        std::swap(m_size, value.m_size);
-        m_type_id = value.m_type_id;
-    }
-
-    CR_TypedValue& operator=(CR_TypedValue&& value) {
-        if (this != &value) {
-            std::swap(m_ptr, value.m_ptr);
-            std::swap(m_size, value.m_size);
-            m_type_id = value.m_type_id;
-        }
-        return *this;
-    }
-
+    // move
+    CR_TypedValue(CR_TypedValue&& value);
+    CR_TypedValue& operator=(CR_TypedValue&& value);
 
     bool empty() const { return m_size == 0 || m_ptr == NULL; }
     size_t size() const { return m_size; }
@@ -173,11 +132,24 @@ struct CR_TypedValue {
     }
 
     template <typename T_VALUE>
+    CR_TypedValue(CR_TypeID tid, const T_VALUE& value) :
+        m_ptr(NULL), m_size(0), m_type_id(tid)
+    {
+        assign<T_VALUE>(value);
+    }
+
+    template <typename T_VALUE>
     void assign(const T_VALUE& v) {
-        m_ptr = realloc(m_ptr, sizeof(v));
+        assign(&v, sizeof(T_VALUE));
+    }
+
+    void assign(void *ptr, size_t size) {
+        m_ptr = realloc(m_ptr, size);
         if (m_ptr) {
-            *reinterpret_cast<T_VALUE *>(m_ptr) = v;
+            memcpy(m_ptr, ptr, size);
+            m_size = size;
         } else {
+            m_size = 0;
             throw std::bad_alloc();
         }
     }
@@ -254,17 +226,17 @@ struct CR_FuncParam {
 // CR_LogFunc --- logical function
 
 struct CR_LogFunc {
-    enum Type {
+    enum Convention {
         FT_CDECL, FT_STDCALL, FT_FASTCALL
     };
 
     bool                        m_ellipsis;
     CR_TypeID                   m_return_type;
-    Type                        m_func_type;  // calling convention
+    Convention                  m_convention;  // calling convention
     std::vector<CR_FuncParam>   m_params;
 
     CR_LogFunc() :
-        m_ellipsis(false), m_return_type(0), m_func_type(FT_CDECL) { }
+        m_ellipsis(false), m_return_type(0), m_convention(FT_CDECL) { }
 }; // struct CR_LogFunc
 
 ////////////////////////////////////////////////////////////////////////////
@@ -328,6 +300,7 @@ struct CR_LogEnum {
 
 struct CR_LogVar {
     CR_TypeID       m_type_id;          // the type ID of a variable
+    CR_TypedValue   m_value;            // typed value
     CR_Location     m_location;         // the location
 
           CR_Location& location()       { return m_location; }
@@ -394,6 +367,9 @@ public:
     // add a variable
     CR_VarID AddVar(const std::string& name, CR_TypeID tid,
                     const CR_Location& location);
+    // add a variable
+    CR_VarID AddVar(const std::string& name, CR_TypeID tid,
+                    int value, const CR_Location& location);
 
     // add a variable
     CR_VarID AddVar(const std::string& name, const CR_LogType& type) {
@@ -505,6 +481,10 @@ public:
     void GetStructMemberList(
         CR_StructID sid, std::vector<CR_StructMember>& members) const;
 
+    CR_TypeID GetConstIntType();
+
+    bool GetVarIntValue(int& int_value, const std::string& name) const;
+
     //
     // type judgements
     //
@@ -535,6 +515,8 @@ public:
     }
 
     CR_TypeID _ResolveAliasRecurse(CR_TypeID tid) const;
+
+    CR_TypeID ResolveAliasAndCV(CR_TypeID tid) const;
 
     //
     // accessors

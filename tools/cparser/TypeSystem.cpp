@@ -66,6 +66,56 @@ void CrChop(std::string& str) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
+// CR_TypedValue
+
+CR_TypedValue::CR_TypedValue(void *ptr, size_t size) :
+    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id)
+{
+    assign(ptr, size);
+}
+
+void CR_TypedValue::Copy(const CR_TypedValue& value) {
+    if (this != &value) {
+        m_type_id = value.m_type_id;
+        m_string = value.m_string;
+        m_extra = value.m_extra;
+        assign(value.m_ptr, value.m_size);
+    }
+}
+
+CR_TypedValue::CR_TypedValue(const CR_TypedValue& value) :
+    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id)
+{
+    Copy(value);
+}
+
+CR_TypedValue& CR_TypedValue::operator=(const CR_TypedValue& value) {
+    if (this != &value) {
+        Copy(value);
+    }
+    return *this;
+}
+
+CR_TypedValue::CR_TypedValue(CR_TypedValue&& value) : m_ptr(NULL), m_size(0) {
+    std::swap(m_ptr, value.m_ptr);
+    std::swap(m_size, value.m_size);
+    m_type_id = value.m_type_id;
+    std::swap(m_string, value.m_string);
+    std::swap(m_extra, value.m_extra);
+}
+
+CR_TypedValue& CR_TypedValue::operator=(CR_TypedValue&& value) {
+    if (this != &value) {
+        std::swap(m_ptr, value.m_ptr);
+        std::swap(m_size, value.m_size);
+        m_type_id = value.m_type_id;
+        std::swap(m_string, value.m_string);
+        std::swap(m_extra, value.m_extra);
+    }
+    return *this;
+}
+
+////////////////////////////////////////////////////////////////////////////
 // CR_LogType
 
 bool CR_LogType::operator==(const CR_LogType& type) const {
@@ -130,7 +180,9 @@ void CR_NameScope::Init() {
     AddType("long", TF_LONG, 4);
     AddType("__int64", TF_LONGLONG, 8);
     AddType("long long", TF_LONGLONG, 8);
-    AddType("__int128", TF_INT128, 16);
+    #ifdef __GNUC__
+        AddType("__int128", TF_INT128, 16);
+    #endif
     AddType("int", TF_INT, 4);
 
     AddType("unsigned char", TF_UNSIGNED | TF_CHAR, 1);
@@ -138,7 +190,9 @@ void CR_NameScope::Init() {
     AddType("unsigned long", TF_UNSIGNED | TF_LONG, 4);
     AddType("unsigned __int64", TF_UNSIGNED | TF_LONGLONG, 8);
     AddType("unsigned long long", TF_UNSIGNED | TF_LONGLONG, 8);
-    AddType("unsigned __int128", TF_UNSIGNED | TF_INT128, 16);
+    #ifdef __GNUC__
+        AddType("unsigned __int128", TF_UNSIGNED | TF_INT128, 16);
+    #endif
     AddType("unsigned int", TF_UNSIGNED | TF_INT, 4);
 
     AddType("float", TF_FLOAT, 4);
@@ -188,10 +242,29 @@ CR_TypeID CR_NameScope::AddAliasType(
 }
 
 CR_VarID CR_NameScope::AddVar(
-    const std::string& name, CR_TypeID tid, const CR_Location& location) {
+    const std::string& name, CR_TypeID tid, const CR_Location& location)
+{
     assert(tid != cr_invalid_id);
     CR_LogVar var;
     var.m_type_id = tid;
+    var.location() = location;
+    auto vid = m_vars.insert(var);
+    if (!name.empty()) {
+        m_mNameToVarID[name] = vid;
+        m_mVarIDToName[vid] = name;
+    }
+    return vid;
+}
+
+CR_VarID CR_NameScope::AddVar(
+    const std::string& name, CR_TypeID tid, int value,
+    const CR_Location& location)
+{
+    assert(tid != cr_invalid_id);
+    CR_LogVar var;
+    var.m_type_id = tid;
+    var.m_value = CR_TypedValue(tid);
+    var.m_value.assign<int>(value);
     var.location() = location;
     auto vid = m_vars.insert(var);
     if (!name.empty()) {
@@ -1087,7 +1160,7 @@ bool CR_NameScope::IsIntegralType(CR_TypeID tid) const {
         (TF_INT | TF_CHAR | TF_SHORT | TF_LONG | TF_LONGLONG);
     if (type.m_flags & flags)
         return true;
-    if (type.m_flags & TF_CONST)
+    if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST)
         return IsIntegralType(type.m_sub_id);
     return false;
 } // IsIntegralType
@@ -1100,7 +1173,7 @@ bool CR_NameScope::IsFloatingType(CR_TypeID tid) const {
     auto& type = LogType(tid);
     if (type.m_flags & (TF_DOUBLE | TF_FLOAT))
         return true;
-    if (type.m_flags & TF_CONST)
+    if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST)
         return IsFloatingType(type.m_sub_id);
     return false;
 } // IsFloatingType
@@ -1113,7 +1186,7 @@ bool CR_NameScope::IsUnsignedType(CR_TypeID tid) const {
     auto& type = LogType(tid);
     if (type.m_flags & TF_UNSIGNED)
         return true;
-    if (type.m_flags & TF_CONST)
+    if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST)
         return IsUnsignedType(type.m_sub_id);
     return false;
 } // IsUnsignedType
@@ -1122,6 +1195,17 @@ CR_TypeID CR_NameScope::_ResolveAliasRecurse(CR_TypeID tid) const {
     assert(tid != cr_invalid_id);
     while (m_types[tid].m_flags & TF_ALIAS)
         tid = m_types[tid].m_sub_id;
+    return tid;
+}
+
+CR_TypeID CR_NameScope::ResolveAliasAndCV(CR_TypeID tid) const {
+    tid = ResolveAlias(tid);
+    if (tid == cr_invalid_id)
+        return tid;
+    auto& type = LogType(tid);
+    if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+        return ResolveAliasAndCV(type.m_sub_id);
+    }
     return tid;
 }
 
@@ -1175,6 +1259,26 @@ CR_NameScope::GetStructMemberList(
     }
 }
 
+bool CR_NameScope::GetVarIntValue(int& int_value, const std::string& name) const {
+    auto it = MapNameToVarID().find(name);
+    if (it != MapNameToVarID().end()) {
+        CR_VarID vid = it->second;
+        auto& var = LogVar(vid);
+        auto& value = var.m_value;
+        int size = SizeOfType(value.m_type_id);
+        if (size >= sizeof(int) && !value.empty()) {
+            int_value = value.get<int>();
+            return true;
+        }
+    }
+    return false;
+}
+
+CR_TypeID CR_NameScope::GetConstIntType() {
+    auto tid = TypeIDFromFlags(TF_INT);
+    return AddConstType(tid);
+}
+
 ////////////////////////////////////////////////////////////////////////////
 
 bool CR_NameScope::LoadFromFiles(
@@ -1225,7 +1329,7 @@ bool CR_NameScope::LoadFromFiles(
             type.m_alignas = alignas_;
             type.m_alignas_explicit = alignas_explicit;
             type.m_location.set(file, lineno);
-			m_types.emplace_back(type);
+            m_types.emplace_back(type);
         }
     } else {
         return false;
@@ -1303,7 +1407,7 @@ bool CR_NameScope::LoadFromFiles(
         return false;
     }
 
-    std::ifstream in4(prefix + "functions" + suffix);
+    std::ifstream in4(prefix + "func_types" + suffix);
     if (in4) {
         std::string line;
         std::getline(in4, line); // skip header
@@ -1322,9 +1426,9 @@ bool CR_NameScope::LoadFromFiles(
             func.m_ellipsis = ellipsis;
             func.m_return_type = return_type;
             switch (func_type) {
-            case 0: func.m_func_type = CR_LogFunc::FT_CDECL; break;
-            case 1: func.m_func_type = CR_LogFunc::FT_STDCALL; break;
-            case 2: func.m_func_type = CR_LogFunc::FT_FASTCALL; break;
+            case 0: func.m_convention = CR_LogFunc::FT_CDECL; break;
+            case 1: func.m_convention = CR_LogFunc::FT_STDCALL; break;
+            case 2: func.m_convention = CR_LogFunc::FT_FASTCALL; break;
             default: assert(0);
             }
 
@@ -1352,12 +1456,19 @@ bool CR_NameScope::LoadFromFiles(
             //CR_VarID vid = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
             int type_id = std::stol(fields[2], NULL, 0);
-            std::string file = fields[3];
-            int lineno = std::stol(fields[4], NULL, 0);
+            std::string int_value = fields[3];
+            std::string file = fields[4];
+            int lineno = std::stol(fields[5], NULL, 0);
 
             CR_LogVar var;
             var.m_type_id = type_id;
+            if (int_value.size()) {
+                var.m_value = CR_TypedValue(type_id, std::stol(int_value, NULL, 0));
+            } else {
+                var.m_value = CR_TypedValue(type_id);
+            }
             var.m_location.set(file, lineno);
+
             auto vid = m_vars.insert(var);
             m_mVarIDToName[vid] = name;
             m_mNameToVarID[name] = vid;
@@ -1476,9 +1587,9 @@ bool CR_NameScope::SaveToFiles(
         return false;
     }
 
-    std::ofstream out4(prefix + "functions" + suffix);
+    std::ofstream out4(prefix + "func_types" + suffix);
     if (out4) {
-        out4 << "(func_id)\t(return_type)\t(func_type)\t(ellipsis)\t(param_count)\t(param_1_typeid)\t(param_1_name)\t(param_2_typeid)\t..." <<
+        out4 << "(func_id)\t(return_type)\t(convention)\t(ellipsis)\t(param_count)\t(param_1_typeid)\t(param_1_name)\t(param_2_typeid)\t..." <<
             std::endl;
         for (size_t fid = 0; fid < LogFuncs().size(); ++fid) {
             auto& func = LogFunc(fid);
@@ -1486,7 +1597,7 @@ bool CR_NameScope::SaveToFiles(
             out4 <<
                 fid << "\t" <<
                 func.m_return_type << "\t" <<
-                func.m_func_type << "\t" <<
+                func.m_convention << "\t" <<
                 func.m_ellipsis << "\t" <<
                 func.m_params.size();
             const size_t siz = func.m_params.size();
@@ -1503,7 +1614,7 @@ bool CR_NameScope::SaveToFiles(
 
     std::ofstream out5(prefix + "vars" + suffix);
     if (out5) {
-        out5 << "(var_id)\t(name)\t(type_id)\t(file)\t(line)" << std::endl;
+        out5 << "(var_id)\t(name)\t(type_id)\t(int_value)\t(file)\t(line)" << std::endl;
         for (size_t vid = 0; vid < LogVars().size(); ++vid) {
             auto& var = LogVar(vid);
             std::string name;
@@ -1513,10 +1624,17 @@ bool CR_NameScope::SaveToFiles(
             }
             auto& location = var.location();
 
+            int int_value = 0;
+            std::string value;
+            if (GetVarIntValue(int_value, name)) {
+                value = std::to_string(int_value);
+            }
+
             out5 <<
                 vid << "\t" <<
                 name << "\t" <<
                 var.m_type_id << "\t" <<
+                value << "\t" <<
                 location.m_file << "\t" <<
                 location.m_line << std::endl;
         }
