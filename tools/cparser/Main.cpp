@@ -192,6 +192,8 @@ cparser::Lexer::guts_string(str_iterator& it, str_iterator end) const {
                 } else {
                     return result;
                 }
+            } else {
+                return result;
             }
             break;
 
@@ -199,6 +201,9 @@ cparser::Lexer::guts_string(str_iterator& it, str_iterator end) const {
             {
                 auto text = guts_escape_sequence(it, end);
                 result += text;
+                if (it == end) {
+                    return result;
+                }
             }
             break;
 
@@ -318,6 +323,38 @@ cparser::Lexer::guts_integer_suffix(
             } else {
                 flags |= TF_LONG;
             }
+        } else if (*it == 'i') {
+            ++it;
+            if (it != end && *it == '6') {
+                ++it;
+                if (it != end && *it == '4') {
+                    ++it;
+                    result = "i64";
+                    flags |= TF_LONGLONG;
+                }
+            }
+            if (it != end && *it == '3') {
+                ++it;
+                if (it != end && *it == '2') {
+                    ++it;
+                    result = "i32";
+                    flags |= TF_LONG;
+                }
+            }
+            if (it != end && *it == '1') {
+                ++it;
+                if (it != end && *it == '6') {
+                    ++it;
+                    result = "i16";
+                    flags |= TF_SHORT;
+                }
+            }
+            if (it != end && *it == '8') {
+                ++it;
+                result = "i8";
+                flags |= TF_CHAR;
+            }
+            break;
         } else {
             break;
         }
@@ -1636,10 +1673,10 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     int n;
     switch (pe->m_prim_type) {
     case PrimExpr::IDENTIFIER:
-		if (namescope.GetVarIntValue(n, pe->m_text)) {
-			return n;
-		}
-		// TODO: error info
+        if (namescope.GetVarIntValue(n, pe->m_text)) {
+            return n;
+        }
+        // TODO: error info
         return 0;
 
     case PrimExpr::F_CONSTANT:
@@ -1855,13 +1892,14 @@ int CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     case PrimExpr::I_CONSTANT:
         if (pe->m_extra.empty()) {
             unsigned long long n = std::stoull(pe->m_text, NULL, 0);
-            if (n > 0xFFFFFFFF) {
+            if (n & 0xFFFFFFFF00000000) {
                 return sizeof(long long);
             } else {
                 return sizeof(int);
             }
         } else if (pe->m_extra.find("LL") != std::string::npos ||
-                   pe->m_extra.find("ll") != std::string::npos)
+                   pe->m_extra.find("ll") != std::string::npos ||
+                   pe->m_extra.find("i64") != std::string::npos)
         {
             return sizeof(long long);
         }
@@ -2911,7 +2949,7 @@ CR_TypeID CrAnalyseEnumorList(CR_NameScope& namescope,
 {
     CR_LogEnum le;
 
-    auto const_int_tid = namescope.GetConstIntType();
+    auto const_int_tid = namescope.AddConstIntType();
 
     int value, next_value = 0;
     assert(el);
@@ -3277,10 +3315,327 @@ int CrInputCSrc(
 ////////////////////////////////////////////////////////////////////////////
 // semantic analysis
 
-int CrSemanticAnalysis(
-    shared_ptr<CR_ErrorInfo> error_info,
-    CR_NameScope& namescope, shared_ptr<TransUnit>& tu)
+void CrTrimString(std::string& str) {
+    static const char *spaces = " \t";
+    size_t i = str.find_first_not_of(spaces);
+    size_t j = str.find_last_not_of(spaces);
+    if (i != std::string::npos) {
+        if (j != std::string::npos) {
+            str = str.substr(i, j - i + 1);
+        } else {
+            str = str.substr(i);
+        }
+    } else {
+        if (j != std::string::npos) {
+            str = str.substr(0, j + 1);
+        }
+    }
+}
+
+void CrParseMacros(
+    CR_NameScope& namescope,
+    const std::string& prefix, const std::string& suffix,
+    bool is_64bit = false)
 {
+    auto char_tid = namescope.AddConstCharType();
+    auto unsigned_char_tid = namescope.AddConstUnsignedCharType();
+    auto short_tid = namescope.AddConstShortType();
+    auto unsigned_short_tid = namescope.AddConstUnsignedShortType();
+    auto int_tid = namescope.AddConstIntType();
+    auto unsigned_int_tid = namescope.AddConstUnsignedIntType();
+    auto long_tid = namescope.AddConstLongType();
+    auto unsigned_long_tid = namescope.AddConstUnsignedLongType();
+    auto long_long_tid = namescope.AddConstLongLongType();
+    auto unsigned_long_long_tid = namescope.AddConstUnsignedLongLongType();
+    auto float_tid = namescope.AddConstFloatType();
+    auto double_tid = namescope.AddConstDoubleType();
+    auto long_double_tid = namescope.AddConstLongDoubleType();
+    auto string_tid = namescope.AddConstStringType();
+    auto wstring_tid = namescope.AddConstWStringType();
+
+    cparser::Lexer lexer(namescope.ErrorInfo(), is_64bit);
+    std::ifstream in1(prefix + "macros" + suffix);
+    if (in1) {
+        std::string line;
+        for (; std::getline(in1, line); ) {
+            CrChop(line);
+            std::vector<std::string> fields;
+            CrSplit(fields, line, '\t');
+
+            std::string name = fields[0];
+            int num_param = std::stoi(fields[1], NULL, 0);
+            std::string params = fields[2];
+            std::string contents = fields[3];
+            std::string file = fields[4];
+            int lineno = std::stol(fields[5], NULL, 0);
+
+            if (num_param != 0 || file == "(predefined)") {
+                continue;
+            }
+
+            CrTrimString(contents);
+            if (contents.empty()) {
+                continue;
+            }
+
+            if (contents[0] == '(' && contents[contents.size() - 1] == ')') {
+                contents = contents.substr(1, contents.size() - 2);
+                CrTrimString(contents);
+            }
+
+            bool minus = false, is_string = false;
+            bool is_integral = false, is_floating = false;
+            std::string text, extra;
+
+            auto it = contents.begin();
+            auto end = contents.end();
+
+            if (*it == '-') {
+                minus = true;
+                ++it;
+            }
+
+            switch (*it) {
+            case '"':
+                is_string = true;
+                extra = "";
+                text = lexer.guts_string(it, end);
+                break;
+
+            case 'L':
+                ++it;
+                if (it != end) {
+                    if (*it == '"') {
+                        is_string = true;
+                        extra = "L";
+                        text = lexer.guts_string(it, end);
+                    }
+                }
+                break;
+
+            case 'u':
+                ++it;
+                if (it != end) {
+                    if (*it == '8') {
+                        ++it;
+                        if (*it == '"') {
+                            is_string = true;
+                            extra = "u8";
+                            text = lexer.guts_string(it, end);
+                        }
+                    } else {
+                        if (*it == '"') {
+                            is_string = true;
+                            extra = "u";
+                            text = lexer.guts_string(it, end);
+                        }
+                    }
+                }
+                break;
+
+            case 'U':
+                ++it;
+                if (it != end) {
+                    if (*it == '"') {
+                        is_string = true;
+                        extra = "U";
+                        text = lexer.guts_string(it, end);
+                    }
+                }
+                break;
+
+            case '0':
+                ++it;
+                if (it != end) {
+                    if (*it == 'x' || *it == 'X') {
+                        // 0x or 0X
+                        ++it;
+                        text = lexer.guts_hex(it, end);
+                        CR_TypeFlags flags = 0;
+                        extra = lexer.guts_integer_suffix(it, end, flags);
+                        text = "0x" + text;
+                        is_integral = true;
+                    } else if (*it == '.') {
+                        // 0.
+                        --it;
+                        text = lexer.guts_floating(it, end);
+                        CR_TypeFlags flags = TF_DOUBLE;
+                        extra = lexer.guts_floating_suffix(it, end, flags);
+                        text = "0." + text;
+                        is_floating = true;
+                    } else {
+                        // octal
+                        --it;
+                        text = lexer.guts_octal(it, end);
+                        CR_TypeFlags flags = 0;
+                        extra = lexer.guts_integer_suffix(it, end, flags);
+                        is_integral = true;
+                    }
+                }
+                break;
+
+            default:
+                if (isdigit(*it)) {
+                    std::string digits = lexer.guts_digits(it, end);
+                    if (*it == '.') {
+                        ++it;
+                        if (it != end) {
+                            // 123.1232
+                            auto decimals = lexer.guts_digits(it, end);
+                            text = digits + '.' + decimals;
+                            CR_TypeFlags flags = TF_DOUBLE;
+                            extra = lexer.guts_floating_suffix(it, end, flags);
+                            is_floating = true;
+                        }
+                    } else {
+                        std::string exponent = lexer.guts_exponent(it, end);
+                        if (exponent.size()) {
+                            // exponent was found. it's a floating
+                            CR_TypeFlags flags = TF_DOUBLE;
+                            extra = lexer.guts_floating_suffix(it, end, flags);
+                            text = digits + exponent + extra;
+                            is_floating = true;
+                        } else {
+                            // exponent not found. it's a integer
+                            CR_TypeFlags flags = 0;
+                            extra = lexer.guts_integer_suffix(it, end, flags);
+                            text = digits;
+                            is_integral = true;
+                        }
+                    }
+                }
+            }
+
+            if (it != end) {
+                if (is_string) {
+                    std::cerr << "!!" << contents << " : " << *it << std::endl;
+                } else {
+                    std::cerr << "##" << contents << " : " << *it << std::endl;
+                }
+                continue;
+            }
+
+            CR_LogVar var;
+            var.m_location.set(file, lineno);
+            if (is_string) {
+                var.m_type_id = string_tid;
+                var.m_value.m_type_id = string_tid;
+                var.m_value.assign(text.data(), text.size() + 1);
+            } else if (is_integral) {
+                bool is_unsigned = false;
+                if (extra.find("u") != std::string::npos ||
+                    extra.find("U") != std::string::npos)
+                {
+                    is_unsigned = true;
+                }
+
+                unsigned long long u = std::stoull(text, NULL, 0);
+                long long n;
+                if (minus) {
+                    n = -static_cast<long long>(u);
+                } else {
+                    n = static_cast<long long>(u);
+                }
+
+                if (extra.find("ll") != std::string::npos ||
+                    extra.find("LL") != std::string::npos ||
+                    extra.find("i64") != std::string::npos)
+                {
+                    if (is_unsigned) {
+                        var.m_type_id = unsigned_long_long_tid;
+                        var.m_value.m_type_id = unsigned_long_long_tid;
+                    } else {
+                        var.m_type_id = long_long_tid;
+                        var.m_value.m_type_id = long_long_tid;
+                    }
+                    var.m_value.assign<long long>(n);
+                } else if (extra.find('l') != std::string::npos ||
+                           extra.find('L') != std::string::npos ||
+                           extra.find("i32") != std::string::npos)
+                {
+                    if (is_unsigned) {
+                        var.m_type_id = unsigned_long_tid;
+                        var.m_value.m_type_id = unsigned_long_tid;
+                    } else {
+                        var.m_type_id = long_tid;
+                        var.m_value.m_type_id = long_tid;
+                    }
+                    var.m_value.assign<long>(static_cast<long>(n));
+                } else if (extra.find("i16") != std::string::npos) {
+                    if (is_unsigned) {
+                        var.m_type_id = unsigned_short_tid;
+                        var.m_value.m_type_id = unsigned_short_tid;
+                    } else {
+                        var.m_type_id = short_tid;
+                        var.m_value.m_type_id = short_tid;
+                    }
+                    var.m_value.assign<short>(static_cast<short>(n));
+                } else if (extra.find("i8") != std::string::npos) {
+                    if (is_unsigned) {
+                        var.m_type_id = unsigned_char_tid;
+                        var.m_value.m_type_id = unsigned_char_tid;
+                    } else {
+                        var.m_type_id = char_tid;
+                        var.m_value.m_type_id = char_tid;
+                    }
+                    var.m_value.assign<char>(static_cast<char>(n));
+                } else {
+                    if (u & 0xFFFFFFFF00000000) {
+                        if (is_unsigned) {
+                            var.m_type_id = unsigned_long_long_tid;
+                            var.m_value.m_type_id = unsigned_long_long_tid;
+                        } else {
+                            var.m_type_id = long_long_tid;
+                            var.m_value.m_type_id = long_long_tid;
+                        }
+                        var.m_value.assign<long long>(n);
+                    } else {
+                        if (is_unsigned) {
+                            var.m_type_id = unsigned_int_tid;
+                            var.m_value.m_type_id = unsigned_int_tid;
+                        } else {
+                            var.m_type_id = int_tid;
+                            var.m_value.m_type_id = int_tid;
+                        }
+                        var.m_value.assign<int>(static_cast<int>(n));
+                    }
+                }
+            } else if (is_floating) {
+                if (minus) {
+                    text = "-" + text;
+                }
+                long double ld = std::stold(text, 0);
+                if (extra.empty()) {
+                    var.m_type_id = double_tid;
+                    var.m_value.m_type_id = double_tid;
+                    var.m_value.assign<double>(static_cast<double>(ld));
+                } else if (extra == "l" || extra == "L") {
+                    var.m_type_id = long_double_tid;
+                    var.m_value.m_type_id = long_double_tid;
+                    var.m_value.assign<long double>(ld);
+                } else if (extra == "f" || extra == "F") {
+                    var.m_type_id = float_tid;
+                    var.m_value.m_type_id = float_tid;
+                    var.m_value.assign<float>(static_cast<float>(ld));
+                } else {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+            var.m_value.m_text = text;
+            var.m_value.m_extra = extra;
+
+            auto vid = namescope.LogVars().insert(var);
+            namescope.MapVarIDToName()[vid] = name;
+            if (name.size()) {
+                namescope.MapNameToVarID()[name] = vid;
+            }
+        }
+    }
+}
+
+int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {
     assert(tu.get());
     for (auto& decl : *tu.get()) {
         switch (decl->m_decl_type) {
@@ -3478,17 +3833,19 @@ int main(int argc, char **argv) {
         if (is_64bit) {
             CR_NameScope namescope(error_info, true);
 
-            result = CrSemanticAnalysis(error_info, namescope, tu);
+            result = CrSemanticAnalysis(namescope, tu);
             tu = shared_ptr<TransUnit>();
             if (result == 0) {
+                CrParseMacros(namescope, strPrefix, strSuffix, true);
                 CrDumpSemantic(namescope, strPrefix, strSuffix);
             }
         } else {
             CR_NameScope namescope(error_info, false);
 
-            result = CrSemanticAnalysis(error_info, namescope, tu);
+            result = CrSemanticAnalysis(namescope, tu);
             tu = shared_ptr<TransUnit>();
             if (result == 0) {
+                CrParseMacros(namescope, strPrefix, strSuffix, false);
                 CrDumpSemantic(namescope, strPrefix, strSuffix);
             }
         }

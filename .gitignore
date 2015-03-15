@@ -60,3 +60,4 @@ Wonders*/sanitize-*.c
 Wonders*/sanitize-*.exe
 pack-cl-32/
 pack-cl-64/
+!DoWondersWeb/includes.dat

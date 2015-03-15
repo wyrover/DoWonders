@@ -113,9 +113,6 @@ namespace cparser
     //
     class Lexer {
     public:
-        Lexer(bool is_64bit = false) : m_is_64bit(false),
-            m_in_c_comment(false), m_in_cxx_comment(false) { }
-
         Lexer(shared_ptr<CR_ErrorInfo> error_info, bool is_64bit = false) :
             m_error_info(error_info), m_is_64bit(is_64bit),
             m_in_c_comment(false), m_in_cxx_comment(false)

@@ -99,12 +99,12 @@ struct CR_TypedValue {
     void *      m_ptr;
     size_t      m_size;
     CR_TypeID   m_type_id;
-    std::string m_string;
+    std::string m_text;
     std::string m_extra;
 
     CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id) { }
     CR_TypedValue(CR_TypeID tid) : m_ptr(NULL), m_size(0), m_type_id(tid) { }
-    CR_TypedValue(void *ptr, size_t size);
+    CR_TypedValue(const void *ptr, size_t size);
     virtual ~CR_TypedValue() { free(m_ptr); }
 
     // copy
@@ -143,16 +143,7 @@ struct CR_TypedValue {
         assign(&v, sizeof(T_VALUE));
     }
 
-    void assign(void *ptr, size_t size) {
-        m_ptr = realloc(m_ptr, size);
-        if (m_ptr) {
-            memcpy(m_ptr, ptr, size);
-            m_size = size;
-        } else {
-            m_size = 0;
-            throw std::bad_alloc();
-        }
-    }
+    void assign(const void *ptr, size_t size);
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -481,13 +472,29 @@ public:
     void GetStructMemberList(
         CR_StructID sid, std::vector<CR_StructMember>& members) const;
 
-    CR_TypeID GetConstIntType();
+    CR_TypeID AddConstCharType();
+    CR_TypeID AddConstUnsignedCharType();
+    CR_TypeID AddConstShortType();
+    CR_TypeID AddConstUnsignedShortType();
+    CR_TypeID AddConstIntType();
+    CR_TypeID AddConstUnsignedIntType();
+    CR_TypeID AddConstLongType();
+    CR_TypeID AddConstUnsignedLongType();
+    CR_TypeID AddConstLongLongType();
+    CR_TypeID AddConstUnsignedLongLongType();
+    CR_TypeID AddConstFloatType();
+    CR_TypeID AddConstDoubleType();
+    CR_TypeID AddConstLongDoubleType();
+    CR_TypeID AddConstStringType();
+    CR_TypeID AddConstWStringType();
 
     bool GetVarIntValue(int& int_value, const std::string& name) const;
 
     //
     // type judgements
     //
+    CR_TypeID IsStringType(CR_TypeID tid) const;
+    CR_TypeID IsWStringType(CR_TypeID tid) const;
 
     // is it function type?
     bool IsFuncType(CR_TypeID tid) const;
@@ -572,9 +579,6 @@ public:
     const std::map<CR_VarID, std::string>& MapVarIDToName() const
     { return m_mVarIDToName; }
 
-          CR_DeqSet<CR_LogVar>& Vars()       { return m_vars; }
-    const CR_DeqSet<CR_LogVar>& Vars() const { return m_vars; }
-
     CR_LogStruct& LogStruct(CR_StructID sid) {
         assert(sid < m_structs.size());
         return m_structs[sid];
@@ -619,6 +623,9 @@ public:
 
           CR_DeqSet<CR_LogVar>& LogVars()       { return m_vars; }
     const CR_DeqSet<CR_LogVar>& LogVars() const { return m_vars; }
+
+          shared_ptr<CR_ErrorInfo>& ErrorInfo()       { return m_error_info; }
+    const shared_ptr<CR_ErrorInfo>& ErrorInfo() const { return m_error_info; }
 
 protected:
     shared_ptr<CR_ErrorInfo>            m_error_info;

@@ -68,7 +68,7 @@ void CrChop(std::string& str) {
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypedValue
 
-CR_TypedValue::CR_TypedValue(void *ptr, size_t size) :
+CR_TypedValue::CR_TypedValue(const void *ptr, size_t size) :
     m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id)
 {
     assign(ptr, size);
@@ -77,7 +77,7 @@ CR_TypedValue::CR_TypedValue(void *ptr, size_t size) :
 void CR_TypedValue::Copy(const CR_TypedValue& value) {
     if (this != &value) {
         m_type_id = value.m_type_id;
-        m_string = value.m_string;
+        m_text = value.m_text;
         m_extra = value.m_extra;
         assign(value.m_ptr, value.m_size);
     }
@@ -100,7 +100,7 @@ CR_TypedValue::CR_TypedValue(CR_TypedValue&& value) : m_ptr(NULL), m_size(0) {
     std::swap(m_ptr, value.m_ptr);
     std::swap(m_size, value.m_size);
     m_type_id = value.m_type_id;
-    std::swap(m_string, value.m_string);
+    std::swap(m_text, value.m_text);
     std::swap(m_extra, value.m_extra);
 }
 
@@ -109,10 +109,21 @@ CR_TypedValue& CR_TypedValue::operator=(CR_TypedValue&& value) {
         std::swap(m_ptr, value.m_ptr);
         std::swap(m_size, value.m_size);
         m_type_id = value.m_type_id;
-        std::swap(m_string, value.m_string);
+        std::swap(m_text, value.m_text);
         std::swap(m_extra, value.m_extra);
     }
     return *this;
+}
+
+void CR_TypedValue::assign(const void *ptr, size_t size) {
+    m_ptr = realloc(m_ptr, size);
+    if (m_ptr) {
+        memcpy(m_ptr, ptr, size);
+        m_size = size;
+    } else {
+        m_size = 0;
+        throw std::bad_alloc();
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1274,9 +1285,119 @@ bool CR_NameScope::GetVarIntValue(int& int_value, const std::string& name) const
     return false;
 }
 
-CR_TypeID CR_NameScope::GetConstIntType() {
+CR_TypeID CR_NameScope::AddConstCharType() {
+    auto tid = TypeIDFromFlags(TF_CHAR);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstUnsignedCharType() {
+    auto tid = TypeIDFromFlags(TF_UNSIGNED | TF_CHAR);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstShortType() {
+    auto tid = TypeIDFromFlags(TF_SHORT);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstUnsignedShortType() {
+    auto tid = TypeIDFromFlags(TF_UNSIGNED | TF_SHORT);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstIntType() {
     auto tid = TypeIDFromFlags(TF_INT);
     return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstUnsignedIntType() {
+    auto tid = TypeIDFromFlags(TF_UNSIGNED | TF_INT);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstLongType() {
+    auto tid = TypeIDFromFlags(TF_LONG);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstUnsignedLongType() {
+    auto tid = TypeIDFromFlags(TF_UNSIGNED | TF_LONG);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstLongLongType() {
+    auto tid = TypeIDFromFlags(TF_LONGLONG);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstUnsignedLongLongType() {
+    auto tid = TypeIDFromFlags(TF_UNSIGNED | TF_LONGLONG);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstFloatType() {
+    auto tid = TypeIDFromFlags(TF_FLOAT);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstDoubleType() {
+    auto tid = TypeIDFromFlags(TF_DOUBLE);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstLongDoubleType() {
+    auto tid = TypeIDFromFlags(TF_LONG | TF_DOUBLE);
+    return AddConstType(tid);
+}
+
+CR_TypeID CR_NameScope::AddConstStringType() {
+    auto tid = TypeIDFromFlags(TF_CHAR);
+    auto& type = LogType(tid);
+    tid = AddConstType(tid);
+    tid = AddPtrType(tid, 0, type.location());
+    return tid;
+}
+
+CR_TypeID CR_NameScope::AddConstWStringType() {
+    auto tid = TypeIDFromName("wchar_t");
+    auto& type = LogType(tid);
+    tid = AddConstType(tid);
+    tid = AddPtrType(tid, 0, type.location());
+    return tid;
+}
+
+CR_TypeID CR_NameScope::IsStringType(CR_TypeID tid) const {
+    tid = ResolveAlias(tid);
+    auto& type1 = LogType(tid);
+    if (type1.m_flags & (TF_POINTER | TF_ARRAY)) {
+        auto tid2 = ResolveAlias(type1.m_sub_id);
+        auto& type2 = LogType(tid2);
+        if ((type2.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            auto tid3 = ResolveAlias(type2.m_sub_id);
+            auto& type3 = LogType(tid3);
+            return (type3.m_flags & TF_CHAR) != 0;
+        } else if (type2.m_flags & TF_CHAR) {
+            return true;
+        }
+    }
+    return false;
+}
+
+CR_TypeID CR_NameScope::IsWStringType(CR_TypeID tid) const {
+    tid = ResolveAlias(tid);
+    auto& type1 = LogType(tid);
+    if (type1.m_flags & (TF_POINTER | TF_ARRAY)) {
+        auto tid2 = ResolveAlias(type1.m_sub_id);
+        auto& type2 = LogType(tid2);
+        if ((type2.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            auto tid3 = ResolveAlias(type2.m_sub_id);
+            auto& type3 = LogType(tid3);
+            return (type3.m_flags & TF_SHORT) != 0;
+        } else if (type2.m_flags & TF_SHORT) {
+            return true;
+        }
+    }
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1456,22 +1577,70 @@ bool CR_NameScope::LoadFromFiles(
             //CR_VarID vid = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
             int type_id = std::stol(fields[2], NULL, 0);
-            std::string int_value = fields[3];
-            std::string file = fields[4];
-            int lineno = std::stol(fields[5], NULL, 0);
+            std::string text = fields[3];
+            std::string extra = fields[4];
+            std::string value_type = fields[5];
+            std::string file = fields[6];
+            int lineno = std::stol(fields[7], NULL, 0);
 
             CR_LogVar var;
             var.m_type_id = type_id;
-            if (int_value.size()) {
-                var.m_value = CR_TypedValue(type_id, std::stol(int_value, NULL, 0));
-            } else {
-                var.m_value = CR_TypedValue(type_id);
+            var.m_value.m_type_id = type_id;
+            var.m_value.m_text = text;
+            if (text.size() && value_type == "i" && IsIntegralType(type_id)) {
+                bool is_unsigned = false;
+                if (extra.find("u") != std::string::npos ||
+                    extra.find("U") != std::string::npos)
+                {
+                    is_unsigned = true;
+                }
+                if (extra.find("ll") != std::string::npos ||
+                    extra.find("LL") != std::string::npos)
+                {
+                    if (is_unsigned) {
+                        var.m_value.assign<long long>(std::stoull(text, NULL, 0));
+                    } else {
+                        var.m_value.assign<long long>(std::stoll(text, NULL, 0));
+                    }
+                } else if (extra.find('l') != std::string::npos ||
+                           extra.find('L') != std::string::npos)
+                {
+                    if (is_unsigned) {
+                        var.m_value.assign<long>(std::stoul(text, NULL, 0));
+                    } else {
+                        var.m_value.assign<long>(std::stol(text, NULL, 0));
+                    }
+                } else {
+                    if (is_unsigned) {
+                        var.m_value.assign<int>(std::stoul(text, NULL, 0));
+                    } else {
+                        var.m_value.assign<int>(std::stol(text, NULL, 0));
+                    }
+                }
+            } else if (text.size() && value_type == "f" && IsFloatingType(type_id)) {
+                if (extra.empty()) {
+                    var.m_value.assign<double>(std::stod(text));
+                } else if (extra == "l" || extra == "L") {
+                    var.m_value.assign<long double>(std::stold(text));
+                } else if (extra == "f" || extra == "F") {
+                    var.m_value.assign<float>(std::stof(text));
+                }
+            } else if (text.size() && value_type == "s" && IsStringType(type_id)) {
+                var.m_value.assign(text.data(), text.size() + 1);
+            } else if (text.size() && value_type == "s" && IsWStringType(type_id)) {
+                WCHAR wsz[512]; // TODO: any length
+                ::MultiByteToWideChar(CP_ACP, 0, text.data(), -1, wsz, 512);
+                std::wstring wstr(wsz);
+                var.m_value.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
             }
+            var.m_value.m_extra = extra;
             var.m_location.set(file, lineno);
 
             auto vid = m_vars.insert(var);
             m_mVarIDToName[vid] = name;
-            m_mNameToVarID[name] = vid;
+            if (name.size()) {
+                m_mNameToVarID[name] = vid;
+            }
         }
     } else {
         return false;
@@ -1502,6 +1671,11 @@ bool CR_NameScope::SaveToFiles(
             if (IsPredefinedType(tid)) {
                 file = "(predefined)";
                 lineno = 0;
+            }
+            for (auto& ch : file) {
+                if (ch == '\\') {
+                    ch = '/';
+                }
             }
 
             out1 <<
@@ -1536,6 +1710,13 @@ bool CR_NameScope::SaveToFiles(
                 name = it->second;
             }
 
+            std::string file = location.m_file;
+            for (auto& ch : file) {
+                if (ch == '\\') {
+                    ch = '/';
+                }
+            }
+
             out2 <<
                 sid << "\t" <<
                 name << "\t" <<
@@ -1548,7 +1729,7 @@ bool CR_NameScope::SaveToFiles(
                 ls.m_align << "\t" <<
                 ls.m_alignas << "\t" <<
                 ls.m_alignas_explicit << "\t" <<
-                location.m_file << "\t" <<
+                file << "\t" <<
                 location.m_line;
 
             const size_t siz = ls.m_members.size();
@@ -1614,7 +1795,8 @@ bool CR_NameScope::SaveToFiles(
 
     std::ofstream out5(prefix + "vars" + suffix);
     if (out5) {
-        out5 << "(var_id)\t(name)\t(type_id)\t(int_value)\t(file)\t(line)" << std::endl;
+        out5 << "(var_id)\t(name)\t(type_id)\t(text)\t(extra)\t(value_type)\t(file)\t(line)" <<
+            std::endl;
         for (size_t vid = 0; vid < LogVars().size(); ++vid) {
             auto& var = LogVar(vid);
             std::string name;
@@ -1624,18 +1806,32 @@ bool CR_NameScope::SaveToFiles(
             }
             auto& location = var.location();
 
-            int int_value = 0;
-            std::string value;
-            if (GetVarIntValue(int_value, name)) {
-                value = std::to_string(int_value);
+            std::string value_type;
+            if (IsIntegralType(var.m_type_id)) {
+                value_type = "i";
+            } else if (IsFloatingType(var.m_type_id)) {
+                value_type = "f";
+            } else if (IsStringType(var.m_type_id)) {
+                value_type = "s";
+            } else if (IsWStringType(var.m_type_id)) {
+                value_type = "s";
+            }
+
+            std::string file = location.m_file;
+            for (auto& ch : file) {
+                if (ch == '\\') {
+                    ch = '/';
+                }
             }
 
             out5 <<
                 vid << "\t" <<
                 name << "\t" <<
                 var.m_type_id << "\t" <<
-                value << "\t" <<
-                location.m_file << "\t" <<
+                var.m_value.m_text << "\t" <<
+                var.m_value.m_extra << "\t" <<
+                value_type << "\t" <<
+                file << "\t" <<
                 location.m_line << std::endl;
         }
     } else {
