@@ -1451,16 +1451,20 @@ CR_TypedValue CR_NameScope::StaticCast(
             auto u2 = GetULongLongValue(value);
             switch (type.m_size) {
             case 1:
-                result.get<char>() = static_cast<unsigned char>(u2);
+                result.m_text = std::to_string(
+                    result.get<char>() = static_cast<unsigned char>(u2));
                 break;
             case 2:
-                result.get<short>() = static_cast<unsigned short>(u2);
+                result.m_text = std::to_string(
+                    result.get<short>() = static_cast<unsigned short>(u2));
                 break;
             case 4:
-                result.get<long>() = static_cast<unsigned long>(u2);
+                result.m_text = std::to_string(
+                    result.get<long>() = static_cast<unsigned long>(u2));
                 break;
             case 8:
-                result.get<long long>() = u2;
+                result.m_text = std::to_string(
+                    result.get<long long>() = u2);
                 break;
             default:
                 assert(0);
@@ -1469,16 +1473,19 @@ CR_TypedValue CR_NameScope::StaticCast(
             auto n2 = GetLongLongValue(value);
             switch (type.m_size) {
             case 1:
-                result.get<char>() = static_cast<char>(n2);
+                result.m_text = std::to_string(
+                    result.get<char>() = static_cast<char>(n2));
                 break;
             case 2:
-                result.get<short>() = static_cast<short>(n2);
+                result.m_text = std::to_string(
+                    result.get<short>() = static_cast<short>(n2));
                 break;
             case 4:
-                result.get<long>() = static_cast<long>(n2);
+                result.m_text = std::to_string(
+                    result.get<long>() = static_cast<long>(n2));
                 break;
             case 8:
-                result.get<long long>() = n2;
+                result.m_text = std::to_string(result.get<long long>() = n2);
                 break;
             default:
                 assert(0);
@@ -1490,16 +1497,21 @@ CR_TypedValue CR_NameScope::StaticCast(
             if (IsUnsignedType(tid)) {
                 switch (type.m_size) {
                 case 1:
-                    result.get<unsigned char>() = static_cast<unsigned char>(ld2);
+                    result.m_text = std::to_string(
+                        result.get<unsigned char>() = static_cast<unsigned char>(ld2));
                     break;
                 case 2:
-                    result.get<unsigned short>() = static_cast<unsigned short>(ld2);
+                    result.m_text = std::to_string(
+                        result.get<unsigned short>() = static_cast<unsigned short>(ld2));
                     break;
                 case 4:
-                    result.get<unsigned long>() = static_cast<unsigned long>(ld2);
+                    result.m_text = std::to_string(
+                        result.get<unsigned long>() = static_cast<unsigned long>(ld2));
                     break;
                 case 8:
-                    result.get<unsigned long long>() = static_cast<unsigned long long>(ld2);
+                    result.m_text = std::to_string(
+                        result.get<unsigned long long>() =
+                            static_cast<unsigned long long>(ld2));
                     break;
                 default:
                     assert(0);
@@ -1507,16 +1519,20 @@ CR_TypedValue CR_NameScope::StaticCast(
             } else {
                 switch (type.m_size) {
                 case 1:
-                    result.get<char>() = static_cast<char>(ld2);
+                    result.m_text = std::to_string(
+                        result.get<char>() = static_cast<char>(ld2));
                     break;
                 case 2:
-                    result.get<short>() = static_cast<short>(ld2);
+                    result.m_text = std::to_string(
+                        result.get<short>() = static_cast<short>(ld2));
                     break;
                 case 4:
-                    result.get<long>() = static_cast<long>(ld2);
+                    result.m_text = std::to_string(
+                        result.get<long>() = static_cast<long>(ld2));
                     break;
                 case 8:
-                    result.get<long long>() = static_cast<long long>(ld2);
+                    result.m_text = std::to_string(
+                        result.get<long long>() = static_cast<long long>(ld2));
                     break;
                 default:
                     assert(0);
@@ -1524,11 +1540,14 @@ CR_TypedValue CR_NameScope::StaticCast(
             }
         } else if (IsFloatingType(tid)) {
             if (type.m_size == sizeof(float)) {
-                result.get<float>() = static_cast<float>(ld2);
+                result.m_text = std::to_string(
+                    result.get<float>() = static_cast<float>(ld2));
             } else if (type.m_size == sizeof(double)) {
-                result.get<double>() = static_cast<double>(ld2);
+                result.m_text = std::to_string(
+                    result.get<double>() = static_cast<double>(ld2));
             } else if (type.m_size == sizeof(long double)) {
-                result.get<long double>() = static_cast<long double>(ld2);
+                result.m_text = std::to_string(
+                    result.get<long double>() = ld2);
             } else {
                 assert(0);
             }
