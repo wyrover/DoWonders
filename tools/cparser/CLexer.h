@@ -212,18 +212,18 @@ namespace cparser
         void linker(const std::string str) { }
 
         void add_notice(const CR_Location& location, const std::string& text) {
-            m_error_info.get()->add_notice(location, text);
+            m_error_info->add_notice(location, text);
         }
         void add_warning(const CR_Location& location, const std::string& text) {
-            m_error_info.get()->add_warning(location, text);
+            m_error_info->add_warning(location, text);
         }
         void add_error(const CR_Location& location, const std::string& text) {
-            m_error_info.get()->add_error(location, text);
+            m_error_info->add_error(location, text);
         }
         void add_message(CR_ErrorInfo::Type type, const CR_Location& location,
                          const std::string& text)
         {
-            m_error_info.get()->add_message(type, location, text);
+            m_error_info->add_message(type, location, text);
         }
 
         void message(const CR_Location& location, const std::string& text) {

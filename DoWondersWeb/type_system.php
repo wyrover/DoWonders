@@ -707,7 +707,7 @@ class CR_NameScope {
         $tid = TypeIDFromFlags(TF_CHAR);
         $type = LogType($tid)
         $tid = AddConstType($tid);
-        $tid = AddPtrType($tid, 0, $type->location());
+        $tid = AddPointerType($tid, 0, $type->location());
         return true;
     }
 
@@ -715,7 +715,7 @@ class CR_NameScope {
         $tid = TypeIDFromName("wchar_t");
         $type = LogType($tid)
         $tid = AddConstType($tid);
-        $tid = AddPtrType($tid, 0, $type->location());
+        $tid = AddPointerType($tid, 0, $type->location());
         return true;
     }
     
@@ -822,6 +822,21 @@ class CR_NameScope {
         $tid = ResolveAlias($tid);
         $type = LogType($tid);
         if ($type->m_flags & TF_UNSIGNED) {
+            return true;
+        }
+        if (($type->m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            return IsUnsignedType($type->m_sub_id);
+        }
+        return false;
+    }
+
+    function IsPointerType($tid) {
+        if ($tid == $cr_invalid_id) {
+            return false;
+        }
+        $tid = ResolveAlias($tid);
+        $type = LogType($tid);
+        if ($type->m_flags & TF_POINTER) {
             return true;
         }
         if (($type->m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {

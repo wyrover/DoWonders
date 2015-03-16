@@ -99,11 +99,12 @@ struct CR_TypedValue {
     void *      m_ptr;
     size_t      m_size;
     CR_TypeID   m_type_id;
+    unsigned long long m_addr;
     std::string m_text;
     std::string m_extra;
 
-    CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id) { }
-    CR_TypedValue(CR_TypeID tid) : m_ptr(NULL), m_size(0), m_type_id(tid) { }
+    CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(0) { }
+    CR_TypedValue(CR_TypeID tid) : m_ptr(NULL), m_size(0), m_type_id(tid), m_addr(0) { }
     CR_TypedValue(const void *ptr, size_t size);
     virtual ~CR_TypedValue() { free(m_ptr); }
 
@@ -141,6 +142,7 @@ struct CR_TypedValue {
     template <typename T_VALUE>
     void assign(const T_VALUE& v) {
         assign(&v, sizeof(T_VALUE));
+        m_text = std::to_string(v);
     }
 
     void assign(const void *ptr, size_t size);
@@ -375,8 +377,8 @@ public:
     CR_TypeID AddConstType(CR_TypeID tid);
 
     // add a pointer type
-    CR_TypeID AddPtrType(CR_TypeID tid, CR_TypeFlags flags,
-                         const CR_Location& location);
+    CR_TypeID AddPointerType(CR_TypeID tid, CR_TypeFlags flags,
+                             const CR_Location& location);
 
     CR_TypeID AddArrayType(CR_TypeID tid, int count,
                            const CR_Location& location);
@@ -415,17 +417,50 @@ public:
 
     void CompleteTypeInfo();
 
-    void SetAlignas(CR_TypeID tid, int alignas_) {
-        auto& type = LogType(tid);
-        type.m_align = alignas_;
-        type.m_alignas = alignas_;
-        type.m_alignas_explicit = true;
-        if (type.m_flags & (TF_STRUCT | TF_UNION)) {
-            LogStruct(type.m_sub_id).m_align = alignas_;
-            LogStruct(type.m_sub_id).m_alignas = alignas_;
-            LogStruct(type.m_sub_id).m_alignas_explicit = true;
-        }
-    }
+    void SetAlignas(CR_TypeID tid, int alignas_);
+
+    //
+    // calculations
+    //
+    void IntZero(CR_TypedValue& value1) const;
+    void IntOne(CR_TypedValue& value1) const;
+    bool IsZero(const CR_TypedValue& value1) const;
+    bool IsNonZero(const CR_TypedValue& value1) const;
+
+    int GetIntValue(const CR_TypedValue& value) const;
+
+    CR_TypedValue BiOp(CR_TypedValue& v1, CR_TypedValue& v2) const;
+    CR_TypedValue BiOpInt(CR_TypedValue& v1, CR_TypedValue& v2) const;
+    int CompareValue(const CR_TypedValue& v1, const CR_TypedValue& v2) const;
+
+    CR_TypedValue Add(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Sub(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Mul(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Div(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Mod(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+
+    CR_TypedValue Not(const CR_TypedValue& value1) const;
+    CR_TypedValue Minus(const CR_TypedValue& value1) const;
+    CR_TypedValue Inc(const CR_TypedValue& value1) const;
+    CR_TypedValue Dec(const CR_TypedValue& value1) const;
+
+    CR_TypedValue And(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Or(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Xor(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+
+    CR_TypedValue Eq(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Ne(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Gt(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Lt(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Ge(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Le(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+
+    CR_TypedValue Shl(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue Shr(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+
+    CR_TypedValue LNot(const CR_TypedValue& value1) const;
+    CR_TypedValue LAnd(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    CR_TypedValue LOr(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
 
     //
     // getters
@@ -487,9 +522,15 @@ public:
     CR_TypeID AddConstStringType();
     CR_TypeID AddConstWStringType();
 
+    bool HasValue(const CR_TypedValue& value) const;
+
     long long GetLongLongValue(const CR_TypedValue& value) const;
     unsigned long long GetULongLongValue(const CR_TypedValue& value) const;
     long double GetLongDoubleValue(const CR_TypedValue& value) const;
+
+    void SetLongLongValue(CR_TypedValue& value, long long n) const;
+    void SetULongLongValue(CR_TypedValue& value, unsigned long long u) const;
+    void SetLongDoubleValue(CR_TypedValue& value, long double ld) const;
 
     CR_TypedValue StaticCast(CR_TypeID tid, const CR_TypedValue& value) const;
     CR_TypedValue ReinterpretCast(CR_TypeID tid, const CR_TypedValue& value) const;
@@ -502,18 +543,16 @@ public:
 
     // is it function type?
     bool IsFuncType(CR_TypeID tid) const;
-
     // is it predefined type?
     bool IsPredefinedType(CR_TypeID tid) const;
-
     // is it integer type?
     bool IsIntegralType(CR_TypeID tid) const;
-
     // is it floating type?
     bool IsFloatingType(CR_TypeID tid) const;
-
     // is it unsigned type?
     bool IsUnsignedType(CR_TypeID tid) const;
+    // is it unsigned type?
+    bool IsPointerType(CR_TypeID tid) const;
 
     //
     // ResolveAlias

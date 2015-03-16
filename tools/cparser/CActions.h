@@ -42,7 +42,7 @@ namespace cparser
                 printf("DoTransUnit1\n");
             #endif
             if (ed)
-                tu.get()->push_back(ed->m_decl);
+                tu->push_back(ed->m_decl);
             return tu;
         }
 
@@ -162,7 +162,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoDeclList1\n");
             #endif
-            dl.get()->push_back(d);
+            dl->push_back(d);
             return dl;
         }
 
@@ -930,7 +930,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoStructDeclList1\n");
             #endif
-            dl.get()->push_back(d);
+            dl->push_back(d);
             return dl;
         }
 
@@ -949,7 +949,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoTypedefDeclorList1\n");
             #endif
-            dl.get()->push_back(d);
+            dl->push_back(d);
             return dl;
         }
 
@@ -968,7 +968,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoInitDeclorList1\n");
             #endif
-            dl.get()->push_back(d);
+            dl->push_back(d);
             return dl;
         }
 
@@ -987,7 +987,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoInitDeclor1\n");
             #endif
-            d.get()->m_initer = i;
+            d->m_initer = i;
             return d;
         }
 
@@ -1111,7 +1111,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoStructDeclorList1\n");
             #endif
-            dl.get()->push_back(d);
+            dl->push_back(d);
             return dl;
         }
 
@@ -1231,7 +1231,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoEnumorList1\n");
             #endif
-            el.get()->push_back(e);
+            el->push_back(e);
             return el;
         }
 
@@ -1451,8 +1451,8 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoPtr1\n");
             #endif
-            ac.get()->m_flags |= tql->m_flags;
-            p.get()->push_back(ac);
+            ac->m_flags |= tql->m_flags;
+            p->push_back(ac);
             return p;
         }
 
@@ -1463,7 +1463,7 @@ namespace cparser
                 printf("DoPtr2\n");
             #endif
             Pointers *p = new Pointers;
-            ac.get()->m_flags |= tql->m_flags;
+            ac->m_flags |= tql->m_flags;
             p->push_back(ac);
             return shared_ptr<Pointers>(p);
         }
@@ -1474,7 +1474,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoPtr3\n");
             #endif
-            p.get()->push_back(ac);
+            p->push_back(ac);
             return p;
         }
 
@@ -1520,7 +1520,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoTypeQualList1\n");
             #endif
-            tql.get()->m_flags |= tq->m_flag;
+            tql->m_flags |= tq->m_flag;
             return tql;
         }
 
@@ -1537,7 +1537,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoParamTypeList1\n");
             #endif
-            pl.get()->m_ellipsis = true;
+            pl->m_ellipsis = true;
             return pl;
         }
 
@@ -1554,7 +1554,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoParamList1\n");
             #endif
-            pl.get()->push_back(d);
+            pl->push_back(d);
             return pl;
         }
 
@@ -1651,7 +1651,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoIniterList1\n");
             #endif
-            il.get()->push_back(i);
+            il->push_back(i);
             return il;
         }
 
@@ -1812,7 +1812,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoStmtList1\n");
             #endif
-            sl.get()->push_back(s);
+            sl->push_back(s);
             return sl;
         }
 
@@ -2211,7 +2211,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoExpr2\n");
             #endif
-            e.get()->push_back(ae);
+            e->push_back(ae);
             return e;
         }
 
@@ -2416,7 +2416,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoLogOrExpr2\n");
             #endif
-            loe.get()->push_back(lae);
+            loe->push_back(lae);
             return loe;
         }
 
@@ -2435,7 +2435,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoLogAnd2\n");
             #endif
-            lae.get()->push_back(ioe);
+            lae->push_back(ioe);
             return lae;
         }
 
@@ -2454,7 +2454,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoInclOrExpr2\n");
             #endif
-            ioe.get()->push_back(eoe);
+            ioe->push_back(eoe);
             return ioe;
         }
 
@@ -2473,7 +2473,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoExclOr2\n");
             #endif
-            eoe.get()->push_back(ae);
+            eoe->push_back(ae);
             return eoe;
         }
 
@@ -2493,7 +2493,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoAndExpr2\n");
             #endif
-            ae.get()->push_back(ee);
+            ae->push_back(ee);
             return ae;
         }
 
@@ -3037,7 +3037,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoGeneAssocList1\n");
             #endif
-            gal.get()->push_back(ga);
+            gal->push_back(ga);
             return gal;
         }
 
@@ -3080,7 +3080,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoArgExprList1\n");
             #endif
-            ael.get()->push_back(ae);
+            ael->push_back(ae);
             return ael;
         }
 
@@ -3205,7 +3205,7 @@ namespace cparser
             #ifdef DEEPDEBUG
                 printf("DoAsmOperands1\n");
             #endif
-            aos.get()->push_back(ao);
+            aos->push_back(ao);
             return aos;
         }
 
