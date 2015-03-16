@@ -184,39 +184,39 @@ bool CR_LogStruct::operator!=(const CR_LogStruct& ls) const {
 // CR_NameScope
 
 void CR_NameScope::Init() {
-    AddType("void", TF_VOID, 0);
+    m_void_type = AddType("void", TF_VOID, 0);
 
-    AddType("char", TF_CHAR, 1);
-    AddType("short", TF_SHORT, 2);
-    AddType("long", TF_LONG, 4);
+    m_char_type = AddType("char", TF_CHAR, 1);
+    m_short_type = AddType("short", TF_SHORT, 2);
+    m_long_type = AddType("long", TF_LONG, 4);
     AddType("__int64", TF_LONGLONG, 8);
-    AddType("long long", TF_LONGLONG, 8);
+    m_long_long_type = AddType("long long", TF_LONGLONG, 8);
     #ifdef __GNUC__
         AddType("__int128", TF_INT128, 16);
     #endif
-    AddType("int", TF_INT, 4);
+    m_int_type = AddType("int", TF_INT, 4);
 
-    AddType("unsigned char", TF_UNSIGNED | TF_CHAR, 1);
-    AddType("unsigned short", TF_UNSIGNED | TF_SHORT, 2);
-    AddType("unsigned long", TF_UNSIGNED | TF_LONG, 4);
+    m_uchar_type = AddType("unsigned char", TF_UNSIGNED | TF_CHAR, 1);
+    m_ushort_type = AddType("unsigned short", TF_UNSIGNED | TF_SHORT, 2);
+    m_ulong_type = AddType("unsigned long", TF_UNSIGNED | TF_LONG, 4);
     AddType("unsigned __int64", TF_UNSIGNED | TF_LONGLONG, 8);
-    AddType("unsigned long long", TF_UNSIGNED | TF_LONGLONG, 8);
+    m_ulong_long_type = AddType("unsigned long long", TF_UNSIGNED | TF_LONGLONG, 8);
     #ifdef __GNUC__
         AddType("unsigned __int128", TF_UNSIGNED | TF_INT128, 16);
     #endif
-    AddType("unsigned int", TF_UNSIGNED | TF_INT, 4);
+    m_uint_type = AddType("unsigned int", TF_UNSIGNED | TF_INT, 4);
 
-    AddType("float", TF_FLOAT, 4);
-    AddType("double", TF_DOUBLE, 8);
+    m_float_type = AddType("float", TF_FLOAT, 4);
+    m_double_type = AddType("double", TF_DOUBLE, 8);
 
     // long double may differ between environments...
     #ifdef __GNUC__
         if (m_is_64bit)
-            AddType("long double", TF_LONG | TF_DOUBLE, 16, 16, 16);
+            m_long_double_type = AddType("long double", TF_LONG | TF_DOUBLE, 16, 16, 16);
         else
-            AddType("long double", TF_LONG | TF_DOUBLE, 12, 4, 4);
+            m_long_double_type = AddType("long double", TF_LONG | TF_DOUBLE, 12, 4, 4);
     #else
-        AddType("long double", TF_LONG | TF_DOUBLE, 8);
+        m_long_double_type = AddType("long double", TF_LONG | TF_DOUBLE, 8);
     #endif
 }
 
@@ -257,7 +257,7 @@ CR_VarID CR_NameScope::AddVar(
 {
     assert(tid != cr_invalid_id);
     CR_LogVar var;
-    var.m_type_id = tid;
+    var.m_typed_value.m_type_id = tid;
     var.location() = location;
     auto vid = m_vars.insert(var);
     if (!name.empty()) {
@@ -273,9 +273,8 @@ CR_VarID CR_NameScope::AddVar(
 {
     assert(tid != cr_invalid_id);
     CR_LogVar var;
-    var.m_type_id = tid;
-    var.m_value = CR_TypedValue(tid);
-    var.m_value.assign<int>(value);
+    var.m_typed_value = CR_TypedValue(tid);
+    var.m_typed_value.assign<int>(value);
     var.location() = location;
     auto vid = m_vars.insert(var);
     if (!name.empty()) {
@@ -1270,88 +1269,60 @@ CR_NameScope::GetStructMemberList(
     }
 }
 
-bool CR_NameScope::GetVarIntValue(int& int_value, const std::string& name) const {
-    auto it = MapNameToVarID().find(name);
-    if (it != MapNameToVarID().end()) {
-        CR_VarID vid = it->second;
-        auto& var = LogVar(vid);
-        auto& value = var.m_value;
-        int size = SizeOfType(value.m_type_id);
-        if (size >= sizeof(int) && !value.empty()) {
-            int_value = value.get<int>();
-            return true;
-        }
-    }
-    return false;
-}
-
 CR_TypeID CR_NameScope::AddConstCharType() {
-    auto tid = TypeIDFromFlags(TF_CHAR);
-    return AddConstType(tid);
+    return AddConstType(m_char_type);
 }
 
-CR_TypeID CR_NameScope::AddConstUnsignedCharType() {
-    auto tid = TypeIDFromFlags(TF_UNSIGNED | TF_CHAR);
-    return AddConstType(tid);
+CR_TypeID CR_NameScope::AddConstUCharType() {
+    return AddConstType(m_uchar_type);
 }
 
 CR_TypeID CR_NameScope::AddConstShortType() {
-    auto tid = TypeIDFromFlags(TF_SHORT);
-    return AddConstType(tid);
+    return AddConstType(m_short_type);
 }
 
-CR_TypeID CR_NameScope::AddConstUnsignedShortType() {
-    auto tid = TypeIDFromFlags(TF_UNSIGNED | TF_SHORT);
-    return AddConstType(tid);
+CR_TypeID CR_NameScope::AddConstUShortType() {
+    return AddConstType(m_ushort_type);
 }
 
 CR_TypeID CR_NameScope::AddConstIntType() {
-    auto tid = TypeIDFromFlags(TF_INT);
-    return AddConstType(tid);
+    return AddConstType(m_int_type);
 }
 
-CR_TypeID CR_NameScope::AddConstUnsignedIntType() {
-    auto tid = TypeIDFromFlags(TF_UNSIGNED | TF_INT);
-    return AddConstType(tid);
+CR_TypeID CR_NameScope::AddConstUIntType() {
+    return AddConstType(m_uint_type);
 }
 
 CR_TypeID CR_NameScope::AddConstLongType() {
-    auto tid = TypeIDFromFlags(TF_LONG);
-    return AddConstType(tid);
+    return AddConstType(m_long_type);
 }
 
-CR_TypeID CR_NameScope::AddConstUnsignedLongType() {
-    auto tid = TypeIDFromFlags(TF_UNSIGNED | TF_LONG);
-    return AddConstType(tid);
+CR_TypeID CR_NameScope::AddConstULongType() {
+    return AddConstType(m_ulong_type);
 }
 
 CR_TypeID CR_NameScope::AddConstLongLongType() {
-    auto tid = TypeIDFromFlags(TF_LONGLONG);
-    return AddConstType(tid);
+    return AddConstType(m_long_long_type);
 }
 
-CR_TypeID CR_NameScope::AddConstUnsignedLongLongType() {
-    auto tid = TypeIDFromFlags(TF_UNSIGNED | TF_LONGLONG);
-    return AddConstType(tid);
+CR_TypeID CR_NameScope::AddConstULongLongType() {
+    return AddConstType(m_ulong_long_type);
 }
 
 CR_TypeID CR_NameScope::AddConstFloatType() {
-    auto tid = TypeIDFromFlags(TF_FLOAT);
-    return AddConstType(tid);
+    return AddConstType(m_float_type);
 }
 
 CR_TypeID CR_NameScope::AddConstDoubleType() {
-    auto tid = TypeIDFromFlags(TF_DOUBLE);
-    return AddConstType(tid);
+    return AddConstType(m_double_type);
 }
 
 CR_TypeID CR_NameScope::AddConstLongDoubleType() {
-    auto tid = TypeIDFromFlags(TF_LONG | TF_DOUBLE);
-    return AddConstType(tid);
+    return AddConstType(m_long_double_type);
 }
 
 CR_TypeID CR_NameScope::AddConstStringType() {
-    auto tid = TypeIDFromFlags(TF_CHAR);
+    auto tid = m_char_type;
     auto& type = LogType(tid);
     tid = AddConstType(tid);
     tid = AddPtrType(tid, 0, type.location());
@@ -1359,7 +1330,14 @@ CR_TypeID CR_NameScope::AddConstStringType() {
 }
 
 CR_TypeID CR_NameScope::AddConstWStringType() {
-    auto tid = TypeIDFromName("wchar_t");
+    CR_TypeID tid;
+    auto it = MapNameToTypeID().find("wchar_t");
+    if (it != MapNameToTypeID().end()) {
+        tid = it->second;
+    } else {
+        tid = AddAliasType("wchar_t", m_ushort_type,
+                           CR_Location("(predefined)", 0));
+    }
     auto& type = LogType(tid);
     tid = AddConstType(tid);
     tid = AddPtrType(tid, 0, type.location());
@@ -1398,6 +1376,174 @@ CR_TypeID CR_NameScope::IsWStringType(CR_TypeID tid) const {
         }
     }
     return false;
+}
+
+long long CR_NameScope::GetLongLongValue(const CR_TypedValue& value) const {
+    long long result;
+    auto& type = LogType(value.m_type_id);
+    switch (type.m_size) {
+    case 1:
+        result = static_cast<long long>(value.get<char>());
+        break;
+    case 2:
+        result = static_cast<long long>(value.get<short>());
+        break;
+    case 4:
+        result = static_cast<long long>(value.get<long>());
+        break;
+    case 8:
+        result = value.get<long long>();
+        break;
+    default:
+        assert(0);
+    }
+    return result;
+}
+
+unsigned long long CR_NameScope::GetULongLongValue(const CR_TypedValue& value) const {
+    unsigned long long result;
+    auto& type = LogType(value.m_type_id);
+    switch (type.m_size) {
+    case 1:
+        result = static_cast<unsigned long long>(value.get<unsigned char>());
+        break;
+    case 2:
+        result = static_cast<unsigned long long>(value.get<unsigned short>());
+        break;
+    case 4:
+        result = static_cast<unsigned long long>(value.get<unsigned long>());
+        break;
+    case 8:
+        result = value.get<unsigned long long>();
+        break;
+    default:
+        assert(0);
+    }
+    return result;
+}
+
+long double CR_NameScope::GetLongDoubleValue(const CR_TypedValue& value) const {
+    long double result;
+    auto& type = LogType(value.m_type_id);
+    if (type.m_size == sizeof(float)) {
+        result = value.get<float>();
+    } else if (type.m_size == sizeof(double)) {
+        result = value.get<double>();
+    } else if (type.m_size == sizeof(long double)) {
+        result = value.get<long double>();
+    } else {
+        assert(0);
+    }
+    return result;
+}
+
+CR_TypedValue CR_NameScope::StaticCast(
+    CR_TypeID tid, const CR_TypedValue& value) const
+{
+    CR_TypedValue result;
+    result.m_type_id = tid;
+    auto& type = LogType(tid);
+
+    auto tid2 = value.m_type_id;
+    auto& type2 = LogType(tid2);
+    if (IsIntegralType(tid2)) {
+        if (IsUnsignedType(tid2)) {
+            auto u2 = GetULongLongValue(value);
+            switch (type.m_size) {
+            case 1:
+                result.get<char>() = static_cast<unsigned char>(u2);
+                break;
+            case 2:
+                result.get<short>() = static_cast<unsigned short>(u2);
+                break;
+            case 4:
+                result.get<long>() = static_cast<unsigned long>(u2);
+                break;
+            case 8:
+                result.get<long long>() = u2;
+                break;
+            default:
+                assert(0);
+            }
+        } else {
+            auto n2 = GetLongLongValue(value);
+            switch (type.m_size) {
+            case 1:
+                result.get<char>() = static_cast<char>(n2);
+                break;
+            case 2:
+                result.get<short>() = static_cast<short>(n2);
+                break;
+            case 4:
+                result.get<long>() = static_cast<long>(n2);
+                break;
+            case 8:
+                result.get<long long>() = n2;
+                break;
+            default:
+                assert(0);
+            }
+        }
+    } else if (IsFloatingType(tid2)) {
+        auto ld2 = GetLongDoubleValue(value);
+        if (IsIntegralType(tid)) {
+            if (IsUnsignedType(tid)) {
+                switch (type.m_size) {
+                case 1:
+                    result.get<unsigned char>() = static_cast<unsigned char>(ld2);
+                    break;
+                case 2:
+                    result.get<unsigned short>() = static_cast<unsigned short>(ld2);
+                    break;
+                case 4:
+                    result.get<unsigned long>() = static_cast<unsigned long>(ld2);
+                    break;
+                case 8:
+                    result.get<unsigned long long>() = static_cast<unsigned long long>(ld2);
+                    break;
+                default:
+                    assert(0);
+                }
+            } else {
+                switch (type.m_size) {
+                case 1:
+                    result.get<char>() = static_cast<char>(ld2);
+                    break;
+                case 2:
+                    result.get<short>() = static_cast<short>(ld2);
+                    break;
+                case 4:
+                    result.get<long>() = static_cast<long>(ld2);
+                    break;
+                case 8:
+                    result.get<long long>() = static_cast<long long>(ld2);
+                    break;
+                default:
+                    assert(0);
+                }
+            }
+        } else if (IsFloatingType(tid)) {
+            if (type.m_size == sizeof(float)) {
+                result.get<float>() = static_cast<float>(ld2);
+            } else if (type.m_size == sizeof(double)) {
+                result.get<double>() = static_cast<double>(ld2);
+            } else if (type.m_size == sizeof(long double)) {
+                result.get<long double>() = static_cast<long double>(ld2);
+            } else {
+                assert(0);
+            }
+        }
+    }
+
+    return result;
+}
+
+CR_TypedValue CR_NameScope::ReinterpretCast(
+    CR_TypeID tid, const CR_TypedValue& value) const
+{
+    CR_TypedValue result(value);
+    result.m_type_id = tid;
+    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1584,9 +1730,8 @@ bool CR_NameScope::LoadFromFiles(
             int lineno = std::stol(fields[7], NULL, 0);
 
             CR_LogVar var;
-            var.m_type_id = type_id;
-            var.m_value.m_type_id = type_id;
-            var.m_value.m_text = text;
+            var.m_typed_value.m_type_id = type_id;
+            var.m_typed_value.m_text = text;
             if (text.size() && value_type == "i" && IsIntegralType(type_id)) {
                 bool is_unsigned = false;
                 if (extra.find("u") != std::string::npos ||
@@ -1598,42 +1743,42 @@ bool CR_NameScope::LoadFromFiles(
                     extra.find("LL") != std::string::npos)
                 {
                     if (is_unsigned) {
-                        var.m_value.assign<long long>(std::stoull(text, NULL, 0));
+                        var.m_typed_value.assign<long long>(std::stoull(text, NULL, 0));
                     } else {
-                        var.m_value.assign<long long>(std::stoll(text, NULL, 0));
+                        var.m_typed_value.assign<long long>(std::stoll(text, NULL, 0));
                     }
                 } else if (extra.find('l') != std::string::npos ||
                            extra.find('L') != std::string::npos)
                 {
                     if (is_unsigned) {
-                        var.m_value.assign<long>(std::stoul(text, NULL, 0));
+                        var.m_typed_value.assign<long>(std::stoul(text, NULL, 0));
                     } else {
-                        var.m_value.assign<long>(std::stol(text, NULL, 0));
+                        var.m_typed_value.assign<long>(std::stol(text, NULL, 0));
                     }
                 } else {
                     if (is_unsigned) {
-                        var.m_value.assign<int>(std::stoul(text, NULL, 0));
+                        var.m_typed_value.assign<int>(std::stoul(text, NULL, 0));
                     } else {
-                        var.m_value.assign<int>(std::stol(text, NULL, 0));
+                        var.m_typed_value.assign<int>(std::stol(text, NULL, 0));
                     }
                 }
             } else if (text.size() && value_type == "f" && IsFloatingType(type_id)) {
                 if (extra.empty()) {
-                    var.m_value.assign<double>(std::stod(text));
+                    var.m_typed_value.assign<double>(std::stod(text));
                 } else if (extra == "l" || extra == "L") {
-                    var.m_value.assign<long double>(std::stold(text));
+                    var.m_typed_value.assign<long double>(std::stold(text));
                 } else if (extra == "f" || extra == "F") {
-                    var.m_value.assign<float>(std::stof(text));
+                    var.m_typed_value.assign<float>(std::stof(text));
                 }
             } else if (text.size() && value_type == "s" && IsStringType(type_id)) {
-                var.m_value.assign(text.data(), text.size() + 1);
+                var.m_typed_value.assign(text.data(), text.size() + 1);
             } else if (text.size() && value_type == "s" && IsWStringType(type_id)) {
                 WCHAR wsz[512]; // TODO: any length
                 ::MultiByteToWideChar(CP_ACP, 0, text.data(), -1, wsz, 512);
                 std::wstring wstr(wsz);
-                var.m_value.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
+                var.m_typed_value.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
             }
-            var.m_value.m_extra = extra;
+            var.m_typed_value.m_extra = extra;
             var.m_location.set(file, lineno);
 
             auto vid = m_vars.insert(var);
@@ -1807,13 +1952,15 @@ bool CR_NameScope::SaveToFiles(
             auto& location = var.location();
 
             std::string value_type;
-            if (IsIntegralType(var.m_type_id)) {
+            auto tid = var.m_typed_value.m_type_id;
+            if (IsIntegralType(tid)) {
                 value_type = "i";
-            } else if (IsFloatingType(var.m_type_id)) {
+            }
+            else if (IsFloatingType(tid)) {
                 value_type = "f";
-            } else if (IsStringType(var.m_type_id)) {
+            } else if (IsStringType(tid)) {
                 value_type = "s";
-            } else if (IsWStringType(var.m_type_id)) {
+            } else if (IsWStringType(tid)) {
                 value_type = "s";
             }
 
@@ -1827,9 +1974,9 @@ bool CR_NameScope::SaveToFiles(
             out5 <<
                 vid << "\t" <<
                 name << "\t" <<
-                var.m_type_id << "\t" <<
-                var.m_value.m_text << "\t" <<
-                var.m_value.m_extra << "\t" <<
+                tid << "\t" <<
+                var.m_typed_value.m_text << "\t" <<
+                var.m_typed_value.m_extra << "\t" <<
                 value_type << "\t" <<
                 file << "\t" <<
                 location.m_line << std::endl;

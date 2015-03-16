@@ -203,13 +203,11 @@ class CR_LogEnum {
 }
 
 class CR_LogVar {
-    var $m_type_id;
-    var $m_value;
+    var $m_typed_value;
     var $m_location;
 
     function __construct($type_id, $value = NULL, $size = 0) {
-        $this->m_type_id = $type_id;
-        $this->m_value = new CR_TypedValue($type_id, $value, $size);
+        $this->m_typed_value = new CR_TypedValue($type_id, $value, $size);
         $this->m_location = array("", 0);
     }
 }; // struct CR_LogVar
@@ -391,30 +389,30 @@ class CR_NameScope {
                      $extra, $value_type, $file, $lineno) = $fields;
 
                 $var = new CR_LogVar(intval($type_id, 0));
-                $var->m_value->m_text = $text;
+                $var->m_typed_value->m_text = $text;
                 $var->m_extra = $extra;
                 if ($value_type == "i" && IsIntegralType($type_id)) {
-                    $var->m_value->m_value = intval($text, 0);
+                    $var->m_typed_value->m_value = intval($text, 0);
                     if (strpos($extra, "LL") !== FALSE || strpos($extra, "ll") !== FALSE) {
-                        $var->m_value->m_size = 8;
+                        $var->m_typed_value->m_size = 8;
                     } else {
-                        $var->m_value->m_size = 4;
+                        $var->m_typed_value->m_size = 4;
                     }
                 } else if ($value_type == "f" && IsFloatingType($type_id)) {
-                    $var->m_value->m_value = floatval($text);
+                    $var->m_typed_value->m_value = floatval($text);
                     if ($extra == "L" || $extra == "l") {
-                        $var->m_value->m_size = 8;
+                        $var->m_typed_value->m_size = 8;
                     } else if ($extra == "F" || $extra == "F") {
-                        $var->m_value->m_size = 4;
+                        $var->m_typed_value->m_size = 4;
                     } else {
-                        $var->m_value->m_size = 8
+                        $var->m_typed_value->m_size = 8
                     }
                 } else if ($value_type == "s" && IsStringType($type_id)) {
-                    $var->m_value->m_value = $text;
-                    $var->m_value->m_size = strlen($text) + 1;
+                    $var->m_typed_value->m_value = $text;
+                    $var->m_typed_value->m_size = strlen($text) + 1;
                 } else if ($value_type == "s" && IsWStringType($type_id)) {
-                    $var->m_value->m_value = $text;
-                    $var->m_value->m_size = (strlen($text) + 1) * 2;
+                    $var->m_typed_value->m_value = $text;
+                    $var->m_typed_value->m_size = (strlen($text) + 1) * 2;
                 }
                 $var->m_location = array($file, intval($lineno, 0));
                 $this->m_vars[] = $var;
@@ -897,20 +895,6 @@ class CR_NameScope {
                 }
             }
         }
-    }
-
-    function GetVarIntValue($name) {
-        $map = MapNameToVarID();
-        if (isset($map[$name])) {
-            $vid = $map[$name];
-            $var = LogVar($vid);
-            $value = $var->m_value;
-            $size = SizeOfType($value->m_type_id);
-            if ($size >= 4 && !$value->empty()) {
-                return $value->m_value;
-            }
-        }
-        return 0;
     }
 
     function LogType($tid) {

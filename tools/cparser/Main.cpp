@@ -1673,11 +1673,14 @@ int CrCalcConstIntPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     int n;
     switch (pe->m_prim_type) {
     case PrimExpr::IDENTIFIER:
-        if (namescope.GetVarIntValue(n, pe->m_text)) {
-            return n;
-        }
         // TODO: error info
-        return 0;
+        {
+            CR_VarID vid = namescope.MapNameToVarID()[pe->m_text];
+            auto& var = namescope.LogVar(vid);
+            auto typed_value2 =
+                namescope.StaticCast(namescope.m_int_type, var.m_typed_value);
+            return typed_value2.get<int>();
+        }
 
     case PrimExpr::F_CONSTANT:
         return std::stold(pe->m_text, NULL) != 0;
@@ -1884,7 +1887,7 @@ int CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
             auto it = namescope.MapNameToVarID().find(pe->m_text);
             if (it != namescope.MapNameToVarID().end()) {
                 auto& var = namescope.LogVar(it->second);
-                return namescope.SizeOfType(var.m_type_id);
+                return namescope.SizeOfType(var.m_typed_value.m_type_id);
             }
         }
         return 0;
@@ -3338,15 +3341,15 @@ void CrParseMacros(
     bool is_64bit = false)
 {
     auto char_tid = namescope.AddConstCharType();
-    auto unsigned_char_tid = namescope.AddConstUnsignedCharType();
+    auto uchar_tid = namescope.AddConstUCharType();
     auto short_tid = namescope.AddConstShortType();
-    auto unsigned_short_tid = namescope.AddConstUnsignedShortType();
+    auto ushort_tid = namescope.AddConstUShortType();
     auto int_tid = namescope.AddConstIntType();
-    auto unsigned_int_tid = namescope.AddConstUnsignedIntType();
+    auto uint_tid = namescope.AddConstUIntType();
     auto long_tid = namescope.AddConstLongType();
-    auto unsigned_long_tid = namescope.AddConstUnsignedLongType();
+    auto ulong_tid = namescope.AddConstULongType();
     auto long_long_tid = namescope.AddConstLongLongType();
-    auto unsigned_long_long_tid = namescope.AddConstUnsignedLongLongType();
+    auto ulong_long_tid = namescope.AddConstULongLongType();
     auto float_tid = namescope.AddConstFloatType();
     auto double_tid = namescope.AddConstDoubleType();
     auto long_double_tid = namescope.AddConstLongDoubleType();
@@ -3518,9 +3521,8 @@ void CrParseMacros(
             CR_LogVar var;
             var.m_location.set(file, lineno);
             if (is_string) {
-                var.m_type_id = string_tid;
-                var.m_value.m_type_id = string_tid;
-                var.m_value.assign(text.data(), text.size() + 1);
+                var.m_typed_value.m_type_id = string_tid;
+                var.m_typed_value.assign(text.data(), text.size() + 1);
             } else if (is_integral) {
                 bool is_unsigned = false;
                 if (extra.find("u") != std::string::npos ||
@@ -3542,62 +3544,50 @@ void CrParseMacros(
                     extra.find("i64") != std::string::npos)
                 {
                     if (is_unsigned) {
-                        var.m_type_id = unsigned_long_long_tid;
-                        var.m_value.m_type_id = unsigned_long_long_tid;
+                        var.m_typed_value.m_type_id = ulong_long_tid;
                     } else {
-                        var.m_type_id = long_long_tid;
-                        var.m_value.m_type_id = long_long_tid;
+                        var.m_typed_value.m_type_id = long_long_tid;
                     }
-                    var.m_value.assign<long long>(n);
+                    var.m_typed_value.assign<long long>(n);
                 } else if (extra.find('l') != std::string::npos ||
                            extra.find('L') != std::string::npos ||
                            extra.find("i32") != std::string::npos)
                 {
                     if (is_unsigned) {
-                        var.m_type_id = unsigned_long_tid;
-                        var.m_value.m_type_id = unsigned_long_tid;
+                        var.m_typed_value.m_type_id = ulong_tid;
                     } else {
-                        var.m_type_id = long_tid;
-                        var.m_value.m_type_id = long_tid;
+                        var.m_typed_value.m_type_id = long_tid;
                     }
-                    var.m_value.assign<long>(static_cast<long>(n));
+                    var.m_typed_value.assign<long>(static_cast<long>(n));
                 } else if (extra.find("i16") != std::string::npos) {
                     if (is_unsigned) {
-                        var.m_type_id = unsigned_short_tid;
-                        var.m_value.m_type_id = unsigned_short_tid;
+                        var.m_typed_value.m_type_id = ushort_tid;
                     } else {
-                        var.m_type_id = short_tid;
-                        var.m_value.m_type_id = short_tid;
+                        var.m_typed_value.m_type_id = short_tid;
                     }
-                    var.m_value.assign<short>(static_cast<short>(n));
+                    var.m_typed_value.assign<short>(static_cast<short>(n));
                 } else if (extra.find("i8") != std::string::npos) {
                     if (is_unsigned) {
-                        var.m_type_id = unsigned_char_tid;
-                        var.m_value.m_type_id = unsigned_char_tid;
+                        var.m_typed_value.m_type_id = uchar_tid;
                     } else {
-                        var.m_type_id = char_tid;
-                        var.m_value.m_type_id = char_tid;
+                        var.m_typed_value.m_type_id = char_tid;
                     }
-                    var.m_value.assign<char>(static_cast<char>(n));
+                    var.m_typed_value.assign<char>(static_cast<char>(n));
                 } else {
                     if (u & 0xFFFFFFFF00000000) {
                         if (is_unsigned) {
-                            var.m_type_id = unsigned_long_long_tid;
-                            var.m_value.m_type_id = unsigned_long_long_tid;
+                            var.m_typed_value.m_type_id = ulong_long_tid;
                         } else {
-                            var.m_type_id = long_long_tid;
-                            var.m_value.m_type_id = long_long_tid;
+                            var.m_typed_value.m_type_id = long_long_tid;
                         }
-                        var.m_value.assign<long long>(n);
+                        var.m_typed_value.assign<long long>(n);
                     } else {
                         if (is_unsigned) {
-                            var.m_type_id = unsigned_int_tid;
-                            var.m_value.m_type_id = unsigned_int_tid;
+                            var.m_typed_value.m_type_id = uint_tid;
                         } else {
-                            var.m_type_id = int_tid;
-                            var.m_value.m_type_id = int_tid;
+                            var.m_typed_value.m_type_id = int_tid;
                         }
-                        var.m_value.assign<int>(static_cast<int>(n));
+                        var.m_typed_value.assign<int>(static_cast<int>(n));
                     }
                 }
             } else if (is_floating) {
@@ -3606,25 +3596,22 @@ void CrParseMacros(
                 }
                 long double ld = std::stold(text, 0);
                 if (extra.empty()) {
-                    var.m_type_id = double_tid;
-                    var.m_value.m_type_id = double_tid;
-                    var.m_value.assign<double>(static_cast<double>(ld));
+                    var.m_typed_value.m_type_id = double_tid;
+                    var.m_typed_value.assign<double>(static_cast<double>(ld));
                 } else if (extra == "l" || extra == "L") {
-                    var.m_type_id = long_double_tid;
-                    var.m_value.m_type_id = long_double_tid;
-                    var.m_value.assign<long double>(ld);
+                    var.m_typed_value.m_type_id = long_double_tid;
+                    var.m_typed_value.assign<long double>(ld);
                 } else if (extra == "f" || extra == "F") {
-                    var.m_type_id = float_tid;
-                    var.m_value.m_type_id = float_tid;
-                    var.m_value.assign<float>(static_cast<float>(ld));
+                    var.m_typed_value.m_type_id = float_tid;
+                    var.m_typed_value.assign<float>(static_cast<float>(ld));
                 } else {
                     continue;
                 }
             } else {
                 continue;
             }
-            var.m_value.m_text = text;
-            var.m_value.m_extra = extra;
+            var.m_typed_value.m_text = text;
+            var.m_typed_value.m_extra = extra;
 
             auto vid = namescope.LogVars().insert(var);
             namescope.MapVarIDToName()[vid] = name;

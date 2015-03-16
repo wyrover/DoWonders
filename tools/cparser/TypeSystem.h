@@ -290,8 +290,7 @@ struct CR_LogEnum {
 // CR_LogVar --- logical variable
 
 struct CR_LogVar {
-    CR_TypeID       m_type_id;          // the type ID of a variable
-    CR_TypedValue   m_value;            // typed value
+    CR_TypedValue   m_typed_value;      // typed value
     CR_Location     m_location;         // the location
 
           CR_Location& location()       { return m_location; }
@@ -473,22 +472,27 @@ public:
         CR_StructID sid, std::vector<CR_StructMember>& members) const;
 
     CR_TypeID AddConstCharType();
-    CR_TypeID AddConstUnsignedCharType();
+    CR_TypeID AddConstUCharType();
     CR_TypeID AddConstShortType();
-    CR_TypeID AddConstUnsignedShortType();
+    CR_TypeID AddConstUShortType();
     CR_TypeID AddConstIntType();
-    CR_TypeID AddConstUnsignedIntType();
+    CR_TypeID AddConstUIntType();
     CR_TypeID AddConstLongType();
-    CR_TypeID AddConstUnsignedLongType();
+    CR_TypeID AddConstULongType();
     CR_TypeID AddConstLongLongType();
-    CR_TypeID AddConstUnsignedLongLongType();
+    CR_TypeID AddConstULongLongType();
     CR_TypeID AddConstFloatType();
     CR_TypeID AddConstDoubleType();
     CR_TypeID AddConstLongDoubleType();
     CR_TypeID AddConstStringType();
     CR_TypeID AddConstWStringType();
 
-    bool GetVarIntValue(int& int_value, const std::string& name) const;
+    long long GetLongLongValue(const CR_TypedValue& value) const;
+    unsigned long long GetULongLongValue(const CR_TypedValue& value) const;
+    long double GetLongDoubleValue(const CR_TypedValue& value) const;
+
+    CR_TypedValue StaticCast(CR_TypeID tid, const CR_TypedValue& value) const;
+    CR_TypedValue ReinterpretCast(CR_TypeID tid, const CR_TypedValue& value) const;
 
     //
     // type judgements
@@ -640,6 +644,22 @@ protected:
     CR_DeqSet<CR_LogStruct>             m_structs;
     CR_DeqSet<CR_LogEnum>               m_enums;
     CR_DeqSet<CR_LogVar>                m_vars;
+
+public:
+    CR_TypeID                           m_void_type;
+    CR_TypeID                           m_char_type;
+    CR_TypeID                           m_short_type;
+    CR_TypeID                           m_long_type;
+    CR_TypeID                           m_long_long_type;
+    CR_TypeID                           m_int_type;
+    CR_TypeID                           m_uchar_type;
+    CR_TypeID                           m_ushort_type;
+    CR_TypeID                           m_ulong_type;
+    CR_TypeID                           m_ulong_long_type;
+    CR_TypeID                           m_uint_type;
+    CR_TypeID                           m_float_type;
+    CR_TypeID                           m_double_type;
+    CR_TypeID                           m_long_double_type;
 }; // class CR_NameScope
 
 #endif  // ndef TYPESYSTEM_H_
