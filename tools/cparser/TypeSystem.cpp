@@ -65,6 +65,150 @@ void CrChop(std::string& str) {
     }
 }
 
+std::string CrEscapeString(const std::string& str) {
+    std::string result;
+    size_t count = 0;
+    const size_t siz = str.size();
+    for (size_t i = 0; i < siz; ++i) {
+        char ch = str[i];
+        switch (ch) {
+        case '\'': case '\"': case '\?': case '\\':
+            result += '\\';
+            result += ch;
+            count += 2;
+            break;
+        case '\a':
+            result += '\\';
+            result += 'a';
+            count += 2;
+            break;
+        case '\b':
+            result += '\\';
+            result += 'b';
+            count += 2;
+            break;
+        case '\f':
+            result += '\\';
+            result += 'f';
+            count += 2;
+            break;
+        case '\r':
+            result += '\\';
+            result += 'r';
+            count += 2;
+            break;
+        case '\t':
+            result += '\\';
+            result += 't';
+            count += 2;
+            break;
+        case '\v':
+            result += '\\';
+            result += 'v';
+            count += 2;
+            break;
+        default:
+            if (ch < 0x20) {
+                int n = static_cast<int>(ch);
+                std::strstream ss;
+                ss << "\\x" << std::hex <<
+                    std::setfill('0') << std::setw(2) << n;
+                result += ss.str();
+                count += 4;
+            } else {
+                result += ch;
+                count++;
+            }
+        }
+    }
+    result.resize(count);
+    return "\"" + result + "\"";
+}
+
+bool CrUnscapeString(std::string& result, const std::string& str) {
+    result.clear();
+    size_t siz = str.size();
+    bool inside = false, is_valid = true;
+    for (size_t i = 0; i < siz; ++i) {
+        char ch = str[i];
+        if (ch == '\"') {
+            if (inside) {
+                if (++i < siz && str[i] == '\"') {
+                    result += '\"';
+                } else {
+                    --i;
+                    inside = false;
+                }
+            } else {
+                inside = true;
+            }
+            continue;
+        }
+        if (!inside) {
+            if (!isspace(ch)) {
+                is_valid = false;
+            }
+            continue;
+        }
+        if (ch != '\\') {
+            result += ch;
+            continue;
+        }
+        if (++i >= siz) {
+            return false;
+        }
+        ch = str[i];
+        switch (ch) {
+        case '\'': case '\"': case '\?': case '\\':
+            result += ch;
+            break;
+        case 'a': result += '\a'; break;
+        case 'b': result += '\b'; break;
+        case 'f': result += '\f'; break;
+        case 'n': result += '\n'; break;
+        case 'r': result += '\r'; break;
+        case 't': result += '\t'; break;
+        case 'v': result += '\v'; break;
+        case 'x':
+            {
+                std::string hex;
+                if (++i < siz && isxdigit(str[i])) {
+                    hex += str[i];
+                    if (++i < siz && isxdigit(str[i])) {
+                        hex += str[i];
+                    } else {
+                        --i;
+                    }
+                } else {
+                    --i;
+                    is_valid = false; // invalid escape sequence
+                }
+                auto n = std::stoul(hex, NULL, 16);
+                result += static_cast<char>(n);
+            }
+            break;
+        default:
+            if ('0' <= ch && ch <= '7') {
+                std::string oct;
+                oct += ch;
+                if (++i < siz && '0' <= str[i] && str[i] <= '7') {
+                    oct += str[i];
+                    if (++i < siz && '0' <= str[i] && str[i] <= '7') {
+                        oct += str[i];
+                    } else {
+                        --i;
+                    }
+                } else {
+                    --i;
+                }
+                auto n = std::stoul(oct, NULL, 8);
+                result += static_cast<char>(n);
+            }
+        }
+    }
+    return is_valid;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypedValue
 
@@ -119,7 +263,12 @@ CR_TypedValue& CR_TypedValue::operator=(CR_TypedValue&& value) {
 }
 
 void CR_TypedValue::assign(const void *ptr, size_t size) {
-    assert(ptr);
+    if (ptr == NULL || size == 0) {
+        free(m_ptr);
+        m_ptr = NULL;
+        m_size = size;
+        return;
+    }
     bool differs = (ptr != m_ptr);
     m_ptr = realloc(m_ptr, size);
     if (m_ptr) {
@@ -1221,6 +1370,19 @@ bool CR_NameScope::IsPointerType(CR_TypeID tid) const {
     return false;
 }
 
+bool CR_NameScope::IsFunctionType(CR_TypeID tid) const {
+    assert(tid != cr_invalid_id);
+    if (tid == cr_invalid_id)
+        return false;
+    tid = ResolveAlias(tid);
+    auto& type = LogType(tid);
+    if (type.m_flags & TF_POINTER)
+        return true;
+    if ((type.m_flags & (TF_ALIAS | TF_FUNCTION)) == TF_FUNCTION)
+        return IsFunctionType(type.m_sub_id);
+    return false;
+}
+
 CR_TypeID CR_NameScope::_ResolveAliasRecurse(CR_TypeID tid) const {
     assert(tid != cr_invalid_id);
     while (m_types[tid].m_flags & TF_ALIAS)
@@ -1401,9 +1563,9 @@ CR_TypeID CR_NameScope::IsWStringType(CR_TypeID tid) const {
 long long CR_NameScope::GetLongLongValue(const CR_TypedValue& value) const {
     long long result = 0;
     auto& type = LogType(value.m_type_id);
-	if (type.m_size != value.m_size) {
-		return 0;
-	}
+    if (type.m_size != value.m_size) {
+        return 0;
+    }
     switch (type.m_size) {
     case 1:
         result = static_cast<long long>(value.get<char>());
@@ -1426,10 +1588,10 @@ long long CR_NameScope::GetLongLongValue(const CR_TypedValue& value) const {
 unsigned long long CR_NameScope::GetULongLongValue(const CR_TypedValue& value) const {
     unsigned long long result = 0;
     auto& type = LogType(value.m_type_id);
-	if (type.m_size != value.m_size) {
-		return 0;
-	}
-	switch (type.m_size) {
+    if (type.m_size != value.m_size) {
+        return 0;
+    }
+    switch (type.m_size) {
     case 1:
         result = static_cast<unsigned long long>(value.get<unsigned char>());
         break;
@@ -1451,10 +1613,10 @@ unsigned long long CR_NameScope::GetULongLongValue(const CR_TypedValue& value) c
 long double CR_NameScope::GetLongDoubleValue(const CR_TypedValue& value) const {
     long double result = 0;
     auto& type = LogType(value.m_type_id);
-	if (type.m_size != value.m_size) {
-		return 0;
-	}
-	if (type.m_size == sizeof(float)) {
+    if (type.m_size != value.m_size) {
+        return 0;
+    }
+    if (type.m_size == sizeof(float)) {
         result = value.get<float>();
     } else if (type.m_size == sizeof(double)) {
         result = value.get<double>();
@@ -1491,6 +1653,9 @@ CR_TypedValue CR_NameScope::StaticCast(
         } else if (IsFloatingType(tid2)) {
             auto ld2 = GetLongDoubleValue(value);
             SetLongDoubleValue(result, ld2);
+        } else if (IsPointerType(tid2)) {
+            auto u2 = GetULongLongValue(value);
+            SetULongLongValue(result, u2);
         }
     }
 
@@ -1508,6 +1673,50 @@ CR_TypedValue CR_NameScope::ReinterpretCast(
     return result;
 }
 
+CR_TypedValue CR_NameScope::Cast(
+    CR_TypeID tid, const CR_TypedValue& value) const
+{
+    CR_TypedValue result;
+    auto& type1 = LogType(tid);
+    auto& type2 = LogType(value.m_type_id);
+    if (IsPointerType(tid)) {
+        int pointer_size = type1.m_size;
+        if (IsPointerType(value.m_type_id)) {
+            result = ReinterpretCast(tid, value);
+        } else {
+            if (pointer_size == 8) {
+                result = StaticCast(m_ulong_long_type, value);
+                result.m_type_id = tid;
+            } else if (pointer_size == 4) {
+                result = StaticCast(m_uint_type, value);
+                result.m_type_id = tid;
+            }
+        }
+    } else {
+        if (type1.m_size == type2.m_size) {
+            result = value;
+            result.m_type_id = tid;
+        } else if (IsPointerType(value.m_type_id)) {
+            switch (type1.m_size) {
+            case 1:
+                result = StaticCast(m_char_type, value);
+                break;
+            case 2:
+                result = StaticCast(m_short_type, value);
+                break;
+            case 4:
+                result = StaticCast(m_long_type, value);
+                break;
+            case 8:
+                result = StaticCast(m_long_long_type, value);
+                break;
+            }
+            result.m_type_id = tid;
+        }
+    }
+    return result;
+}
+
 void CR_NameScope::SetAlignas(CR_TypeID tid, int alignas_) {
     auto& type = LogType(tid);
     type.m_align = alignas_;
@@ -1518,6 +1727,88 @@ void CR_NameScope::SetAlignas(CR_TypeID tid, int alignas_) {
         LogStruct(type.m_sub_id).m_alignas = alignas_;
         LogStruct(type.m_sub_id).m_alignas_explicit = true;
     }
+}
+
+CR_TypedValue
+CR_NameScope::ArrayItem(const CR_TypedValue& array, size_t index) const {
+    CR_TypedValue result;
+    auto& array_type = LogType(array.m_type_id);
+    auto item_tid = array_type.m_sub_id;
+    auto& item_type = LogType(item_tid);
+    if (0 <= index && index < array_type.m_count) {
+    } else {
+        return result;
+    }
+
+    result.m_addr = array.m_addr + index * item_type.m_size;
+    const char *ptr = array.get_at<char>(
+        index * item_type.m_size, item_type.m_size);
+    if (ptr) {
+        SetValue(result, item_tid, ptr, item_type.m_size);
+    }
+    return result;
+}
+
+CR_TypedValue CR_NameScope::Dot(
+    const CR_TypedValue& struct_value, const std::string& name) const
+{
+    CR_TypedValue result;
+    auto& struct_type = LogType(struct_value.m_type_id);
+    std::vector<CR_StructMember> children;
+    GetStructMemberList(struct_type.m_sub_id, children);
+    for (auto& child : children) {
+        if (child.m_name == name) {
+            if (child.m_bit_offset & 7) {
+                // bitfield not supported yet
+                break;
+            }
+            result.m_addr = struct_value.m_addr + child.m_bit_offset / 8;
+            result.m_size = SizeOfType(child.m_type_id);
+            const char *ptr =
+                struct_value.get_at<char>(
+                    child.m_bit_offset / 8, result.m_size);
+            if (ptr) {
+                SetValue(result, child.m_type_id, ptr, result.m_size);
+            }
+            break;
+        }
+    }
+    return result;
+}
+
+CR_TypedValue
+CR_NameScope::Asterisk(const CR_TypedValue& pointer_value) const {
+    CR_TypedValue result;
+    auto tid = ResolveAlias(pointer_value.m_type_id);
+    if (IsPointerType(tid)) {
+        auto& type = LogType(tid);
+        auto tid2 = type.m_sub_id;
+        auto& type2 = LogType(tid2);
+        SetValue(result, tid2, NULL, type2.m_size);
+    }
+    return result;
+}
+
+CR_TypedValue
+CR_NameScope::Address(const CR_TypedValue& value) const {
+    CR_TypedValue result;
+    if (Is64Bit()) {
+        result.m_type_id = m_ulong_long_type;
+        result.assign<unsigned long long>(value.m_addr);
+    } else {
+        result.m_type_id = m_uint_type;
+        result.assign<unsigned int>(
+            static_cast<unsigned int>(value.m_addr));
+    }
+    return result;
+}
+
+CR_TypedValue CR_NameScope::Arrow(
+    const CR_TypedValue& pointer_value, const std::string& name) const
+{
+    CR_TypedValue result = Asterisk(pointer_value);
+    result = Dot(result, name);
+    return result;
 }
 
 void CR_NameScope::SetLongLongValue(CR_TypedValue& value, long long n) const {
@@ -1616,7 +1907,7 @@ void CR_NameScope::SetLongDoubleValue(CR_TypedValue& value, long double ld) cons
 void CR_NameScope::IntZero(CR_TypedValue& value1) const {
     value1.m_type_id = m_int_type;
     int n = 0;
-	value1.assign<int>(n);
+    value1.assign<int>(n);
 }
 
 void CR_NameScope::IntOne(CR_TypedValue& value1) const {
@@ -2204,12 +2495,79 @@ int CR_NameScope::GetIntValue(const CR_TypedValue& value) const {
     return 0;
 }
 
+void CR_NameScope::SetIntValue(CR_TypedValue& value, int n) const {
+    value.m_type_id = m_int_type;
+    value.assign<int>(n);
+}
+
 bool CR_NameScope::HasValue(const CR_TypedValue& value) const {
     if (value.m_ptr == NULL) {
         return false;
     }
     auto& type = LogType(value.m_type_id);
     return static_cast<int>(value.m_size) >= type.m_size;
+}
+
+void CR_NameScope::SetValue(
+    CR_TypedValue& value, CR_TypeID tid, const void *ptr, size_t size) const
+{
+    value.m_type_id = tid;
+    value.m_size = size;
+    if (ptr == NULL) {
+        value.clear();
+        return;
+    }
+    if (IsIntegralType(tid)) {
+        if (IsUnsignedType(tid)) {
+            switch (size) {
+            case 1:
+                value.assign<unsigned char>(
+                    *reinterpret_cast<const unsigned char *>(ptr));
+                break;
+            case 2:
+                value.assign<unsigned short>(
+                    *reinterpret_cast<const unsigned short *>(ptr));
+                break;
+            case 4:
+                value.assign<unsigned long>(
+                    *reinterpret_cast<const unsigned long *>(ptr));
+                break;
+            case 8:
+                value.assign<unsigned long long>(
+                    *reinterpret_cast<const unsigned long long *>(ptr));
+                break;
+            }
+        } else {
+            switch (size) {
+            case 1:
+                value.assign<char>(*reinterpret_cast<const char *>(ptr));
+                break;
+            case 2:
+                value.assign<short>(*reinterpret_cast<const short *>(ptr));
+                break;
+            case 4:
+                value.assign<long>(*reinterpret_cast<const long *>(ptr));
+                break;
+            case 8:
+                value.assign<long long>(*reinterpret_cast<const long long *>(ptr));
+                break;
+            }
+        }
+    } else if (IsFloatingType(tid)){
+        if (size == sizeof(float)) {
+            value.assign<float>(*reinterpret_cast<const float *>(ptr));
+        } else if (size == sizeof(double)) {
+            value.assign<double>(*reinterpret_cast<const double *>(ptr));
+        } else if (size == sizeof(long double)) {
+            value.assign<long double>(*reinterpret_cast<const long double *>(ptr));
+        }
+    } else if (IsPointerType(tid)) {
+        size_t n = reinterpret_cast<size_t>(ptr);
+        value.assign<size_t>(n);
+    } else {
+        value.assign(ptr, size);
+        value.m_text.clear();
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -2437,12 +2795,26 @@ bool CR_NameScope::LoadFromFiles(
                     var.m_typed_value.assign<float>(std::stof(text));
                 }
             } else if (text.size() && value_type == "s" && IsStringType(type_id)) {
-                var.m_typed_value.assign(text.data(), text.size() + 1);
+                std::string unescaped;
+                if (CrUnscapeString(unescaped, text)) {
+                    text = unescaped;
+                    var.m_typed_value.assign(text.data(), text.size() + 1);
+                    var.m_typed_value.m_text = text;
+                } else {
+                    ErrorInfo()->add_error("invalid string: '" + text + "'");
+                }
             } else if (text.size() && value_type == "s" && IsWStringType(type_id)) {
-                WCHAR wsz[512]; // TODO: any length
-                ::MultiByteToWideChar(CP_ACP, 0, text.data(), -1, wsz, 512);
-                std::wstring wstr(wsz);
-                var.m_typed_value.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
+                std::string unescaped;
+                if (CrUnscapeString(unescaped, text)) {
+                    text = unescaped;
+                    WCHAR wsz[512]; // TODO: any length
+                    ::MultiByteToWideChar(CP_ACP, 0, text.data(), -1, wsz, 512);
+                    std::wstring wstr(wsz);
+                    var.m_typed_value.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
+                    var.m_typed_value.m_text = text;
+                } else {
+                    ErrorInfo()->add_error("invalid string: '" + text + "'");
+                }
             }
             var.m_typed_value.m_extra = extra;
             var.m_location.set(file, lineno);
@@ -2621,13 +2993,17 @@ bool CR_NameScope::SaveToFiles(
             auto tid = var.m_typed_value.m_type_id;
             if (IsIntegralType(tid)) {
                 value_type = "i";
-            }
-            else if (IsFloatingType(tid)) {
+            } else if (IsFloatingType(tid)) {
                 value_type = "f";
-            } else if (IsStringType(tid)) {
+            } else if (IsStringType(tid) || IsWStringType(tid)) {
                 value_type = "s";
-            } else if (IsWStringType(tid)) {
-                value_type = "s";
+            }
+
+            std::string text;
+            if (value_type == "s") {
+                text = CrEscapeString(var.m_typed_value.m_text);
+            } else {
+                text = var.m_typed_value.m_text;
             }
 
             std::string file = location.m_file;
@@ -2641,7 +3017,7 @@ bool CR_NameScope::SaveToFiles(
                 vid << "\t" <<
                 name << "\t" <<
                 tid << "\t" <<
-                var.m_typed_value.m_text << "\t" <<
+                text << "\t" <<
                 var.m_typed_value.m_extra << "\t" <<
                 value_type << "\t" <<
                 file << "\t" <<

@@ -327,7 +327,7 @@ namespace cparser
 
     struct UnaryExpr : Node {
         enum {
-            SINGLE, INC, DEC, AND, ASTERISK, PLUS, MINUS,
+            SINGLE, INC, DEC, ADDRESS, ASTERISK, PLUS, MINUS,
             BITWISE_NOT, NOT, SIZEOF1, SIZEOF2, ALIGNOF
         } m_unary_type;
         shared_ptr<PostfixExpr> m_postfix_expr;
@@ -343,6 +343,8 @@ namespace cparser
         } m_postfix_type;
         shared_ptr<PostfixExpr> m_postfix_expr;
         shared_ptr<PrimExpr>    m_prim_expr;
+        std::string             m_text;
+        shared_ptr<Expr>        m_expr;
     };
 
     struct PrimExpr : Node {
@@ -446,6 +448,7 @@ namespace cparser
     struct StaticAssertDecl : Node {
         shared_ptr<CondExpr>    m_const_expr;
         std::string             m_str;
+        CR_Location             m_location;
     };
 
     //

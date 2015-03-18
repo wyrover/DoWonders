@@ -850,6 +850,7 @@ void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
     }
 
     resynth2(base, c);
+    resynth3(c);
     resynth4(c);
     resynth5(c.begin(), c.end());
     resynth6(c);
@@ -1051,6 +1052,32 @@ void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
     }
     std::swap(c, newc);
 } // resynth2
+
+// 1. Join string sequence
+void cparser::Lexer::resynth3(node_container& c) {
+    node_container newc;
+    newc.reserve(c.size());
+
+    node_iterator it, it0, end = c.end();
+    for (it = c.begin(); it != end; ++it) {
+        if (it->m_token == T_STRING) {
+            it0 = it;
+            for (;;) {
+                ++it;
+                if (it != end && it->m_token == T_STRING) {
+                    it0->m_text += it->m_text;
+                } else {
+                    --it;
+                    break;
+                }
+            }
+            newc.push_back(*it0);
+        } else {
+            newc.push_back(*it);
+        }
+    }
+    std::swap(c, newc);
+}
 
 // 1. Delete __asm__("..." "...") of all function prototypes.
 // 2. Delete all __attribute__(...).
@@ -1667,6 +1694,10 @@ CR_TypedValue CrValueOnAssignExpr(CR_NameScope& namescope, AssignExpr *ae);
 CR_TypedValue CrValueOnExpr(CR_NameScope& namescope, Expr *e);
 CR_TypedValue CrValueOnCondExpr(CR_NameScope& namescope, CondExpr *ce);
 
+int CrCalcSizeOfTypedValue(CR_NameScope& namescope, const CR_TypedValue& result) {
+    return namescope.SizeOfType(result.m_type_id);
+}
+
 CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     CR_TypedValue result;
     switch (pe->m_prim_type) {
@@ -1803,7 +1834,12 @@ CR_TypedValue CrValueOnPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
         break;
 
     case PostfixExpr::ARRAYITEM:
-        // TODO:
+        {
+            result = CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
+            CR_TypedValue expr_value = CrValueOnExpr(namescope, pe->m_expr.get());
+            int n = namescope.GetIntValue(expr_value);
+            result = namescope.ArrayItem(result, n);
+        }
         break;
 
     case PostfixExpr::FUNCCALL1:
@@ -1813,11 +1849,13 @@ CR_TypedValue CrValueOnPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
         break;
 
     case PostfixExpr::DOT:
-        // TODO:
+        result = CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
+        result = namescope.Dot(result, pe->m_text);
         break;
 
     case PostfixExpr::ARROW:
-        // TODO:
+        result = CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
+        result = namescope.Arrow(result, pe->m_text);
         break;
 
     case PostfixExpr::INC:
@@ -2028,12 +2066,44 @@ int CrCalcSizeOfPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
     case PostfixExpr::SINGLE:
         return CrCalcSizeOfPrimExpr(namescope, pe->m_prim_expr.get());
 
+    case PostfixExpr::ARRAYITEM:
+        {
+            CR_TypedValue result =
+                CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
+            CR_TypedValue index =
+                CrValueOnExpr(namescope, pe->m_expr.get());
+            int n = namescope.GetIntValue(index);
+            result = namescope.ArrayItem(result, n);
+            return CrCalcSizeOfTypedValue(namescope, result);
+        }
+        break;
+
+    case PostfixExpr::FUNCCALL1:
+    case PostfixExpr::FUNCCALL2:
+        assert(0);
+        break;
+
+    case PostfixExpr::DOT:
+        {
+            CR_TypedValue result =
+                CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
+            result = namescope.Dot(result, pe->m_text);
+            return CrCalcSizeOfTypedValue(namescope, result);
+        }
+
     case PostfixExpr::ARROW:
-        // TODO:
-        return 0;
+        {
+            CR_TypedValue result =
+                CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
+            result = namescope.Arrow(result, pe->m_text);
+            return CrCalcSizeOfTypedValue(namescope, result);
+        }
+
+    case PostfixExpr::INC:
+    case PostfixExpr::DEC:
+        return CrCalcSizeOfPostfixExpr(namescope, pe->m_postfix_expr.get());
 
     default:
-        // TODO:
         assert(0);
     }
     return 0;
@@ -2045,8 +2115,48 @@ int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
     case UnaryExpr::SINGLE:
         return CrCalcSizeOfPostfixExpr(namescope, ue->m_postfix_expr.get());
 
+    case UnaryExpr::INC:
+    case UnaryExpr::DEC:
+        return CrCalcSizeOfUnaryExpr(namescope, ue->m_unary_expr.get());
+
+    case UnaryExpr::ADDRESS:
+        {
+            CR_TypedValue result =
+                CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+            result = namescope.Address(result);
+            return CrCalcSizeOfTypedValue(namescope, result);
+        }
+
+    case UnaryExpr::ASTERISK:
+        {
+            CR_TypedValue result =
+                CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+            result = namescope.Asterisk(result);
+            return CrCalcSizeOfTypedValue(namescope, result);
+        }
+
+    case UnaryExpr::PLUS:
+    case UnaryExpr::MINUS:
+    case UnaryExpr::BITWISE_NOT:
+        {
+            CR_TypedValue result =
+                CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+            return CrCalcSizeOfTypedValue(namescope, result);
+        }
+
+    case UnaryExpr::NOT:
+        {
+            CR_TypedValue result =
+                CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+            result = namescope.Not(result);
+            return CrCalcSizeOfTypedValue(namescope, result);
+        }
+
+    case UnaryExpr::SIZEOF1:
+    case UnaryExpr::SIZEOF2:
+        return (namescope.Is64Bit() ? 8 : 4);
+
     default:
-        // TODO:
         assert(0);
         return 0;
     }
@@ -2054,10 +2164,22 @@ int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
 
 CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
 
+int CrGetTypeIDOfTypeName(CR_NameScope& namescope, TypeName *tn) {
+    assert(tn);
+    CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
+    return tid;
+}
+
 int CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
     assert(tn);
     CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
     return namescope.SizeOfType(tid);
+}
+
+int CrCalcAlignOfTypeName(CR_NameScope& namescope, TypeName *tn) {
+    assert(tn);
+    CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
+    return namescope.LogType(tid).m_align;
 }
 
 CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
@@ -2073,10 +2195,14 @@ CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
     case UnaryExpr::DEC:
         break;
 
-    case UnaryExpr::AND:
+    case UnaryExpr::ADDRESS:
+        result = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+        result = namescope.Address(result);
         break;
 
     case UnaryExpr::ASTERISK:
+        result = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+        result = namescope.Asterisk(result);
         break;
 
     case UnaryExpr::PLUS:
@@ -2099,11 +2225,29 @@ CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
         break;
 
     case UnaryExpr::SIZEOF1:
-        result = static_cast<int>(CrCalcSizeOfUnaryExpr(namescope, ue->m_unary_expr.get()));
+        {
+            size_t size = CrCalcSizeOfUnaryExpr(namescope, ue->m_unary_expr.get());
+            if (namescope.Is64Bit()) {
+                result.m_type_id = namescope.m_ulong_long_type;
+                result.assign<unsigned long long>(size);
+            } else {
+				result.m_type_id = namescope.m_uint_type;
+                result.assign<unsigned int>(size);
+            }
+        }
         break;
 
     case UnaryExpr::SIZEOF2:
-        result = static_cast<int>(CrCalcSizeOfTypeName(namescope, ue->m_type_name.get()));
+        {
+            size_t size = CrCalcSizeOfTypeName(namescope, ue->m_type_name.get());
+			if (namescope.Is64Bit()) {
+				result.m_type_id = namescope.m_ulong_long_type;
+                result.assign<unsigned long long>(size);
+            } else {
+				result.m_type_id = namescope.m_uint_type;
+                result.assign<unsigned int>(size);
+            }
+        }
         break;
 
     default:
@@ -2127,7 +2271,11 @@ CR_TypedValue CrValueOnCastExpr(CR_NameScope& namescope, CastExpr *ce) {
         break;
 
     case CastExpr::CAST:
-        result = CrValueOnCastExpr(namescope, ce->m_cast_expr.get());
+        {
+            result = CrValueOnCastExpr(namescope, ce->m_cast_expr.get());
+            CR_TypeID tid = CrGetTypeIDOfTypeName(namescope, ce->m_type_name.get());
+            result = namescope.Cast(tid, result);
+        }
         break;
 
     default:
@@ -2152,7 +2300,6 @@ CR_TypedValue CrValueOnMulExpr(CR_NameScope& namescope, MulExpr *me) {
     case MulExpr::SLASH:
         n1 = CrValueOnMulExpr(namescope, me->m_mul_expr.get());
         n2 = CrValueOnCastExpr(namescope, me->m_cast_expr.get());
-        assert(n2);
         result = namescope.Div(n1, n2);
         break;
 
@@ -2533,8 +2680,9 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     int alignas_ = 0;
                     switch (as->m_align_spec_type) {
                     case AlignSpec::TYPENAME:
-                        // TODO: 
-                        assert(0);
+                        alignas_ =
+                            CrCalcAlignOfTypeName(
+                                namescope, as->m_type_name.get());
                         break;
 
                     case AlignSpec::CONSTEXPR:
@@ -2542,6 +2690,7 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                             namescope.GetIntValue(
                                 CrValueOnCondExpr(namescope,
                                     as->m_const_expr.get()));
+                        break;
                     }
                     namescope.SetAlignas(tid2, alignas_);
                 }
@@ -2591,7 +2740,6 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 continue;
 
             case Declor::BITS:
-                // TODO:
                 assert(0);
                 d = NULL;
                 break;
@@ -2627,8 +2775,9 @@ void CrAnalyseTypedefDeclorListVector(
                     int alignas_ = 0;
                     switch (as->m_align_spec_type) {
                     case AlignSpec::TYPENAME:
-                        // TODO: 
-                        assert(0);
+                        alignas_ =
+                            CrCalcAlignOfTypeName(
+                                namescope, as->m_type_name.get());
                         break;
 
                     case AlignSpec::CONSTEXPR:
@@ -2636,6 +2785,7 @@ void CrAnalyseTypedefDeclorListVector(
                             CrValueOnCondExpr(namescope,
                                 as->m_const_expr.get());
                         alignas_ = namescope.GetIntValue(value);
+                        break;
                     }
                     namescope.SetAlignas(tid2, alignas_);
                 }
@@ -2681,7 +2831,6 @@ void CrAnalyseTypedefDeclorListVector(
                 continue;
 
             case Declor::BITS:
-                // TODO:
                 assert(0);
                 d = NULL;
                 break;
@@ -2940,7 +3089,6 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
                 continue;
 
             case Declor::BITS:
-                // TODO:
                 d = NULL;
                 break;
 
@@ -3007,12 +3155,13 @@ CR_TypeID CrAnalyseStructDeclList(CR_NameScope& namescope,
 
         case Decl::STATIC_ASSERT:
             {
-                shared_ptr<CondExpr> const_expr =
-                    decl->m_static_assert_decl->m_const_expr;
+                auto const_expr = decl->m_static_assert_decl->m_const_expr;
                 CR_TypedValue value = 
                     CrValueOnCondExpr(namescope, const_expr.get());
                 if (namescope.GetIntValue(value) == 0) {
-                    assert(0);
+                    namescope.ErrorInfo()->add_error(
+                        decl->m_static_assert_decl->m_location,
+                        "static assertion failed");
                 }
             }
             break;
@@ -3053,12 +3202,13 @@ CR_TypeID CrAnalyseUnionDeclList(CR_NameScope& namescope,
 
         case Decl::STATIC_ASSERT:
             {
-                shared_ptr<CondExpr> const_expr =
-                    decl->m_static_assert_decl->m_const_expr;
+                auto const_expr = decl->m_static_assert_decl->m_const_expr;
                 CR_TypedValue value =
                     CrValueOnCondExpr(namescope, const_expr.get());
                 if (namescope.GetIntValue(value) == 0) {
-                    assert(0);
+                    namescope.ErrorInfo()->add_error(
+                        decl->m_static_assert_decl->m_location,
+                        "static assertion failed");
                 }
             }
             break;
@@ -3159,8 +3309,10 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                     if (ts->m_align_spec) {
                         switch (ts->m_align_spec->m_align_spec_type) {
                         case AlignSpec::TYPENAME:
-                            // TODO: 
-                            assert(0);
+                            alignas_ =
+                                CrCalcAlignOfTypeName(
+                                    namescope, 
+										ts->m_align_spec->m_type_name.get());
                             break;
 
                         case AlignSpec::CONSTEXPR:
@@ -3168,6 +3320,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                                 CrValueOnCondExpr(namescope,
                                     ts->m_align_spec->m_const_expr.get());
                             alignas_ = namescope.GetIntValue(value);
+                            break;
                         }
                     }
                     if (ts->m_decl_list) {
@@ -3197,8 +3350,10 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                     if (ts->m_align_spec) {
                         switch (ts->m_align_spec->m_align_spec_type) {
                         case AlignSpec::TYPENAME:
-                            // TODO: 
-                            assert(0);
+                            alignas_ =
+                                CrCalcAlignOfTypeName(
+                                    namescope, 
+										ts->m_align_spec->m_type_name.get());
                             break;
 
                         case AlignSpec::CONSTEXPR:

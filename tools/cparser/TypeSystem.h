@@ -62,6 +62,9 @@ CrSplit(std::vector<std::string>& v, const std::string& s, char separator);
 
 void CrChop(std::string& str);
 
+std::string CrEscapeString(const std::string& str);
+std::string CrUnescapeString(const std::string& str);
+
 ////////////////////////////////////////////////////////////////////////////
 // IDs
 
@@ -119,6 +122,11 @@ struct CR_TypedValue {
 
     bool empty() const { return m_size == 0 || m_ptr == NULL; }
     size_t size() const { return m_size; }
+    void clear() {
+        free(m_ptr);
+        m_ptr = NULL;
+        m_size = 0;
+    }
 
     template <typename T_VALUE>
     T_VALUE& get() {
@@ -143,6 +151,22 @@ struct CR_TypedValue {
     void assign(const T_VALUE& v) {
         assign(&v, sizeof(T_VALUE));
         m_text = std::to_string(v);
+    }
+
+    template <typename T_VALUE>
+    T_VALUE *get_at(size_t byte_index, size_t size = sizeof(T_VALUE)) {
+        if (byte_index + size <= m_size) {
+            return reinterpret_cast<char *>(m_ptr) + byte_index;
+        }
+        return NULL;
+    }
+
+    template <typename T_VALUE>
+    const T_VALUE *get_at(size_t byte_index, size_t size = sizeof(T_VALUE)) const {
+        if (byte_index + size <= m_size) {
+            return reinterpret_cast<const char *>(m_ptr) + byte_index;
+        }
+        return NULL;
     }
 
     void assign(const void *ptr, size_t size);
@@ -427,7 +451,19 @@ public:
     bool IsZero(const CR_TypedValue& value1) const;
     bool IsNonZero(const CR_TypedValue& value1) const;
 
+    CR_TypedValue Cast(CR_TypeID tid, const CR_TypedValue& value) const;
+    CR_TypedValue StaticCast(CR_TypeID tid, const CR_TypedValue& value) const;
+    CR_TypedValue ReinterpretCast(CR_TypeID tid, const CR_TypedValue& value) const;
+
+    CR_TypedValue ArrayItem(const CR_TypedValue& array, size_t index) const;
+    CR_TypedValue Dot(const CR_TypedValue& struct_value, const std::string& name) const;
+    CR_TypedValue Arrow(const CR_TypedValue& pointer_value, const std::string& name) const;
+    CR_TypedValue Asterisk(const CR_TypedValue& pointer_value) const;
+    CR_TypedValue Address(const CR_TypedValue& value) const;
+
     int GetIntValue(const CR_TypedValue& value) const;
+    void SetIntValue(CR_TypedValue& value, int n) const;
+    void SetValue(CR_TypedValue& value, CR_TypeID tid, const void *ptr, size_t size) const;
 
     CR_TypedValue BiOp(CR_TypedValue& v1, CR_TypedValue& v2) const;
     CR_TypedValue BiOpInt(CR_TypedValue& v1, CR_TypedValue& v2) const;
@@ -532,9 +568,6 @@ public:
     void SetULongLongValue(CR_TypedValue& value, unsigned long long u) const;
     void SetLongDoubleValue(CR_TypedValue& value, long double ld) const;
 
-    CR_TypedValue StaticCast(CR_TypeID tid, const CR_TypedValue& value) const;
-    CR_TypedValue ReinterpretCast(CR_TypeID tid, const CR_TypedValue& value) const;
-
     //
     // type judgements
     //
@@ -553,6 +586,8 @@ public:
     bool IsUnsignedType(CR_TypeID tid) const;
     // is it unsigned type?
     bool IsPointerType(CR_TypeID tid) const;
+    // is it function type?
+    bool IsFunctionType(CR_TypeID tid) const;
 
     //
     // ResolveAlias

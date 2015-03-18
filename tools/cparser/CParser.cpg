@@ -584,11 +584,11 @@ unary_expression<UnaryExpr>
 
 postfix_expression<PostfixExpr>
     : [DoPostfixExpr1] primary_expression(0)
-    | [DoPostfixExpr2] postfix_expression(0) T_L_BRACKET expression T_R_BRACKET
+    | [DoPostfixExpr2] postfix_expression(0) T_L_BRACKET expression(1) T_R_BRACKET
     | [DoPostfixExpr3] postfix_expression(0) T_L_PAREN argument_expression_list T_R_PAREN
     | [DoPostfixExpr4] postfix_expression(0) T_L_PAREN T_R_PAREN
-    | [DoPostfixExpr5] postfix_expression(0) T_DOT T_IDENTIFIER
-    | [DoPostfixExpr6] postfix_expression(0) T_ARROW T_IDENTIFIER
+    | [DoPostfixExpr5] postfix_expression(0) T_DOT T_IDENTIFIER(1)
+    | [DoPostfixExpr6] postfix_expression(0) T_ARROW T_IDENTIFIER(1)
     | [DoPostfixExpr7] postfix_expression(0) T_INC
     | [DoPostfixExpr8] postfix_expression(0) T_DEC
     ;

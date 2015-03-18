@@ -2800,7 +2800,7 @@ namespace cparser
                 printf("DoUnaryExpr4\n");
             #endif
             UnaryExpr *newue = new UnaryExpr;
-            newue->m_unary_type = UnaryExpr::AND;
+            newue->m_unary_type = UnaryExpr::ADDRESS;
             newue->m_cast_expr = ce;
             return shared_ptr<UnaryExpr>(newue);
         }
@@ -2894,13 +2894,16 @@ namespace cparser
             return shared_ptr<PostfixExpr>(newpe);
         }
 
-        shared_ptr<PostfixExpr> DoPostfixExpr2(shared_ptr<PostfixExpr>& pe) {
+        shared_ptr<PostfixExpr> DoPostfixExpr2(
+            shared_ptr<PostfixExpr>& pe, shared_ptr<Expr>& expr)
+        {
             #ifdef DEEPDEBUG
                 printf("DoPostfixExpr2\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::ARRAYITEM;
             newpe->m_postfix_expr = pe;
+            newpe->m_expr = expr;
             return shared_ptr<PostfixExpr>(newpe);
         }
 
@@ -2924,23 +2927,29 @@ namespace cparser
             return shared_ptr<PostfixExpr>(newpe);
         }
 
-        shared_ptr<PostfixExpr> DoPostfixExpr5(shared_ptr<PostfixExpr>& pe) {
+        shared_ptr<PostfixExpr> DoPostfixExpr5(
+            shared_ptr<PostfixExpr>& pe, shared_ptr<CR_TokenNode>& id)
+        {
             #ifdef DEEPDEBUG
                 printf("DoPostfixExpr5\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::DOT;
             newpe->m_postfix_expr = pe;
+            newpe->m_text = id->m_text;
             return shared_ptr<PostfixExpr>(newpe);
         }
 
-        shared_ptr<PostfixExpr> DoPostfixExpr6(shared_ptr<PostfixExpr>& pe) {
+        shared_ptr<PostfixExpr> DoPostfixExpr6(
+            shared_ptr<PostfixExpr>& pe, shared_ptr<CR_TokenNode>& id)
+        {
             #ifdef DEEPDEBUG
                 printf("DoPostfixExpr6\n");
             #endif
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::ARROW;
             newpe->m_postfix_expr = pe;
+            newpe->m_text = id->m_text;
             return shared_ptr<PostfixExpr>(newpe);
         }
 
@@ -3149,6 +3158,7 @@ namespace cparser
             StaticAssertDecl *sad = new StaticAssertDecl;
             sad->m_const_expr = ce;
             sad->m_str = str->m_text;
+            sad->m_location = str->location();
             return shared_ptr<StaticAssertDecl>(sad);
         }
 

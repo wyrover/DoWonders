@@ -81,6 +81,21 @@ bool WsJustDoIt(
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" <<
+        "#define check_string(name,string) do { \\\n" << 
+        "\tif (lstrcmpA(name, string) != 0) { \\\n" << 
+        "\t\tfprintf(stderr, \"%s: value mismatched, real value is %s\\n\", #name, name); \\\n" << 
+        "\t\treturn 4; \\\n" << 
+        "\t} \\\n" << 
+        "} while (0) \n" << 
+        "\n" <<
+        "\n" <<
+        "#define check_wstring(name,wstring) do { \\\n" << 
+        "\tif (lstrcmpW(name, wstring) != 0) { \\\n" << 
+        "\t\tfprintf(stderr, \"%ls: value mismatched, real value is %ls\\n\", #name, name); \\\n" << 
+        "\t\treturn 5; \\\n" << 
+        "\t} \\\n" << 
+        "} while (0) \n" << 
+        "\n" <<
         "int main(void) {" << std::endl;
 
     for (size_t i = 0; i < ns.LogTypes().size(); ++i) {
