@@ -218,7 +218,17 @@ CR_TypedValue::CR_TypedValue(const void *ptr, size_t size) :
     assign(ptr, size);
 }
 
-void CR_TypedValue::Copy(const CR_TypedValue& value) {
+CR_TypedValue::CR_TypedValue(const CR_TypedValue& value) :
+    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(0)
+{
+    m_type_id = value.m_type_id;
+    m_text = value.m_text;
+    m_extra = value.m_extra;
+    m_addr = value.m_addr;
+    assign(value.m_ptr, value.m_size);
+}
+
+CR_TypedValue& CR_TypedValue::operator=(const CR_TypedValue& value) {
     if (this != &value) {
         m_type_id = value.m_type_id;
         m_text = value.m_text;
@@ -226,28 +236,18 @@ void CR_TypedValue::Copy(const CR_TypedValue& value) {
         m_addr = value.m_addr;
         assign(value.m_ptr, value.m_size);
     }
-}
-
-CR_TypedValue::CR_TypedValue(const CR_TypedValue& value) :
-    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(0)
-{
-    Copy(value);
-}
-
-CR_TypedValue& CR_TypedValue::operator=(const CR_TypedValue& value) {
-    if (this != &value) {
-        Copy(value);
-    }
     return *this;
 }
 
 CR_TypedValue::CR_TypedValue(CR_TypedValue&& value) : m_ptr(NULL), m_size(0) {
-    std::swap(m_ptr, value.m_ptr);
-    std::swap(m_size, value.m_size);
-    m_type_id = value.m_type_id;
-    m_addr = value.m_addr;
-    std::swap(m_text, value.m_text);
-    std::swap(m_extra, value.m_extra);
+    if (this != &value) {
+        std::swap(m_ptr, value.m_ptr);
+        std::swap(m_size, value.m_size);
+        m_type_id = value.m_type_id;
+        m_addr = value.m_addr;
+        std::swap(m_text, value.m_text);
+        std::swap(m_extra, value.m_extra);
+    }
 }
 
 CR_TypedValue& CR_TypedValue::operator=(CR_TypedValue&& value) {
@@ -263,23 +263,27 @@ CR_TypedValue& CR_TypedValue::operator=(CR_TypedValue&& value) {
 }
 
 void CR_TypedValue::assign(const void *ptr, size_t size) {
+    assert(ptr != m_ptr);
     if (ptr == NULL || size == 0) {
         free(m_ptr);
         m_ptr = NULL;
         m_size = size;
         return;
     }
-    bool differs = (ptr != m_ptr);
     m_ptr = realloc(m_ptr, size);
     if (m_ptr) {
-        if (differs) {
-            memcpy(m_ptr, ptr, size);
-        }
+        memmove(m_ptr, ptr, size);
         m_size = size;
     } else {
         m_size = 0;
         throw std::bad_alloc();
     }
+}
+
+/*virtual*/ CR_TypedValue::~CR_TypedValue() {
+    free(m_ptr);
+    m_ptr = NULL;
+    m_size = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1762,6 +1766,7 @@ CR_TypedValue CR_NameScope::Dot(
                 // bitfield not supported yet
                 break;
             }
+            result.m_type_id = child.m_type_id;
             result.m_addr = struct_value.m_addr + child.m_bit_offset / 8;
             result.m_size = SizeOfType(child.m_type_id);
             const char *ptr =
@@ -1784,7 +1789,14 @@ CR_NameScope::Asterisk(const CR_TypedValue& pointer_value) const {
         auto& type = LogType(tid);
         auto tid2 = type.m_sub_id;
         auto& type2 = LogType(tid2);
-        SetValue(result, tid2, NULL, type2.m_size);
+        if (HasValue(pointer_value)) {
+            auto addr = GetULongLongValue(pointer_value);
+            const void *ptr = GetAddressPointer(addr, type2.m_size);
+            SetValue(result, tid2, ptr, type2.m_size);
+        } else {
+            result.m_type_id = tid2;
+            result.m_size = type2.m_size;
+        }
     }
     return result;
 }
@@ -2568,6 +2580,15 @@ void CR_NameScope::SetValue(
         value.assign(ptr, size);
         value.m_text.clear();
     }
+}
+
+void *CR_NameScope::GetAddressPointer(unsigned long long addr, size_t size) {
+    return NULL;
+}
+
+const void *
+CR_NameScope::GetAddressPointer(unsigned long long addr, size_t size) const {
+    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////

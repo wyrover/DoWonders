@@ -109,10 +109,9 @@ struct CR_TypedValue {
     CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(0) { }
     CR_TypedValue(CR_TypeID tid) : m_ptr(NULL), m_size(0), m_type_id(tid), m_addr(0) { }
     CR_TypedValue(const void *ptr, size_t size);
-    virtual ~CR_TypedValue() { free(m_ptr); }
+    virtual ~CR_TypedValue();
 
     // copy
-    void Copy(const CR_TypedValue& value);
     CR_TypedValue(const CR_TypedValue& value);
     CR_TypedValue& operator=(const CR_TypedValue& value);
 
@@ -155,16 +154,20 @@ struct CR_TypedValue {
 
     template <typename T_VALUE>
     T_VALUE *get_at(size_t byte_index, size_t size = sizeof(T_VALUE)) {
-        if (byte_index + size <= m_size) {
-            return reinterpret_cast<char *>(m_ptr) + byte_index;
+        if (m_ptr) {
+            if (byte_index + size <= m_size) {
+                return reinterpret_cast<char *>(m_ptr) + byte_index;
+            }
         }
         return NULL;
     }
 
     template <typename T_VALUE>
     const T_VALUE *get_at(size_t byte_index, size_t size = sizeof(T_VALUE)) const {
-        if (byte_index + size <= m_size) {
-            return reinterpret_cast<const char *>(m_ptr) + byte_index;
+        if (m_ptr) {
+            if (byte_index + size <= m_size) {
+                return reinterpret_cast<const char *>(m_ptr) + byte_index;
+            }
         }
         return NULL;
     }
@@ -455,11 +458,19 @@ public:
     CR_TypedValue StaticCast(CR_TypeID tid, const CR_TypedValue& value) const;
     CR_TypedValue ReinterpretCast(CR_TypeID tid, const CR_TypedValue& value) const;
 
+    // array[index]
     CR_TypedValue ArrayItem(const CR_TypedValue& array, size_t index) const;
+    // struct.member
     CR_TypedValue Dot(const CR_TypedValue& struct_value, const std::string& name) const;
+    // p->member
     CR_TypedValue Arrow(const CR_TypedValue& pointer_value, const std::string& name) const;
+    // *p
     CR_TypedValue Asterisk(const CR_TypedValue& pointer_value) const;
+    // &var
     CR_TypedValue Address(const CR_TypedValue& value) const;
+
+          void *GetAddressPointer(unsigned long long addr, size_t size);
+    const void *GetAddressPointer(unsigned long long addr, size_t size) const;
 
     int GetIntValue(const CR_TypedValue& value) const;
     void SetIntValue(CR_TypedValue& value, int n) const;
@@ -469,21 +480,30 @@ public:
     CR_TypedValue BiOpInt(CR_TypedValue& v1, CR_TypedValue& v2) const;
     int CompareValue(const CR_TypedValue& v1, const CR_TypedValue& v2) const;
 
+    // +
     CR_TypedValue Add(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    // -
     CR_TypedValue Sub(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    // *
     CR_TypedValue Mul(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    // /
     CR_TypedValue Div(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    // %
     CR_TypedValue Mod(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
 
+    // ~
     CR_TypedValue Not(const CR_TypedValue& value1) const;
+    // - (unary)
     CR_TypedValue Minus(const CR_TypedValue& value1) const;
-    CR_TypedValue Inc(const CR_TypedValue& value1) const;
-    CR_TypedValue Dec(const CR_TypedValue& value1) const;
 
+    // &
     CR_TypedValue And(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    // |
     CR_TypedValue Or(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    // ^
     CR_TypedValue Xor(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
 
+    // relational
     CR_TypedValue Eq(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
     CR_TypedValue Ne(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
     CR_TypedValue Gt(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
@@ -491,11 +511,15 @@ public:
     CR_TypedValue Ge(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
     CR_TypedValue Le(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
 
+    // <<, >>
     CR_TypedValue Shl(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
     CR_TypedValue Shr(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
 
+    // !
     CR_TypedValue LNot(const CR_TypedValue& value1) const;
+    // &&
     CR_TypedValue LAnd(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
+    // ||
     CR_TypedValue LOr(const CR_TypedValue& value1, const CR_TypedValue& value2) const;
 
     //
