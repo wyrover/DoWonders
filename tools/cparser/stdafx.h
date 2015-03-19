@@ -27,6 +27,7 @@
 #include <string>           // for std::string
 #include <map>              // for std::map
 #include <unordered_map>    // for std::unordered_map
+#include <unordered_set>    // for std::unordered_set
 #include <set>              // for std::set
 #include <deque>            // for std::deque
 #include <algorithm>        // for std::sort, std::unique
@@ -46,6 +47,9 @@ using std::make_shared;
 #include <tchar.h>
 
 ////////////////////////////////////////////////////////////////////////////
+
+#define KATAHIROMZ_NAMESPACE katahiromz
+#include "splitjoin.h"		// katahiromz::split, katahiromz::join
 
 #include "Location.h"       // CR_Location
 #include "Main.h"

@@ -93,6 +93,44 @@ namespace cparser
         return false;
     }
 
+    inline bool parse_expression(
+        shared_ptr<CR_ErrorInfo> error_info, shared_ptr<Expr>& expr,
+        str_iterator begin, str_iterator end,
+        const std::unordered_set<std::string>& type_names,
+        bool is_64bit = false)
+    {
+        using namespace cparser;
+
+        Actions as;
+        Lexer lexer(error_info, is_64bit);
+        lexer.m_type_names = type_names;
+
+        std::vector<CR_TokenNode> infos;
+        lexer.just_do_it2(infos, begin, end);
+
+        Parser<shared_ptr<Node>, Actions> parser(as);
+        auto infos_end = infos.end();
+        for (auto it = infos.begin(); it != infos_end; ++it) {
+            if (parser.post(it->m_token, make_shared<CR_TokenNode>(*it))) {
+                if (parser.error()) {
+                    error_info->emit_all();
+                    return false;
+                }
+                break;
+            }
+        }
+
+        shared_ptr<Node> node;
+        if (parser.accept(node)) {
+            shared_ptr<TransUnit> tu;
+            tu = static_pointer_cast<TransUnit, Node>(node);
+            expr = tu->m_expr;
+            return true;
+        }
+
+        return false;
+    }
+
     inline bool parse_file(
         shared_ptr<CR_ErrorInfo> error_info, shared_ptr<TransUnit>& ts,
         const char *filename, bool is_64bit = false)

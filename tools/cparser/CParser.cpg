@@ -45,6 +45,7 @@
 %token T_ELSE<CR_TokenNode>;            // else
 %token T_ENUM<CR_TokenNode>;            // enum
 %token T_EQUAL<CR_TokenNode>;           // ==
+%token T_EXPRESSION<CR_TokenNode>;      // specify this before expression
 %token T_EXTERN<CR_TokenNode>;          // extern
 %token T_FASTCALL<CR_TokenNode>;        // __fastcall
 %token T_FLOAT<CR_TokenNode>;           // float
@@ -134,6 +135,7 @@
 translation_unit<TransUnit>
     : [DoTransUnit1] translation_unit(0) external_declaration(1)
     | [DoTransUnit2] external_declaration(0)
+    | [DoTransUnit3] T_EXPRESSION expression(0)
     ;
 
 external_declaration<ExtDecl>

@@ -33,32 +33,6 @@ CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags) {
     return flags & ~TF_INCOMPLETE;
 } // CrNormalizeTypeFlags
 
-std::string
-CrJoin(const std::vector<std::string>& array, const std::string sep) {
-    std::string str;
-    if (array.size()) {
-        str = array[0];
-        for (size_t i = 1; i < array.size(); ++i) {
-            str += sep;
-            str += array[i];
-        }
-    }
-    return str;
-}
-
-void
-CrSplit(std::vector<std::string>& v, const std::string& s, char separator)
-{
-    std::size_t i = 0, j = s.find(separator);
-    v.clear();
-    while(j != std::string::npos) {
-        v.push_back(s.substr(i, j - i));
-        i = j + 1;
-        j = s.find(separator, i);
-    }
-    v.push_back(s.substr(i, -1));
-}
-
 void CrChop(std::string& str) {
     if (str.size() && str[str.size() - 1] == '\n') {
         str.resize(str.size() - 1);
@@ -342,6 +316,64 @@ bool CR_LogStruct::operator!=(const CR_LogStruct& ls) const {
 
 ////////////////////////////////////////////////////////////////////////////
 // CR_NameScope
+
+CR_NameScope::CR_NameScope(const CR_NameScope& ns) :
+    m_error_info(ns.m_error_info),
+    m_is_64bit(ns.m_is_64bit),
+    m_mNameToTypeID(ns.m_mNameToTypeID),
+    m_mTypeIDToName(ns.m_mTypeIDToName),
+    m_mNameToVarID(ns.m_mNameToVarID),
+    m_mVarIDToName(ns.m_mVarIDToName),
+    m_mNameToFuncTypeID(ns.m_mNameToFuncTypeID),
+    m_types(ns.m_types),
+    m_funcs(ns.m_funcs),
+    m_structs(ns.m_structs),
+    m_enums(ns.m_enums),
+    m_vars(ns.m_vars),
+    m_void_type(ns.m_void_type),
+    m_char_type(ns.m_char_type),
+    m_short_type(ns.m_short_type),
+    m_long_type(ns.m_long_type),
+    m_long_long_type(ns.m_long_long_type),
+    m_int_type(ns.m_int_type),
+    m_uchar_type(ns.m_uchar_type),
+    m_ushort_type(ns.m_ushort_type),
+    m_ulong_type(ns.m_ulong_type),
+    m_ulong_long_type(ns.m_ulong_long_type),
+    m_uint_type(ns.m_uint_type),
+    m_float_type(ns.m_float_type),
+    m_double_type(ns.m_double_type),
+    m_long_double_type(ns.m_long_double_type) { }
+
+CR_NameScope& CR_NameScope::operator=(const CR_NameScope& ns) {
+    m_error_info = ns.m_error_info;
+    m_is_64bit = ns.m_is_64bit;
+    m_mNameToTypeID = ns.m_mNameToTypeID;
+    m_mTypeIDToName = ns.m_mTypeIDToName;
+    m_mNameToVarID = ns.m_mNameToVarID;
+    m_mVarIDToName = ns.m_mVarIDToName;
+    m_mNameToFuncTypeID = ns.m_mNameToFuncTypeID;
+    m_types = ns.m_types;
+    m_funcs = ns.m_funcs;
+    m_structs = ns.m_structs;
+    m_enums = ns.m_enums;
+    m_vars = ns.m_vars;
+    m_void_type = ns.m_void_type;
+    m_char_type = ns.m_char_type;
+    m_short_type = ns.m_short_type;
+    m_long_type = ns.m_long_type;
+    m_long_long_type = ns.m_long_long_type;
+    m_int_type = ns.m_int_type;
+    m_uchar_type = ns.m_uchar_type;
+    m_ushort_type = ns.m_ushort_type;
+    m_ulong_type = ns.m_ulong_type;
+    m_ulong_long_type = ns.m_ulong_long_type;
+    m_uint_type = ns.m_uint_type;
+    m_float_type = ns.m_float_type;
+    m_double_type = ns.m_double_type;
+    m_long_double_type = ns.m_long_double_type;
+    return *this;
+}
 
 void CR_NameScope::Init() {
     CR_Location location("(predefined)", 0);
@@ -1091,7 +1123,7 @@ std::string CR_NameScope::StringOfEnum(
         for (auto it : e.m_mNameToValue) {
             array.emplace_back(it.first + " = " + std::to_string(it.second));
         }
-        str += CrJoin(array, ", ");
+        str += katahiromz::join(array, ", ");
         str += "} ";
     }
     return str;
@@ -2603,7 +2635,7 @@ bool CR_NameScope::LoadFromFiles(
         for (; std::getline(in1, line); ) {
             CrChop(line);
             std::vector<std::string> fields;
-            CrSplit(fields, line, '\t');
+            katahiromz::split(fields, line, "\t");
 
             CR_TypeID type_id = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
@@ -2644,7 +2676,7 @@ bool CR_NameScope::LoadFromFiles(
         for (; std::getline(in2, line);) {
             CrChop(line);
             std::vector<std::string> fields;
-            CrSplit(fields, line, '\t');
+            katahiromz::split(fields, line, "\t");
 
             //CR_StructID struct_id = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
@@ -2690,7 +2722,7 @@ bool CR_NameScope::LoadFromFiles(
         for (; std::getline(in3, line);) {
             CrChop(line);
             std::vector<std::string> fields;
-            CrSplit(fields, line, '\t');
+            katahiromz::split(fields, line, "\t");
 
             //CR_EnumID eid = std::stol(fields[0], NULL, 0);
             int num_items = std::stol(fields[1], NULL, 0);
@@ -2716,7 +2748,7 @@ bool CR_NameScope::LoadFromFiles(
         for (; std::getline(in4, line);) {
             CrChop(line);
             std::vector<std::string> fields;
-            CrSplit(fields, line, '\t');
+            katahiromz::split(fields, line, "\t");
 
             //CR_FuncID fid = std::stol(fields[0], NULL, 0);
             int return_type = std::stol(fields[1], NULL, 0);
@@ -2753,7 +2785,7 @@ bool CR_NameScope::LoadFromFiles(
         for (; std::getline(in5, line);) {
             CrChop(line);
             std::vector<std::string> fields;
-            CrSplit(fields, line, '\t');
+            katahiromz::split(fields, line, "\t");
 
             //CR_VarID vid = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];

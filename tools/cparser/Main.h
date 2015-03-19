@@ -197,5 +197,17 @@ protected:
 };
 
 ////////////////////////////////////////////////////////////////////////////
+// CR_Macro
+
+struct CR_Macro {
+    int                         m_num_params;
+    std::vector<std::string>    m_params;
+    std::string                 m_contents;
+    CR_Location                 m_location;
+};
+
+typedef std::unordered_map<std::string,CR_Macro> CR_MacroSet;
+
+////////////////////////////////////////////////////////////////////////////
 
 #endif  // ndef MAIN_H_

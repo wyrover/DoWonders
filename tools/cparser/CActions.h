@@ -56,6 +56,15 @@ namespace cparser
             return shared_ptr<TransUnit>(tu);
         }
 
+        shared_ptr<TransUnit> DoTransUnit3(shared_ptr<Expr>& expr) {
+            #ifdef DEEPDEBUG
+                printf("DoTransUnit3\n");
+            #endif
+            TransUnit *tu = new TransUnit;
+            tu->m_expr = expr;
+            return shared_ptr<TransUnit>(tu);
+        }
+
         shared_ptr<ExtDecl> DoExtDecl1(shared_ptr<Decl>& decl) {
             #ifdef DEEPDEBUG
                 printf("DoExtDecl1\n");

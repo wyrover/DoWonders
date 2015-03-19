@@ -109,6 +109,44 @@ namespace cparser
     };
 
     //
+    // LexerBase
+    //
+    class LexerBase2 {
+    public:
+        LexerBase2(str_iterator begin, str_iterator end) :
+            m_current(begin), m_end(end) { }
+
+        char getch() {
+            char c;
+            if (is_eof()) {
+                c = -1;
+            } else {
+                c = *m_current++;
+            }
+            return c;
+        } // getch
+
+        bool is_eof() const {
+            return m_current == m_end || *m_current == -1;
+        }
+
+              Packing& packing()       { return m_packing; }
+        const Packing& packing() const { return m_packing; }
+
+              CR_Location& location()       { return m_location; }
+        const CR_Location& location() const { return m_location; }
+
+              int& default_packing()        { return packing().default_packing(); }
+        const int& default_packing() const  { return packing().default_packing(); }
+
+    protected:
+        str_iterator        m_current;
+        str_iterator        m_end;
+        Packing             m_packing;
+        CR_Location         m_location;
+    };
+
+    //
     // Lexer
     //
     class Lexer {
@@ -125,6 +163,8 @@ namespace cparser
 
         void just_do_it(node_container& infos,
                         scanner_iterator begin, scanner_iterator end);
+        void just_do_it2(node_container& infos,
+                         str_iterator begin, str_iterator end);
 
         void show_tokens(node_iterator begin, node_iterator end) const {
             for (auto it = begin; it != end; ++it) {
@@ -140,6 +180,9 @@ namespace cparser
 
         void skip_block_comment(LexerBase& base, node_container& infos);
         void skip_line_comment(LexerBase& base, node_container& infos);
+
+        void skip_block_comment2(LexerBase2& base, node_container& infos);
+        void skip_line_comment2(LexerBase2& base, node_container& infos);
 
         std::string guts_escape_sequence(str_iterator& it, str_iterator end) const;
         std::string guts_string(str_iterator& it, str_iterator end) const;
@@ -159,7 +202,9 @@ namespace cparser
         bool lexeme(str_iterator& it, str_iterator end, const std::string& str);
 
         std::string get_line(LexerBase& base);
+        std::string get_line2(LexerBase2& base);
         bool get_tokens(LexerBase& base, node_container& infos);
+        bool get_tokens2(LexerBase2& base, node_container& infos);
         bool token_pattern_match(
             LexerBase& base, node_iterator it, node_iterator end,
             const std::vector<Token>& tokens) const;
@@ -187,6 +232,10 @@ namespace cparser
         void resynth6(node_container& c);
         void resynth7(node_iterator begin, node_iterator end);
 
+		void resynth(LexerBase2& base, node_container& c);
+		void resynth1(LexerBase2& base, node_container& c);
+		void resynth2(LexerBase2& base, node_container& c);
+
         Token parse_identifier(const std::string& text) const;
 
         CR_ErrorInfo::Type
@@ -202,7 +251,8 @@ namespace cparser
         bool                        m_in_cxx_comment;
         std::unordered_map<std::string, Token> m_symbol_table;
 
-        std::set<std::string>       m_type_names;
+    public:
+        std::unordered_set<std::string>     m_type_names;
 
         //
         // pragma

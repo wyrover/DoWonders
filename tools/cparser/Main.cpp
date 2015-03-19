@@ -88,6 +88,25 @@ void cparser::Lexer::skip_block_comment(
     } while (c != -1);
 } // skip_block_comment
 
+void cparser::Lexer::skip_block_comment2(
+    LexerBase2& base, node_container& infos)
+{
+    char c;
+    do {
+        c = base.getch();
+        if (c == '\n') {
+            newline(infos);
+        } else if (c == '*') {
+            c = base.getch();
+            if (c == '/') {
+                infos.emplace_back(T_C_COMMENT_END, "*/");
+                m_in_c_comment = false;
+                break;  // closed
+            }
+        }
+    } while (c != -1);
+} // skip_block_comment2
+
 void cparser::Lexer::skip_line_comment(
     LexerBase& base, node_container& infos)
 {
@@ -101,6 +120,20 @@ void cparser::Lexer::skip_line_comment(
         }
     } while (c != EOF);
 } // skip_line_comment
+
+void cparser::Lexer::skip_line_comment2(
+    LexerBase2& base, node_container& infos)
+{
+    char c;
+    do {
+        c = base.getch();
+        if (c == '\n') {
+            newline(infos);
+            m_in_cxx_comment = false;
+            break;  // closed
+        }
+    } while (c != EOF);
+} // skip_line_comment2
 
 bool cparser::Lexer::token_pattern_match(
     LexerBase& base, node_iterator it, node_iterator end,
@@ -442,7 +475,48 @@ void cparser::Lexer::just_do_it(
     m_type_names.clear();   // no use
 } // just_do_it
 
+void cparser::Lexer::just_do_it2(
+    node_container& infos,
+    str_iterator begin, str_iterator end)
+{
+    LexerBase2 base(begin, end);
+
+    // we parse an expression at here
+    infos.emplace_back(T_EXPRESSION);
+
+    // get tokens
+    node_container read_infos;
+    while (get_tokens2(base, read_infos)) {
+        infos.insert(infos.end(), read_infos.begin(), read_infos.end());
+        read_infos.clear();
+    }
+    infos.insert(infos.end(), read_infos.begin(), read_infos.end());
+    read_infos.clear();
+    infos.emplace_back(eof);
+
+    // token resynthesization
+    resynth(base, infos);
+
+    m_type_names.clear();   // no use
+} // just_do_it2
+
 std::string cparser::Lexer::get_line(LexerBase& base) {
+    std::string line;
+    // get line
+    char ch;
+    line.reserve(64);
+    do {
+        ch = base.getch();
+        if (ch == '\n') {
+            line += ch;
+            break;
+        }
+        line += ch;
+    } while (ch != -1);
+    return line;
+}
+
+std::string cparser::Lexer::get_line2(LexerBase2& base) {
     std::string line;
     // get line
     char ch;
@@ -829,6 +903,377 @@ label_default:
     return true;
 } // get_tokens
 
+bool
+cparser::Lexer::get_tokens2(LexerBase2& base, node_container& infos) {
+retry:
+    if (base.is_eof()) {
+        return false;
+    }
+
+    if (m_in_c_comment) {
+        // /* ... */
+        skip_block_comment2(base, infos);
+        goto retry;
+    }
+
+    if (m_in_cxx_comment) {
+        // // ...
+        skip_line_comment2(base, infos);
+        goto retry;
+    }
+
+    auto line = get_line2(base);
+
+    auto end = line.end();
+    for (auto it = line.begin(); it != end; ++it) {
+        std::string extra;
+        switch (*it) {
+        case ' ': case '\t':
+            continue;
+
+        case '\n':
+            newline(infos);
+            break;
+
+        case '#':
+            infos.emplace_back(T_SHARP, "#");
+            break;
+
+        case 'u':
+            ++it;
+            if (*it == '8') {
+                ++it;
+                extra = "u8";
+            } else {
+                extra = "u";
+            }
+            if (*it == '"') {
+                auto text = guts_string(it, end);
+                --it;
+                infos.emplace_back(T_STRING, text, extra);
+            } else if (*it == '\'') {
+                auto text = guts_char(it, end);
+                --it;
+                {
+                    auto s = std::to_string(text[0]);
+                    infos.emplace_back(T_CONSTANT, s, extra);
+                }
+            } else {
+                --it;
+                goto label_default;
+            }
+            break;
+
+        case 'L': case 'U':
+            extra += *it;
+            ++it;
+            if (*it == '"') {
+                auto text = guts_string(it, end);
+                --it;
+                infos.emplace_back(T_STRING, text, extra);
+            } else if (*it == '\'') {
+                auto text = guts_char(it, end);
+                --it;
+                auto s = std::to_string(text[0]);
+                infos.emplace_back(T_CONSTANT, s, extra);
+            } else {
+                --it;
+                goto label_default;
+            }
+            break;
+
+        case '"':
+            {
+                auto text = guts_string(it, end);
+                --it;
+                infos.emplace_back(T_STRING, text);
+            }
+            break;
+
+        case '\'':
+            {
+                auto text = guts_char(it, end);
+                auto s = std::to_string(text[0]);
+                infos.emplace_back(T_CONSTANT, s);
+            }
+            break;
+
+        case '0':
+            ++it;
+            if (*it == 'x' || *it == 'X') {
+                // 0x or 0X
+                ++it;
+                auto text = guts_hex(it, end);
+                CR_TypeFlags flags = 0;
+                extra = guts_integer_suffix(it, end, flags);
+                --it;
+                infos.emplace_back(T_CONSTANT, "0x" + text, extra, flags);
+            } else if (*it == '.') {
+                // 0.
+                auto text = guts_floating(it, end);
+                CR_TypeFlags flags = TF_DOUBLE;
+                extra = guts_floating_suffix(it, end, flags);
+                --it;
+                infos.emplace_back(T_CONSTANT, "0." + text, extra, flags);
+            } else {
+                // octal
+                --it;
+                auto text = guts_octal(it, end);
+                CR_TypeFlags flags = 0;
+                extra = guts_integer_suffix(it, end, flags);
+                --it;
+                infos.emplace_back(T_CONSTANT, text, extra, flags);
+            }
+            break;
+
+        case '.':
+            if (lexeme(it, end, "...")) {
+                --it;
+                infos.emplace_back(T_ELLIPSIS, "...");
+            } else {
+                // .
+                auto text = guts_floating(it, end);
+                if (text.size() > 1) {
+                    CR_TypeFlags flags = TF_DOUBLE;
+                    extra = guts_floating_suffix(it, end, flags);
+                    --it;
+                    infos.emplace_back(T_CONSTANT, "0." + text, extra, flags);
+                } else {
+                    --it;
+                    infos.emplace_back(T_DOT, ".");
+                }
+            }
+            break;
+
+        case '<':
+            if (lexeme(it, end, "<<=")) {
+                --it;
+                infos.emplace_back(T_L_SHIFT_ASSIGN, "<<=");
+            } else if (lexeme(it, end, "<<")) {
+                --it;
+                infos.emplace_back(T_L_SHIFT, "<<");
+            } else if (lexeme(it, end, "<=")) {
+                --it;
+                infos.emplace_back(T_LE, "<=");
+            } else if (lexeme(it, end, "<:")) {
+                --it;
+                infos.emplace_back(T_L_BRACKET, "<:");
+            } else {
+                infos.emplace_back(T_LT, "<");
+            }
+            break;
+
+        case '>':
+            if (lexeme(it, end, ">>=")) {
+                --it;
+                infos.emplace_back(T_R_SHIFT_ASSIGN, ">>=");
+            } else if (lexeme(it, end, ">>")) {
+                --it;
+                infos.emplace_back(T_R_SHIFT, ">>");
+            } else if (lexeme(it, end, ">=")) {
+                --it;
+                infos.emplace_back(T_GE, ">=");
+            } else {
+                infos.emplace_back(T_GT, ">");
+            }
+            break;
+
+        case '+':
+            if (lexeme(it, end, "+=")) {
+                --it;
+                infos.emplace_back(T_ADD_ASSIGN, "+=");
+            } else if (lexeme(it, end, "++")) {
+                --it;
+                infos.emplace_back(T_INC, "++");
+            } else {
+                infos.emplace_back(T_PLUS, "+");
+            }
+            break;
+
+        case '-':
+            if (lexeme(it, end, "-=")) {
+                --it;
+                infos.emplace_back(T_SUB_ASSIGN, "-=");
+            } else if (lexeme(it, end, "--")) {
+                --it;
+                infos.emplace_back(T_DEC, "--");
+            } else if (lexeme(it, end, "->")) {
+                --it;
+                infos.emplace_back(T_ARROW, "->");
+            } else {
+                infos.emplace_back(T_MINUS, "-");
+            }
+            break;
+
+        case '*':
+            if (lexeme(it, end, "*=")) {
+                --it;
+                infos.emplace_back(T_MUL_ASSIGN, "*=");
+            } else {
+                infos.emplace_back(T_ASTERISK, "*");
+            }
+            break;
+
+        case '/':
+            if (lexeme(it, end, "/*")) {    // */
+                --it;
+                m_in_c_comment = true;
+                infos.emplace_back(T_C_COMMENT_BEGIN, "/*");    // */
+                skip_block_comment2(base, infos);
+            } else if (lexeme(it, end, "//")) {
+                --it;
+                m_in_cxx_comment = true;
+                infos.emplace_back(T_CPP_COMMENT, "//");
+                skip_line_comment2(base, infos);
+            } else if (lexeme(it, end, "/=")) {
+                --it;
+                infos.emplace_back(T_DIV_ASSIGN, "/=");
+            } else {
+                infos.emplace_back(T_SLASH, "/");
+            }
+            break;
+
+        case '%':
+            if (lexeme(it, end, "%=")) {
+                --it;
+                infos.emplace_back(T_MOD_ASSIGN, "%=");
+            } else if (lexeme(it, end, "%>")) {
+                --it;
+                infos.emplace_back(T_R_BRACE, "%>");
+            } else {
+                infos.emplace_back(T_PERCENT, "%");
+            }
+            break;
+
+        case '&':
+            if (lexeme(it, end, "&=")) {
+                --it;
+                infos.emplace_back(T_AND_ASSIGN, "&=");
+            } else if (lexeme(it, end, "&&")) {
+                --it;
+                infos.emplace_back(T_L_AND, "&&");
+            } else {
+                infos.emplace_back(T_AND, "&");
+            }
+            break;
+            
+        case '^':
+            if (lexeme(it, end, "^=")) {
+                --it;
+                infos.emplace_back(T_XOR_ASSIGN, "^=");
+            } else {
+                infos.emplace_back(T_XOR, "^");
+            }
+            break;
+
+        case '|':
+            if (lexeme(it, end, "|=")) {
+                --it;
+                infos.emplace_back(T_OR_ASSIGN, "|=");
+            } else if (lexeme(it, end, "||")) {
+                --it;
+                infos.emplace_back(T_L_OR, "||");
+            } else {
+                infos.emplace_back(T_OR, "|");
+            }
+            break;
+
+        case '=':
+            if (lexeme(it, end, "==")) {
+                --it;
+                infos.emplace_back(T_EQUAL, "==");
+            } else {
+                infos.emplace_back(T_ASSIGN, "=");
+            }
+            break;
+
+        case '!':
+            if (lexeme(it, end, "!=")) {
+                --it;
+                infos.emplace_back(T_NE, "!=");
+            } else {
+                infos.emplace_back(T_BANG, "!");
+            }
+            break;
+
+        case ';':
+            infos.emplace_back(T_SEMICOLON, ";");
+            break;
+
+        case ':':
+            if (lexeme(it, end, ":>")) {
+                --it;
+                infos.emplace_back(T_R_BRACKET, ":>");
+            } else {
+                infos.emplace_back(T_COLON, ":");
+            }
+            break;
+
+        case ',': infos.emplace_back(T_COMMA, ","); break;
+        case '{': infos.emplace_back(T_L_BRACE, "{"); break;
+        case '}': infos.emplace_back(T_R_BRACE, "}"); break;
+        case '(': infos.emplace_back(T_L_PAREN, "("); break;
+        case ')': infos.emplace_back(T_R_PAREN, ")"); break;
+        case '[': infos.emplace_back(T_L_BRACKET, "["); break;
+        case ']': infos.emplace_back(T_R_BRACKET, "]"); break;
+        case '~': infos.emplace_back(T_TILDA, "~"); break;
+        case '?': infos.emplace_back(T_QUESTION, "?"); break;
+
+label_default:
+        default:
+            if (isspace(*it)) {
+                assert(*it != '\n');
+                continue;
+            }
+            if (isdigit(*it)) {
+                auto digits = guts_digits(it, end);
+                if (*it == '.') {
+                    ++it;
+                    // 123.1232
+                    auto decimals = guts_digits(it, end);
+                    auto text = digits + '.' + decimals;
+                    CR_TypeFlags flags = TF_DOUBLE;
+                    extra = guts_floating_suffix(it, end, flags);
+                    --it;
+                    infos.emplace_back(T_CONSTANT, text, extra, flags);
+                } else {
+                    auto exponent = guts_exponent(it, end);
+                    if (exponent.size()) {
+                        // exponent was found. it's a floating
+                        CR_TypeFlags flags = TF_DOUBLE;
+                        extra = guts_floating_suffix(it, end, flags);
+                        --it;
+                        auto text = digits + exponent + extra;
+                        infos.emplace_back(T_CONSTANT, text, extra, flags);
+                    } else {
+                        // exponent not found. it's a integer
+                        CR_TypeFlags flags = 0;
+                        extra = guts_integer_suffix(it, end, flags);
+                        --it;
+                        infos.emplace_back(T_CONSTANT, digits, extra, flags);
+                    }
+                }
+            } else if (isalpha(*it) || *it == '_') {
+                // identifier or keyword
+                auto text = guts_indentifier(it, end);
+                --it;
+                if (text.find("__builtin_") == 0 && text.size() > 10) {
+                    if (text != "__builtin_va_list") {
+                        text = text.substr(10);
+                    }
+                }
+                Token token = parse_identifier(text);
+                infos.emplace_back(token, text);
+            } else {
+                std::string text;
+                text += *it;
+                infos.emplace_back(T_INVALID_CHAR, text);
+            }
+        } // switch (*it)
+    } // for (auto it = line.begin(); it != end; ++it)
+    return true;
+} // get_tokens2
+
 // token resynthesization
 void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
     const bool c_show_tokens = false;
@@ -855,6 +1300,24 @@ void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
     resynth5(c.begin(), c.end());
     resynth6(c);
     resynth7(c.begin(), c.end());
+}
+
+// token resynthesization
+void cparser::Lexer::resynth(LexerBase2& base, node_container& c) {
+	const bool c_show_tokens = false;
+
+	if (c_show_tokens) {
+		printf("\n#0\n");
+		show_tokens(c.begin(), c.end());
+		printf("\n--------------\n");
+		fflush(stdout);
+	}
+
+	resynth3(c);
+	resynth4(c);
+	resynth5(c.begin(), c.end());
+	resynth6(c);
+	resynth7(c.begin(), c.end());
 }
 
 // 1. Delete all T_UNALIGNED.
@@ -3621,282 +4084,96 @@ void CrTrimString(std::string& str) {
     }
 }
 
-void CrParseMacros(
-    CR_NameScope& namescope,
+bool CrLoadMacros(
+    CR_NameScope& namescope, CR_MacroSet& macro_set,
     const std::string& prefix, const std::string& suffix,
     bool is_64bit = false)
 {
-    auto char_tid = namescope.AddConstCharType();
-    auto uchar_tid = namescope.AddConstUCharType();
-    auto short_tid = namescope.AddConstShortType();
-    auto ushort_tid = namescope.AddConstUShortType();
-    auto int_tid = namescope.AddConstIntType();
-    auto uint_tid = namescope.AddConstUIntType();
-    auto long_tid = namescope.AddConstLongType();
-    auto ulong_tid = namescope.AddConstULongType();
-    auto long_long_tid = namescope.AddConstLongLongType();
-    auto ulong_long_tid = namescope.AddConstULongLongType();
-    auto float_tid = namescope.AddConstFloatType();
-    auto double_tid = namescope.AddConstDoubleType();
-    auto long_double_tid = namescope.AddConstLongDoubleType();
-    auto string_tid = namescope.AddConstStringType();
-    auto wstring_tid = namescope.AddConstWStringType();
+    macro_set.clear();
 
-    cparser::Lexer lexer(namescope.ErrorInfo(), is_64bit);
     std::ifstream in1(prefix + "macros" + suffix);
     if (in1) {
         std::string line;
         for (; std::getline(in1, line); ) {
             CrChop(line);
             std::vector<std::string> fields;
-            CrSplit(fields, line, '\t');
+            katahiromz::split(fields, line, "\t");
 
             std::string name = fields[0];
-            int num_param = std::stoi(fields[1], NULL, 0);
+            int num_params = std::stoi(fields[1], NULL, 0);
             std::string params = fields[2];
             std::string contents = fields[3];
             std::string file = fields[4];
             int lineno = std::stol(fields[5], NULL, 0);
 
-            if (num_param != 0 || file == "(predefined)") {
-                continue;
-            }
-
             CrTrimString(contents);
-            if (contents.empty()) {
-                continue;
-            }
 
-            if (contents[0] == '(' && contents[contents.size() - 1] == ')') {
-                contents = contents.substr(1, contents.size() - 2);
-                CrTrimString(contents);
-            }
+            CR_Location location(file, lineno);
 
-            bool minus = false, is_string = false;
-            bool is_integral = false, is_floating = false;
-            std::string text, extra;
+            CR_Macro macro;
+            macro.m_num_params = num_params;
+            katahiromz::split(macro.m_params, params, ",");
+            macro.m_contents = contents;
+            macro.m_location = location;
 
-            auto it = contents.begin();
-            auto end = contents.end();
+            macro_set[name] = macro;
+        }
+        return true;
+    }
 
-            if (*it == '-') {
-                minus = true;
-                ++it;
-            }
+    namescope.ErrorInfo()->add_error("cannot load macros");
+    return false;
+}
 
-            switch (*it) {
-            case '"':
-                is_string = true;
-                extra = "";
-                text = lexer.guts_string(it, end);
-                break;
+std::string
+CrExpandMacro(const CR_MacroSet& macros, std::string str) {
+    return str;
+}
 
-            case 'L':
-                ++it;
-                if (it != end) {
-                    if (*it == '"') {
-                        is_string = true;
-                        extra = "L";
-                        text = lexer.guts_string(it, end);
-                    }
-                }
-                break;
+bool CrParseMacros(
+    CR_NameScope& namescope,
+    const std::string& prefix, const std::string& suffix,
+    bool is_64bit = false)
+{
+    CR_MacroSet macro_set;
 
-            case 'u':
-                ++it;
-                if (it != end) {
-                    if (*it == '8') {
-                        ++it;
-                        if (*it == '"') {
-                            is_string = true;
-                            extra = "u8";
-                            text = lexer.guts_string(it, end);
-                        }
-                    } else {
-                        if (*it == '"') {
-                            is_string = true;
-                            extra = "u";
-                            text = lexer.guts_string(it, end);
-                        }
-                    }
-                }
-                break;
+    if (!CrLoadMacros(namescope, macro_set, prefix, suffix, is_64bit)) {
+        return false;
+    }
 
-            case 'U':
-                ++it;
-                if (it != end) {
-                    if (*it == '"') {
-                        is_string = true;
-                        extra = "U";
-                        text = lexer.guts_string(it, end);
-                    }
-                }
-                break;
+    std::unordered_set<std::string> type_names;
+    for (auto it : namescope.MapNameToTypeID()) {
+        type_names.emplace(it.first);
+    }
 
-            case '0':
-                ++it;
-                if (it != end) {
-                    if (*it == 'x' || *it == 'X') {
-                        // 0x or 0X
-                        ++it;
-                        text = lexer.guts_hex(it, end);
-                        CR_TypeFlags flags = 0;
-                        extra = lexer.guts_integer_suffix(it, end, flags);
-                        text = "0x" + text;
-                        is_integral = true;
-                    } else if (*it == '.') {
-                        // 0.
-                        --it;
-                        text = lexer.guts_floating(it, end);
-                        CR_TypeFlags flags = TF_DOUBLE;
-                        extra = lexer.guts_floating_suffix(it, end, flags);
-                        text = "0." + text;
-                        is_floating = true;
-                    } else {
-                        // octal
-                        --it;
-                        text = lexer.guts_octal(it, end);
-                        CR_TypeFlags flags = 0;
-                        extra = lexer.guts_integer_suffix(it, end, flags);
-                        is_integral = true;
-                    }
-                }
-                break;
+    auto end = macro_set.end();
+    for (auto it = macro_set.begin(); it != end; ++it) {
+        auto& name = it->first;
+        auto& macro = it->second;
 
-            default:
-                if (isdigit(*it)) {
-                    std::string digits = lexer.guts_digits(it, end);
-                    if (*it == '.') {
-                        ++it;
-                        if (it != end) {
-                            // 123.1232
-                            auto decimals = lexer.guts_digits(it, end);
-                            text = digits + '.' + decimals;
-                            CR_TypeFlags flags = TF_DOUBLE;
-                            extra = lexer.guts_floating_suffix(it, end, flags);
-                            is_floating = true;
-                        }
-                    } else {
-                        std::string exponent = lexer.guts_exponent(it, end);
-                        if (exponent.size()) {
-                            // exponent was found. it's a floating
-                            CR_TypeFlags flags = TF_DOUBLE;
-                            extra = lexer.guts_floating_suffix(it, end, flags);
-                            text = digits + exponent + extra;
-                            is_floating = true;
-                        } else {
-                            // exponent not found. it's a integer
-                            CR_TypeFlags flags = 0;
-                            extra = lexer.guts_integer_suffix(it, end, flags);
-                            text = digits;
-                            is_integral = true;
-                        }
-                    }
-                }
-            }
+        // ignore macro functions
+        if (macro.m_num_params > 0) {
+            continue;
+        }
 
+        // expand macro
+        auto expanded = CrExpandMacro(macro_set, macro.m_contents);
+
+        CR_NameScope ns(namescope);
+		auto error_info = make_shared<CR_ErrorInfo>();
+		ns.ErrorInfo() = error_info;
+
+        // parse as expression
+        shared_ptr<Expr> expr;
+        if (parse_expression(error_info, expr, expanded.begin(), expanded.end(),
+                             type_names, namescope.Is64Bit()))
+        {
             CR_LogVar var;
-            var.m_location.set(file, lineno);
-            if (is_string) {
-                text = CrUnescapeString(text);
-                if (extra.find("L") != std::string::npos ||
-                    extra.find("l") != std::string::npos)
-                {
-                    var.m_typed_value.m_type_id = wstring_tid;
-                } else {
-                    var.m_typed_value.m_type_id = string_tid;
-                }
-                var.m_typed_value.assign(text.data(), text.size() + 1);
-            } else if (is_integral) {
-                bool is_unsigned = false;
-                if (extra.find("u") != std::string::npos ||
-                    extra.find("U") != std::string::npos)
-                {
-                    is_unsigned = true;
-                }
+            CR_TypedValue typed_value = CrValueOnExpr(ns, expr.get());
+            var.m_location = macro.m_location;
+            var.m_typed_value = typed_value;
 
-                unsigned long long u = std::stoull(text, NULL, 0);
-                long long n;
-                if (minus) {
-                    n = -static_cast<long long>(u);
-                } else {
-                    n = static_cast<long long>(u);
-                }
-
-                if (extra.find("ll") != std::string::npos ||
-                    extra.find("LL") != std::string::npos ||
-                    extra.find("i64") != std::string::npos)
-                {
-                    if (is_unsigned) {
-                        var.m_typed_value.m_type_id = ulong_long_tid;
-                    } else {
-                        var.m_typed_value.m_type_id = long_long_tid;
-                    }
-                    var.m_typed_value.assign<long long>(n);
-                } else if (extra.find('l') != std::string::npos ||
-                           extra.find('L') != std::string::npos ||
-                           extra.find("i32") != std::string::npos)
-                {
-                    if (is_unsigned) {
-                        var.m_typed_value.m_type_id = ulong_tid;
-                    } else {
-                        var.m_typed_value.m_type_id = long_tid;
-                    }
-                    var.m_typed_value.assign<long>(static_cast<long>(n));
-                } else if (extra.find("i16") != std::string::npos) {
-                    if (is_unsigned) {
-                        var.m_typed_value.m_type_id = ushort_tid;
-                    } else {
-                        var.m_typed_value.m_type_id = short_tid;
-                    }
-                    var.m_typed_value.assign<short>(static_cast<short>(n));
-                } else if (extra.find("i8") != std::string::npos) {
-                    if (is_unsigned) {
-                        var.m_typed_value.m_type_id = uchar_tid;
-                    } else {
-                        var.m_typed_value.m_type_id = char_tid;
-                    }
-                    var.m_typed_value.assign<char>(static_cast<char>(n));
-                } else {
-                    if (u & 0xFFFFFFFF00000000) {
-                        if (is_unsigned) {
-                            var.m_typed_value.m_type_id = ulong_long_tid;
-                        } else {
-                            var.m_typed_value.m_type_id = long_long_tid;
-                        }
-                        var.m_typed_value.assign<long long>(n);
-                    } else {
-                        if (is_unsigned) {
-                            var.m_typed_value.m_type_id = uint_tid;
-                        } else {
-                            var.m_typed_value.m_type_id = int_tid;
-                        }
-                        var.m_typed_value.assign<int>(static_cast<int>(n));
-                    }
-                }
-            } else if (is_floating) {
-                if (minus) {
-                    text = "-" + text;
-                }
-                long double ld = std::stold(text, 0);
-                if (extra.empty()) {
-                    var.m_typed_value.m_type_id = double_tid;
-                    var.m_typed_value.assign<double>(static_cast<double>(ld));
-                } else if (extra == "l" || extra == "L") {
-                    var.m_typed_value.m_type_id = long_double_tid;
-                    var.m_typed_value.assign<long double>(ld);
-                } else if (extra == "f" || extra == "F") {
-                    var.m_typed_value.m_type_id = float_tid;
-                    var.m_typed_value.assign<float>(static_cast<float>(ld));
-                } else {
-                    continue;
-                }
-            } else {
-                continue;
-            }
-            var.m_typed_value.m_text = text;
-            var.m_typed_value.m_extra = extra;
-
+            // add macro as variable
             auto vid = namescope.LogVars().insert(var);
             namescope.MapVarIDToName()[vid] = name;
             if (name.size()) {
@@ -3904,6 +4181,7 @@ void CrParseMacros(
             }
         }
     }
+    return false;
 }
 
 int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {

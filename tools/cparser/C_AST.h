@@ -145,6 +145,7 @@ namespace cparser
     };
 
     struct TransUnit : Node, std::vector<shared_ptr<Decl>> {
+        shared_ptr<Expr> m_expr;
     };
 
     struct AtomicTypeSpec : Node {

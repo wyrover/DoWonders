@@ -54,12 +54,6 @@ typedef unsigned long CR_TypeFlags;
 
 CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags);
 
-std::string
-CrJoin(const std::vector<std::string>& array, const std::string sep);
-
-void
-CrSplit(std::vector<std::string>& v, const std::string& s, char separator);
-
 void CrChop(std::string& str);
 
 std::string CrEscapeString(const std::string& str);
@@ -336,6 +330,9 @@ public:
     {
         Init();
     }
+
+    CR_NameScope(const CR_NameScope& ns);
+    CR_NameScope& operator=(const CR_NameScope& ns);
 
     // is 64-bit mode or not?
     bool Is64Bit() const { return m_is_64bit; }
