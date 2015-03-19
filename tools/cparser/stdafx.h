@@ -1,3 +1,5 @@
+////////////////////////////////////////////////////////////////////////////
+
 #if !defined(__cplusplus) || (__cplusplus < 199711L)
     #error Modern C++ compiler required! You lose.
 #endif
@@ -9,6 +11,8 @@
 #ifndef __NO_INLINE__
     #define __NO_INLINE__   // https://github.com/g-truc/glm/issues/300
 #endif
+
+////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>          // C standard library
 #include <cstring>          // C string
@@ -28,17 +32,33 @@
 #include <algorithm>        // for std::sort, std::unique
 #include <new>              // for std::bad_alloc
 
+////////////////////////////////////////////////////////////////////////////
+
 #include <memory>
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
 using std::static_pointer_cast;
 using std::make_shared;
 
+////////////////////////////////////////////////////////////////////////////
+
+#include <windows.h>
+#include <tchar.h>
+
+////////////////////////////////////////////////////////////////////////////
+
 #include "Location.h"       // CR_Location
 #include "Main.h"
 #include "TypeSystem.h"
 #include "C_AST.h"          // for cparser::Node, cparser::TokenNode
 
-#include <windows.h>
-#include <tchar.h>
+////////////////////////////////////////////////////////////////////////////
+
 #include "mzc2mini.h"
+
+////////////////////////////////////////////////////////////////////////////
+
+#define EXTENDS_MOBJECT
+#include "TextToText.hpp"
+
+////////////////////////////////////////////////////////////////////////////

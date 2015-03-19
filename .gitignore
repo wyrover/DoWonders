@@ -9,6 +9,7 @@
 *.tmp
 *.log
 Wonders*/*.dat
+tools/cparser/*.dat
 a.txt
 tools/cparser/FTCHECK*.BAT
 tools/cparser/Debug

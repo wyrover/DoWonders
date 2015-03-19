@@ -2,7 +2,7 @@ cparser is C parser.
 
 dllexpdumper is a command line tool to dump DLL export table.
 
-mcpp-2.7.2-hacked is C preprocessor.
+mcpp-2.7.2-hacked is C preprocessor hacked.
 
 redirector is a command line tool to redirect on Win32 command line.
 

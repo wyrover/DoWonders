@@ -1388,20 +1388,29 @@ bool CR_NameScope::IsFunctionType(CR_TypeID tid) const {
     return false;
 }
 
-CR_TypeID CR_NameScope::_ResolveAliasRecurse(CR_TypeID tid) const {
-    assert(tid != cr_invalid_id);
-    while (m_types[tid].m_flags & TF_ALIAS)
-        tid = m_types[tid].m_sub_id;
+CR_TypeID CR_NameScope::ResolveAlias(CR_TypeID tid) const {
+    while (tid != cr_invalid_id) {
+        auto& type = LogType(tid);
+        if (type.m_flags & TF_ALIAS) {
+            tid = type.m_sub_id;
+        } else {
+            break;
+        }
+    }
     return tid;
 }
 
 CR_TypeID CR_NameScope::ResolveAliasAndCV(CR_TypeID tid) const {
-    tid = ResolveAlias(tid);
-    if (tid == cr_invalid_id)
-        return tid;
-    auto& type = LogType(tid);
-    if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
-        return ResolveAliasAndCV(type.m_sub_id);
+    while (tid != cr_invalid_id) {
+        tid = ResolveAlias(tid);
+        auto& type = LogType(tid);
+        if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            tid = type.m_sub_id;
+        } else {
+            if (!(type.m_flags & TF_ALIAS)) {
+                break;
+            }
+        }
     }
     return tid;
 }
@@ -1532,27 +1541,27 @@ CR_TypeID CR_NameScope::AddConstWStringType() {
 }
 
 CR_TypeID CR_NameScope::IsStringType(CR_TypeID tid) const {
-    tid = ResolveAlias(tid);
+    tid = ResolveAliasAndCV(tid);
     auto& type1 = LogType(tid);
     if (type1.m_flags & (TF_POINTER | TF_ARRAY)) {
-        auto tid2 = ResolveAlias(type1.m_sub_id);
+        auto tid2 = ResolveAliasAndCV(type1.m_sub_id);
         auto& type2 = LogType(tid2);
         if ((type2.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
             auto tid3 = ResolveAlias(type2.m_sub_id);
             auto& type3 = LogType(tid3);
             return (type3.m_flags & TF_CHAR) != 0;
-        } else if (type2.m_flags & TF_CHAR) {
-            return true;
+        } else {
+            return (type2.m_flags & TF_CHAR) != 0;
         }
     }
     return false;
 }
 
 CR_TypeID CR_NameScope::IsWStringType(CR_TypeID tid) const {
-    tid = ResolveAlias(tid);
+    tid = ResolveAliasAndCV(tid);
     auto& type1 = LogType(tid);
     if (type1.m_flags & (TF_POINTER | TF_ARRAY)) {
-        auto tid2 = ResolveAlias(type1.m_sub_id);
+        auto tid2 = ResolveAliasAndCV(type1.m_sub_id);
         auto& type2 = LogType(tid2);
         if ((type2.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
             auto tid3 = ResolveAlias(type2.m_sub_id);
@@ -1814,7 +1823,7 @@ CR_TypedValue CR_NameScope::Arrow(
 }
 
 void CR_NameScope::SetLongLongValue(CR_TypedValue& value, long long n) const {
-    if (!HasValue(value)) {
+    if (value.m_type_id == cr_invalid_id || value.m_size == 0) {
         return;
     }
     if (IsIntegralType(value.m_type_id) || IsPointerType(value.m_type_id)) {
@@ -1841,10 +1850,10 @@ void CR_NameScope::SetLongLongValue(CR_TypedValue& value, long long n) const {
 }
 
 void CR_NameScope::SetULongLongValue(CR_TypedValue& value, unsigned long long u) const {
-    if (!HasValue(value)) {
-        return;
-    }
-    if (IsIntegralType(value.m_type_id) || IsPointerType(value.m_type_id)) {
+	if (value.m_type_id == cr_invalid_id || value.m_size == 0) {
+		return;
+	}
+	if (IsIntegralType(value.m_type_id) || IsPointerType(value.m_type_id)) {
         if (value.m_size == sizeof(int)) {
             value.assign<unsigned int>(static_cast<unsigned int>(u));
         } else if (value.m_size == sizeof(char)) {
@@ -1868,10 +1877,10 @@ void CR_NameScope::SetULongLongValue(CR_TypedValue& value, unsigned long long u)
 }
 
 void CR_NameScope::SetLongDoubleValue(CR_TypedValue& value, long double ld) const {
-    if (!HasValue(value)) {
-        return;
-    }
-    if (IsIntegralType(value.m_type_id)) {
+	if (value.m_type_id == cr_invalid_id || value.m_size == 0) {
+		return;
+	}
+	if (IsIntegralType(value.m_type_id)) {
         if (value.m_size == sizeof(int)) {
             value.assign<int>(static_cast<char>(ld));
         } else if (value.m_size == sizeof(char)) {
@@ -2741,7 +2750,7 @@ bool CR_NameScope::LoadFromFiles(
     if (in5) {
         std::string line;
         std::getline(in5, line); // skip header
-        for (; std::getline(in4, line);) {
+        for (; std::getline(in5, line);) {
             CrChop(line);
             std::vector<std::string> fields;
             CrSplit(fields, line, '\t');
@@ -2765,27 +2774,42 @@ bool CR_NameScope::LoadFromFiles(
                 {
                     is_unsigned = true;
                 }
+                int sign = 1;
+                if (text.size() && text[0] == '-') {
+                    text = text.substr(1);
+                    sign = -1;
+                }
                 if (extra.find("ll") != std::string::npos ||
                     extra.find("LL") != std::string::npos)
                 {
                     if (is_unsigned) {
-                        var.m_typed_value.assign<long long>(std::stoull(text, NULL, 0));
+                        var.m_typed_value.assign<long long>(
+                            sign * std::stoull(text, NULL, 0));
                     } else {
-                        var.m_typed_value.assign<long long>(std::stoll(text, NULL, 0));
+                        var.m_typed_value.assign<long long>(
+                            sign * std::stoull(text, NULL, 0));
                     }
                 } else if (extra.find('l') != std::string::npos ||
                            extra.find('L') != std::string::npos)
                 {
                     if (is_unsigned) {
-                        var.m_typed_value.assign<long>(std::stoul(text, NULL, 0));
+                        var.m_typed_value.assign<long>(
+                            static_cast<long>(
+                                sign * std::stoull(text, NULL, 0)));
                     } else {
-                        var.m_typed_value.assign<long>(std::stol(text, NULL, 0));
+                        var.m_typed_value.assign<long>(
+                            static_cast<long>(
+                                sign * std::stoull(text, NULL, 0)));
                     }
                 } else {
                     if (is_unsigned) {
-                        var.m_typed_value.assign<int>(std::stoul(text, NULL, 0));
+                        var.m_typed_value.assign<int>(
+                            static_cast<int>(
+                                sign * std::stoull(text, NULL, 0)));
                     } else {
-                        var.m_typed_value.assign<int>(std::stol(text, NULL, 0));
+                        var.m_typed_value.assign<int>(
+                            static_cast<int>(
+                                sign * std::stoull(text, NULL, 0)));
                     }
                 }
             } else if (text.size() && value_type == "f" && IsFloatingType(type_id)) {
@@ -2805,13 +2829,10 @@ bool CR_NameScope::LoadFromFiles(
                 } else {
                     ErrorInfo()->add_error("invalid string: '" + text + "'");
                 }
-            } else if (text.size() && value_type == "s" && IsWStringType(type_id)) {
+            } else if (text.size() && value_type == "S" && IsWStringType(type_id)) {
                 std::string unescaped;
                 if (CrUnscapeString(unescaped, text)) {
-                    text = unescaped;
-                    WCHAR wsz[512]; // TODO: any length
-                    ::MultiByteToWideChar(CP_ACP, 0, text.data(), -1, wsz, 512);
-                    std::wstring wstr(wsz);
+                    std::wstring wstr = MAnsiToWide(unescaped.data());
                     var.m_typed_value.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
                     var.m_typed_value.m_text = text;
                 } else {
@@ -2997,12 +3018,14 @@ bool CR_NameScope::SaveToFiles(
                 value_type = "i";
             } else if (IsFloatingType(tid)) {
                 value_type = "f";
-            } else if (IsStringType(tid) || IsWStringType(tid)) {
+            } else if (IsStringType(tid)) {
                 value_type = "s";
+            } else if (IsWStringType(tid)) {
+                value_type = "S";
             }
 
             std::string text;
-            if (value_type == "s") {
+            if (value_type == "s" || value_type == "S") {
                 text = CrEscapeString(var.m_typed_value.m_text);
             } else {
                 text = var.m_typed_value.m_text;

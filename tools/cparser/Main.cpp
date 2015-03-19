@@ -14,21 +14,21 @@ const char * const cr_logo =
     "///////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser 0.3.0 (64-bit) for gcc        //\n"
+    "// CParser 0.3.1 (64-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.3.0 (64-bit) for clang      //\n"
+    "// CParser 0.3.1 (64-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.3.0 (64-bit) for cl (MSVC)  //\n"
+    "// CParser 0.3.1 (64-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser 0.3.0 (32-bit) for gcc        //\n"
+    "// CParser 0.3.1 (32-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.3.0 (32-bit) for clang      //\n"
+    "// CParser 0.3.1 (32-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.3.0 (32-bit) for cl (MSVC)  //\n"
+    "// CParser 0.3.1 (32-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
@@ -1801,9 +1801,7 @@ CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
             result.m_extra.find("l") != std::string::npos)
         {
             result.m_type_id = namescope.AddConstWStringType();
-            WCHAR wsz[512]; // TODO: any length
-            ::MultiByteToWideChar(CP_ACP, 0, result.m_text.data(), -1, wsz, 512);
-            std::wstring wstr(wsz);
+            std::wstring wstr = MAnsiToWide(result.m_text.data());
             result.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
         } else {
             result.m_type_id = namescope.AddConstStringType();
@@ -2231,7 +2229,7 @@ CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
                 result.m_type_id = namescope.m_ulong_long_type;
                 result.assign<unsigned long long>(size);
             } else {
-				result.m_type_id = namescope.m_uint_type;
+                result.m_type_id = namescope.m_uint_type;
                 result.assign<unsigned int>(static_cast<unsigned int>(size));
             }
         }
@@ -2240,11 +2238,11 @@ CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
     case UnaryExpr::SIZEOF2:
         {
             size_t size = CrCalcSizeOfTypeName(namescope, ue->m_type_name.get());
-			if (namescope.Is64Bit()) {
-				result.m_type_id = namescope.m_ulong_long_type;
+            if (namescope.Is64Bit()) {
+                result.m_type_id = namescope.m_ulong_long_type;
                 result.assign<unsigned long long>(size);
             } else {
-				result.m_type_id = namescope.m_uint_type;
+                result.m_type_id = namescope.m_uint_type;
                 result.assign<unsigned int>(static_cast<unsigned int>(size));
             }
         }
@@ -3312,7 +3310,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                             alignas_ =
                                 CrCalcAlignOfTypeName(
                                     namescope, 
-										ts->m_align_spec->m_type_name.get());
+                                        ts->m_align_spec->m_type_name.get());
                             break;
 
                         case AlignSpec::CONSTEXPR:
@@ -3353,7 +3351,7 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                             alignas_ =
                                 CrCalcAlignOfTypeName(
                                     namescope, 
-										ts->m_align_spec->m_type_name.get());
+                                        ts->m_align_spec->m_type_name.get());
                             break;
 
                         case AlignSpec::CONSTEXPR:
@@ -3797,19 +3795,17 @@ void CrParseMacros(
                 }
             }
 
-            if (it != end) {
-                if (is_string) {
-                    std::cerr << "!!" << contents << " : " << *it << std::endl;
-                } else {
-                    std::cerr << "##" << contents << " : " << *it << std::endl;
-                }
-                continue;
-            }
-
             CR_LogVar var;
             var.m_location.set(file, lineno);
             if (is_string) {
-                var.m_typed_value.m_type_id = string_tid;
+                text = CrUnescapeString(text);
+                if (extra.find("L") != std::string::npos ||
+                    extra.find("l") != std::string::npos)
+                {
+                    var.m_typed_value.m_type_id = wstring_tid;
+                } else {
+                    var.m_typed_value.m_type_id = string_tid;
+                }
                 var.m_typed_value.assign(text.data(), text.size() + 1);
             } else if (is_integral) {
                 bool is_unsigned = false;
@@ -4128,7 +4124,10 @@ int main(int argc, char **argv) {
 
     error_info->emit_all();
 
-    std::cerr << "Done." << std::endl;
+    if (error_info->errors().empty()) {
+        std::cerr << "Done." << std::endl;
+    }
+
     return result;
 }
 

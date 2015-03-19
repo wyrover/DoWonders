@@ -293,7 +293,7 @@ struct CR_LogStruct {
     std::vector<CR_StructMember>    m_members;  // members
 
     CR_LogStruct(bool is_struct = true) :
-        m_is_struct(is_struct), m_pack(8), m_align(0),
+        m_is_struct(is_struct), m_pack(8), m_align(0), m_alignas(0),
         m_alignas_explicit(false), m_is_complete(false) { }
 
     // incomplete comparison
@@ -617,14 +617,7 @@ public:
     // ResolveAlias
     //
 
-    CR_TypeID ResolveAlias(CR_TypeID tid) const {
-        if (tid == cr_invalid_id)
-            return tid;
-        return _ResolveAliasRecurse(tid);
-    }
-
-    CR_TypeID _ResolveAliasRecurse(CR_TypeID tid) const;
-
+    CR_TypeID ResolveAlias(CR_TypeID tid) const;
     CR_TypeID ResolveAliasAndCV(CR_TypeID tid) const;
 
     //

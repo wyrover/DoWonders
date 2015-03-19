@@ -39,6 +39,11 @@ bool WsJustDoIt(
         CR_NameScope ns(error_info, false);
     #endif
 
+    #if 1
+        std::cerr << "Type [Enter] key" << std::endl;
+        getchar();
+    #endif
+
     if (!ns.LoadFromFiles(prefix, suffix)) {
         std::cerr << "ERROR: cannot load data" << std::endl;
         return false;
@@ -88,7 +93,6 @@ bool WsJustDoIt(
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" <<
-        "\n" <<
         "#define check_wstring(name,wstring) do { \\\n" << 
         "\tif (lstrcmpW(name, wstring) != 0) { \\\n" << 
         "\t\tfprintf(stderr, \"%ls: value mismatched, real value is %ls\\n\", #name, name); \\\n" << 
@@ -117,19 +121,28 @@ bool WsJustDoIt(
         }
     }
 
-    for (size_t i = 0; i < ns.LogTypes().size(); ++i) {
-        auto type_id = i;
-        auto name = ns.NameFromTypeID(type_id);
-        auto& type = ns.LogType(type_id);
-        auto flags = type.m_flags;
-        if ((flags & (TF_ENUM | TF_ALIAS)) == TF_ENUM) {
-            auto eid = type.m_sub_id;
-            auto& le = ns.LogEnum(eid);
-
-            for (auto& it : le.m_mNameToValue) {
-                out << "\tcheck_value(" << it.first << ", " <<
-                       it.second << ");" << std::endl; 
-            }
+    for (size_t i = 0; i < ns.LogVars().size(); ++i) {
+        auto var_id = i;
+        auto it = ns.MapVarIDToName().find(var_id);
+        if (it == ns.MapVarIDToName().end()) {
+            continue;
+        }
+        auto name = it->second;
+        auto& var = ns.LogVar(var_id);
+        auto& value = var.m_typed_value;
+        if (value.m_text.empty()) {
+            continue;
+        }
+        auto type_id = value.m_type_id;
+        if (ns.IsIntegralType(type_id)) {
+            out << "\tcheck_value(" << name << ", " <<
+                   value.m_text << ");" << std::endl;
+        } else if (ns.IsStringType(type_id)) {
+            out << "\tcheck_string(" << name << ", " <<
+                CrEscapeString(value.m_text) << ");" << std::endl;
+        } else if (ns.IsWStringType(type_id)) {
+            out << "\tcheck_wstring(" << name << ", L" <<
+                CrEscapeString(value.m_text) << ");" << std::endl;
         }
     }
 
