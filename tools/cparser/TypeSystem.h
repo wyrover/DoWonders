@@ -361,20 +361,20 @@ public:
     }
 
     CR_TypeID AddType(const std::string& name, CR_TypeFlags flags, int size,
-                      const CR_Location& location = CR_Location())
+                      const CR_Location& location)
     {
         return AddType(name, CR_LogType(flags, size, location));
     }
 
     CR_TypeID AddType(const std::string& name, CR_TypeFlags flags, int size,
-                      int align, const CR_Location& location = CR_Location())
+                      int align, const CR_Location& location)
     {
         return AddType(name, CR_LogType(flags, size, align, location));
     }
 
     CR_TypeID AddType(const std::string& name, CR_TypeFlags flags, int size,
                       int align, int alignas_,
-                      const CR_Location& location = CR_Location())
+                      const CR_Location& location)
     {
         return AddType(name, CR_LogType(flags, size, align, alignas_, location));
     }

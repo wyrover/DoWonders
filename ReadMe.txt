@@ -35,15 +35,12 @@ If everything was ended, ".dat" files will be generated. Use them for free.
 
 You can check the database by "sanitize-cl-32.bat" or "sanitize-cl-64.bat".
 
-All data are downloadable from here:
-http://drive.google.com/uc?export=view&id=0B3nA8ShVAS4OOFMxUnBJemNJRFE
-
 +------+
 |STATUS|
 +------+
-We tested on Visual C++ 2013 and TDM-GCC-64 + MSYS.
+We are testing on Visual C++ 2013 and TDM-GCC-64 + MSYS.
 
-API Database was sanitized on Visual C++!!!
+Now I have implemented "typed values" and I am sanitizing API Database.
 
 NOTE: We couldn't sanitize database on GCC, because GCC contains specific 
       bugs and differences from Visual C++. We just trust Visual C++'s 

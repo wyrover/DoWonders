@@ -344,39 +344,41 @@ bool CR_LogStruct::operator!=(const CR_LogStruct& ls) const {
 // CR_NameScope
 
 void CR_NameScope::Init() {
-    m_void_type = AddType("void", TF_VOID, 0);
+    CR_Location location("(predefined)", 0);
 
-    m_char_type = AddType("char", TF_CHAR, 1);
-    m_short_type = AddType("short", TF_SHORT, 2);
-    m_long_type = AddType("long", TF_LONG, 4);
-    AddType("__int64", TF_LONGLONG, 8);
-    m_long_long_type = AddType("long long", TF_LONGLONG, 8);
+    m_void_type = AddType("void", TF_VOID, 0, location);
+
+    m_char_type = AddType("char", TF_CHAR, sizeof(char), location);
+    m_short_type = AddType("short", TF_SHORT, sizeof(short), location);
+    m_long_type = AddType("long", TF_LONG, sizeof(long), location);
+    m_long_long_type = AddType("long long", TF_LONGLONG, sizeof(long long), location);
+    AddAliasType("__int64", m_long_long_type, location);
+
+    m_int_type = AddType("int", TF_INT, sizeof(int), location);
+
+    m_uchar_type = AddType("unsigned char", TF_UNSIGNED | TF_CHAR, sizeof(char), location);
+    m_ushort_type = AddType("unsigned short", TF_UNSIGNED | TF_SHORT, sizeof(short), location);
+    m_ulong_type = AddType("unsigned long", TF_UNSIGNED | TF_LONG, sizeof(long), location);
+    m_ulong_long_type = AddType("unsigned long long", TF_UNSIGNED | TF_LONGLONG, sizeof(long long), location);
+    AddAliasType("unsigned __int64", m_ulong_long_type, location);
+
     #ifdef __GNUC__
-        AddType("__int128", TF_INT128, 16);
+        AddType("__int128", TF_INT128, sizeof(__int128), location);
+        AddType("unsigned __int128", TF_UNSIGNED | TF_INT128, sizeof(__int128), location);
     #endif
-    m_int_type = AddType("int", TF_INT, 4);
 
-    m_uchar_type = AddType("unsigned char", TF_UNSIGNED | TF_CHAR, 1);
-    m_ushort_type = AddType("unsigned short", TF_UNSIGNED | TF_SHORT, 2);
-    m_ulong_type = AddType("unsigned long", TF_UNSIGNED | TF_LONG, 4);
-    AddType("unsigned __int64", TF_UNSIGNED | TF_LONGLONG, 8);
-    m_ulong_long_type = AddType("unsigned long long", TF_UNSIGNED | TF_LONGLONG, 8);
-    #ifdef __GNUC__
-        AddType("unsigned __int128", TF_UNSIGNED | TF_INT128, 16);
-    #endif
-    m_uint_type = AddType("unsigned int", TF_UNSIGNED | TF_INT, 4);
+    m_uint_type = AddType("unsigned int", TF_UNSIGNED | TF_INT, sizeof(int), location);
 
-    m_float_type = AddType("float", TF_FLOAT, 4);
-    m_double_type = AddType("double", TF_DOUBLE, 8);
+    m_float_type = AddType("float", TF_FLOAT, sizeof(float), location);
+    m_double_type = AddType("double", TF_DOUBLE, sizeof(double), location);
 
-    // long double may differ between environments...
     #ifdef __GNUC__
         if (m_is_64bit)
-            m_long_double_type = AddType("long double", TF_LONG | TF_DOUBLE, 16, 16, 16);
+            m_long_double_type = AddType("long double", TF_LONG | TF_DOUBLE, 16, 16, 16, location);
         else
-            m_long_double_type = AddType("long double", TF_LONG | TF_DOUBLE, 12, 4, 4);
+            m_long_double_type = AddType("long double", TF_LONG | TF_DOUBLE, 12, 4, 4, location);
     #else
-        m_long_double_type = AddType("long double", TF_LONG | TF_DOUBLE, 8);
+        m_long_double_type = AddType("long double", TF_LONG | TF_DOUBLE, sizeof(long double), location);
     #endif
 }
 
@@ -739,6 +741,8 @@ CR_TypeID CR_NameScope::AddEnumType(
 } // AddEnumType
 
 bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
+    const int bits_of_one_byte = 8;
+
     auto& ls = LogStruct(sid);
     auto& type1 = LogType(tid);
     if ((type1.m_flags & TF_INCOMPLETE) == 0) {
@@ -787,17 +791,19 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
             int bits = ls.m_members[i].m_bits;      // bits of bitfield
             if (bits != -1) {
                 // the bits specified as bitfield
-                assert(bits <= item_size * 8);
+                assert(bits <= item_size * bits_of_one_byte);
                 if (ls.m_pack < item_align) {
                     item_align = ls.m_pack;
                 }
                 if (prev_item_size == item_size || bits_remain == 0) {
                     // bitfield continuous
-                    ls.m_members[i].m_bit_offset = byte_offset * 8 + bits_remain;
+                    ls.m_members[i].m_bit_offset =
+                        byte_offset * bits_of_one_byte + bits_remain;
                     bits_remain += bits;
                 } else {
                     // bitfield discontinuous
-                    int bytes = (bits_remain + 7) / 8;
+                    int bytes =
+                        (bits_remain + bits_of_one_byte - 1) / bits_of_one_byte;
                     byte_offset += bytes;
                     if (type2.m_alignas) {
                         int alignas_ = type2.m_alignas;
@@ -809,17 +815,18 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
                         assert(item_align);
                         byte_offset = (byte_offset + item_align - 1) / item_align * item_align;
                     }
-                    ls.m_members[i].m_bit_offset = byte_offset * 8;
+                    ls.m_members[i].m_bit_offset =
+                        byte_offset * bits_of_one_byte;
                     bits_remain = bits;
                 }
             } else {
                 // not bitfield
                 if (bits_remain) {
                     // the previous was bitfield
-                    int prev_size_bits = prev_item_size * 8;
+                    int prev_size_bits = prev_item_size * bits_of_one_byte;
                     assert(prev_size_bits);
                     byte_offset += ((bits_remain + prev_size_bits - 1)
-                                    / prev_size_bits * prev_size_bits) / 8;
+                                    / prev_size_bits * prev_size_bits) / bits_of_one_byte;
                     bits_remain = 0;
                 }
                 if (prev_item_size) {
@@ -835,7 +842,7 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
                         byte_offset = (byte_offset + item_align - 1) / item_align * item_align;
                     }
                 }
-                ls.m_members[i].m_bit_offset = byte_offset * 8;
+                ls.m_members[i].m_bit_offset = byte_offset * bits_of_one_byte;
                 byte_offset += item_size;
             }
             if (max_align < item_align) {
@@ -847,10 +854,10 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
 
     // alignment requirement and tail padding
     if (bits_remain) {
-        int prev_size_bits = prev_item_size * 8;
+        int prev_size_bits = prev_item_size * bits_of_one_byte;
         assert(prev_size_bits);
         byte_offset += ((bits_remain + prev_size_bits - 1)
-                        / prev_size_bits * prev_size_bits) / 8;
+                        / prev_size_bits * prev_size_bits) / bits_of_one_byte;
     }
     if (type1.m_alignas) {
         int alignas_;
@@ -1306,13 +1313,7 @@ bool CR_NameScope::IsPredefinedType(CR_TypeID tid) const {
     if (type.m_flags & (TF_POINTER | TF_ARRAY | TF_CONST)) {
         return IsPredefinedType(type.m_sub_id);
     }
-    const CR_TypeFlags flags =
-        (TF_ALIAS | TF_FUNCTION | TF_STRUCT | TF_ENUM |
-         TF_UNION | TF_VECTOR);
-    if (type.m_flags & flags) {
-        return false;
-    }
-    return true;
+    return (type.location().m_file == "(predefined)");
 } // IsPredefinedType
 
 bool CR_NameScope::IsIntegralType(CR_TypeID tid) const {
@@ -1511,7 +1512,7 @@ CR_TypeID CR_NameScope::AddConstStringType() {
     auto tid = m_char_type;
     auto& type = LogType(tid);
     tid = AddConstType(tid);
-    tid = AddPointerType(tid, 0, type.location());
+    tid = AddPointerType(tid, TF_CONST, type.location());
     return tid;
 }
 
@@ -1526,7 +1527,7 @@ CR_TypeID CR_NameScope::AddConstWStringType() {
     }
     auto& type = LogType(tid);
     tid = AddConstType(tid);
-    tid = AddPointerType(tid, 0, type.location());
+    tid = AddPointerType(tid, TF_CONST, type.location());
     return tid;
 }
 
@@ -1570,21 +1571,16 @@ long long CR_NameScope::GetLongLongValue(const CR_TypedValue& value) const {
     if (type.m_size != value.m_size) {
         return 0;
     }
-    switch (type.m_size) {
-    case 1:
+    if (type.m_size == sizeof(int)) {
+        result = static_cast<long long>(value.get<int>());
+    } else if (type.m_size == sizeof(char)) {
         result = static_cast<long long>(value.get<char>());
-        break;
-    case 2:
+    } else if (type.m_size == sizeof(short)) {
         result = static_cast<long long>(value.get<short>());
-        break;
-    case 4:
+    } else if (type.m_size == sizeof(long)) {
         result = static_cast<long long>(value.get<long>());
-        break;
-    case 8:
+    } else if (type.m_size == sizeof(long long)) {
         result = value.get<long long>();
-        break;
-    default:
-        assert(0);
     }
     return result;
 }
@@ -1595,21 +1591,16 @@ unsigned long long CR_NameScope::GetULongLongValue(const CR_TypedValue& value) c
     if (type.m_size != value.m_size) {
         return 0;
     }
-    switch (type.m_size) {
-    case 1:
+    if (type.m_size == sizeof(unsigned int)) {
+        result = static_cast<unsigned long long>(value.get<unsigned int>());
+    } else if (type.m_size == sizeof(unsigned char)) {
         result = static_cast<unsigned long long>(value.get<unsigned char>());
-        break;
-    case 2:
+    } else if (type.m_size == sizeof(unsigned short)) {
         result = static_cast<unsigned long long>(value.get<unsigned short>());
-        break;
-    case 4:
+    } else if (type.m_size == sizeof(unsigned long)) {
         result = static_cast<unsigned long long>(value.get<unsigned long>());
-        break;
-    case 8:
+    } else if (type.m_size == sizeof(unsigned long long)) {
         result = value.get<unsigned long long>();
-        break;
-    default:
-        assert(0);
     }
     return result;
 }
@@ -1701,19 +1692,16 @@ CR_TypedValue CR_NameScope::Cast(
             result = value;
             result.m_type_id = tid;
         } else if (IsPointerType(value.m_type_id)) {
-            switch (type1.m_size) {
-            case 1:
+            if (type1.m_size == sizeof(int)) {
+                result = StaticCast(m_int_type, value);
+            } else if (type1.m_size == sizeof(char)) {
                 result = StaticCast(m_char_type, value);
-                break;
-            case 2:
+            } else if (type1.m_size == sizeof(short)) {
                 result = StaticCast(m_short_type, value);
-                break;
-            case 4:
+            } else if (type1.m_size == sizeof(long)) {
                 result = StaticCast(m_long_type, value);
-                break;
-            case 8:
+            } else if (type1.m_size == sizeof(long long)) {
                 result = StaticCast(m_long_long_type, value);
-                break;
             }
             result.m_type_id = tid;
         }
@@ -1756,22 +1744,24 @@ CR_NameScope::ArrayItem(const CR_TypedValue& array, size_t index) const {
 CR_TypedValue CR_NameScope::Dot(
     const CR_TypedValue& struct_value, const std::string& name) const
 {
+    const int bits_of_one_byte = 8;
     CR_TypedValue result;
     auto& struct_type = LogType(struct_value.m_type_id);
     std::vector<CR_StructMember> children;
     GetStructMemberList(struct_type.m_sub_id, children);
     for (auto& child : children) {
         if (child.m_name == name) {
-            if (child.m_bit_offset & 7) {
+            if (child.m_bit_offset % bits_of_one_byte) {
                 // bitfield not supported yet
                 break;
             }
             result.m_type_id = child.m_type_id;
-            result.m_addr = struct_value.m_addr + child.m_bit_offset / 8;
+            result.m_addr = struct_value.m_addr +
+                            child.m_bit_offset / bits_of_one_byte;
             result.m_size = SizeOfType(child.m_type_id);
             const char *ptr =
                 struct_value.get_at<char>(
-                    child.m_bit_offset / 8, result.m_size);
+                    child.m_bit_offset / bits_of_one_byte, result.m_size);
             if (ptr) {
                 SetValue(result, child.m_type_id, ptr, result.m_size);
             }
@@ -1828,19 +1818,16 @@ void CR_NameScope::SetLongLongValue(CR_TypedValue& value, long long n) const {
         return;
     }
     if (IsIntegralType(value.m_type_id) || IsPointerType(value.m_type_id)) {
-        switch (value.m_size) {
-        case 1:
+        if (value.m_size == sizeof(int)) {
+            value.assign<int>(static_cast<int>(n));
+        } else if (value.m_size == sizeof(char)) {
             value.assign<char>(static_cast<char>(n));
-            break;
-        case 2:
+        } else if (value.m_size == sizeof(short)) {
             value.assign<short>(static_cast<short>(n));
-            break;
-        case 4:
+        } else if (value.m_size == sizeof(long)) {
             value.assign<long>(static_cast<long>(n));
-            break;
-        case 8:
+        } else if (value.m_size == sizeof(long long)) {
             value.assign<long long>(n);
-            break;
         }
     } else if (IsFloatingType(value.m_type_id)) {
         if (value.m_size == sizeof(float)) {
@@ -1858,19 +1845,16 @@ void CR_NameScope::SetULongLongValue(CR_TypedValue& value, unsigned long long u)
         return;
     }
     if (IsIntegralType(value.m_type_id) || IsPointerType(value.m_type_id)) {
-        switch (value.m_size) {
-        case 1:
+        if (value.m_size == sizeof(int)) {
+            value.assign<unsigned int>(static_cast<unsigned int>(u));
+        } else if (value.m_size == sizeof(char)) {
             value.assign<unsigned char>(static_cast<unsigned char>(u));
-            break;
-        case 2:
+        } else if (value.m_size == sizeof(short)) {
             value.assign<unsigned short>(static_cast<unsigned short>(u));
-            break;
-        case 4:
+        } else if (value.m_size == sizeof(long)) {
             value.assign<unsigned long>(static_cast<unsigned long>(u));
-            break;
-        case 8:
+        } else if (value.m_size == sizeof(long long)) {
             value.assign<unsigned long long>(u);
-            break;
         }
     } else if (IsFloatingType(value.m_type_id)) {
         if (value.m_size == sizeof(float)) {
@@ -1888,19 +1872,16 @@ void CR_NameScope::SetLongDoubleValue(CR_TypedValue& value, long double ld) cons
         return;
     }
     if (IsIntegralType(value.m_type_id)) {
-        switch (value.m_size) {
-        case 1:
+        if (value.m_size == sizeof(int)) {
+            value.assign<int>(static_cast<char>(ld));
+        } else if (value.m_size == sizeof(char)) {
             value.assign<char>(static_cast<char>(ld));
-            break;
-        case 2:
+        } else if (value.m_size == sizeof(short)) {
             value.assign<short>(static_cast<short>(ld));
-            break;
-        case 4:
+        } else if (value.m_size == sizeof(long)) {
             value.assign<long>(static_cast<long>(ld));
-            break;
-        case 8:
+        } else if (value.m_size == sizeof(long long)) {
             value.assign<long long>(static_cast<long long>(ld));
-            break;
         }
     } else if (IsFloatingType(value.m_type_id)) {
         if (value.m_size == sizeof(float)) {
@@ -2531,38 +2512,38 @@ void CR_NameScope::SetValue(
     }
     if (IsIntegralType(tid)) {
         if (IsUnsignedType(tid)) {
-            switch (size) {
-            case 1:
+            if (size == sizeof(int)) {
+                value.assign<unsigned int>(
+                    *reinterpret_cast<const unsigned int *>(ptr));
+            } else if (size == sizeof(char)) {
                 value.assign<unsigned char>(
                     *reinterpret_cast<const unsigned char *>(ptr));
-                break;
-            case 2:
+            } else if (size == sizeof(short)) {
                 value.assign<unsigned short>(
                     *reinterpret_cast<const unsigned short *>(ptr));
-                break;
-            case 4:
+            } else if (size == sizeof(long)) {
                 value.assign<unsigned long>(
                     *reinterpret_cast<const unsigned long *>(ptr));
-                break;
-            case 8:
+            } else if (size == sizeof(long long)) {
                 value.assign<unsigned long long>(
                     *reinterpret_cast<const unsigned long long *>(ptr));
-                break;
             }
         } else {
-            switch (size) {
-            case 1:
-                value.assign<char>(*reinterpret_cast<const char *>(ptr));
-                break;
-            case 2:
-                value.assign<short>(*reinterpret_cast<const short *>(ptr));
-                break;
-            case 4:
-                value.assign<long>(*reinterpret_cast<const long *>(ptr));
-                break;
-            case 8:
-                value.assign<long long>(*reinterpret_cast<const long long *>(ptr));
-                break;
+            if (size == sizeof(int)) {
+                value.assign<int>(
+                    *reinterpret_cast<const int *>(ptr));
+            } else if (size == sizeof(char)) {
+                value.assign<char>(
+                    *reinterpret_cast<const char *>(ptr));
+            } else if (size == sizeof(short)) {
+                value.assign<short>(
+                    *reinterpret_cast<const short *>(ptr));
+            } else if (size == sizeof(long)) {
+                value.assign<long>(
+                    *reinterpret_cast<const long *>(ptr));
+            } else if (size == sizeof(long long)) {
+                value.assign<long long>(
+                    *reinterpret_cast<const long long *>(ptr));
             }
         }
     } else if (IsFloatingType(tid)){

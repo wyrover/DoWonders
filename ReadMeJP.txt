@@ -41,15 +41,12 @@ cparser は、Win32 API に関する型情報を抽出します。mcpp-hacked は、マクロ情
 "sanitize-cl-32.bat" か "sanitize-cl-64.bat" でデータベースをチェックできま
 す。
 
-すべてのデータは、ここからダウンロードできます：
-http://drive.google.com/uc?export=view&id=0B3nA8ShVAS4OOFMxUnBJemNJRFE
-
 +----+
 |状態|
 +----+
-Visual C++ 2013 と TDM-GCC-64 + MSYS でデータベースの作成をテストしました。
+Visual C++ 2013 と TDM-GCC-64 + MSYS でテストしています。
 
-Visual C++ については、API データベースがサニタイズされました！！！
+現在、typed valueを実装し、サニタイズ中です。
 
 注記: GCC におけるデータベースは、サニタイズできなかった。なぜなら、GCC は
       いくつかのバグと Visual C++ との差異を含んでいるからだ。我々は、Visual

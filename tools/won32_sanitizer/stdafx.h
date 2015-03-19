@@ -16,6 +16,8 @@
 
 #include <iostream>         // for std::cout, std::cerr
 #include <fstream>          // for std::ifstream
+#include <strstream>        // for std::strfstream
+#include <iomanip>          // for std::setfill, std::setw
 #include <vector>           // for std::vector
 #include <string>           // for std::string
 #include <map>              // for std::map
@@ -30,6 +32,8 @@ using std::shared_ptr;
 using std::dynamic_pointer_cast;
 using std::static_pointer_cast;
 using std::make_shared;
+
+#include <windows.h>
 
 #include "Location.h"       // CR_Location
 #include "Main.h"

@@ -2164,7 +2164,7 @@ int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
 
 CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
 
-int CrGetTypeIDOfTypeName(CR_NameScope& namescope, TypeName *tn) {
+size_t CrGetTypeIDOfTypeName(CR_NameScope& namescope, TypeName *tn) {
     assert(tn);
     CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
     return tid;
@@ -2232,7 +2232,7 @@ CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
                 result.assign<unsigned long long>(size);
             } else {
 				result.m_type_id = namescope.m_uint_type;
-                result.assign<unsigned int>(size);
+                result.assign<unsigned int>(static_cast<unsigned int>(size));
             }
         }
         break;
@@ -2245,7 +2245,7 @@ CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
                 result.assign<unsigned long long>(size);
             } else {
 				result.m_type_id = namescope.m_uint_type;
-                result.assign<unsigned int>(size);
+                result.assign<unsigned int>(static_cast<unsigned int>(size));
             }
         }
         break;
