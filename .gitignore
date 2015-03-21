@@ -8,6 +8,8 @@
 *.opensdf
 *.tmp
 *.log
+dll-info-32.dat
+dll-info-64.dat
 Wonders*/*.dat
 tools/cparser/*.dat
 a.txt

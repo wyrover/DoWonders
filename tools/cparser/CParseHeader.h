@@ -113,7 +113,11 @@ namespace cparser
         for (auto it = infos.begin(); it != infos_end; ++it) {
             if (parser.post(it->m_token, make_shared<CR_TokenNode>(*it))) {
                 if (parser.error()) {
-                    error_info->emit_all();
+                    #if 0
+                        std::printf("#1\n");
+                        lexer.show_tokens(infos.begin(), infos.end());
+                        std::printf("\n--------------\n");
+                    #endif
                     return false;
                 }
                 break;
@@ -126,6 +130,12 @@ namespace cparser
             tu = static_pointer_cast<TransUnit, Node>(node);
             expr = tu->m_expr;
             return true;
+        } else {
+            #if 0
+                std::printf("#2\n");
+                lexer.show_tokens(infos.begin(), infos.end());
+                std::printf("\n--------------\n");
+            #endif
         }
 
         return false;

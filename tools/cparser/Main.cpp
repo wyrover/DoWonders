@@ -105,7 +105,7 @@ void cparser::Lexer::skip_block_comment2(
             }
         }
     } while (c != -1);
-} // skip_block_comment2
+} // skip_block_comment
 
 void cparser::Lexer::skip_line_comment(
     LexerBase& base, node_container& infos)
@@ -118,7 +118,7 @@ void cparser::Lexer::skip_line_comment(
             m_in_cxx_comment = false;
             break;  // closed
         }
-    } while (c != EOF);
+    } while (c != -1);  // EOF?
 } // skip_line_comment
 
 void cparser::Lexer::skip_line_comment2(
@@ -132,8 +132,8 @@ void cparser::Lexer::skip_line_comment2(
             m_in_cxx_comment = false;
             break;  // closed
         }
-    } while (c != EOF);
-} // skip_line_comment2
+    } while (c != -1);  // EOF?
+} // skip_line_comment
 
 bool cparser::Lexer::token_pattern_match(
     LexerBase& base, node_iterator it, node_iterator end,
@@ -157,199 +157,215 @@ bool cparser::Lexer::token_pattern_match(
 }
 
 std::string
-cparser::Lexer::guts_escape_sequence(
-    str_iterator& it, str_iterator end) const
-{
-    std::string result;
-    if (it != end && *it == '\\') {
-        ++it;
-        if (it == end) {
-            return result;
+cparser::Lexer::guts_escape_sequence(const char *& it) const {
+    std::string ret;
+    if (*it == 0) {
+        return ret;
+    }
+    switch (*it) {
+    case '\'': case '\"': case '?': case '\\':
+        ret += *it;
+        break;
+
+    case '0': ret += '\0'; break;
+    case 'a': ret += '\a'; break;
+    case 'b': ret += '\b'; break;
+    case 'f': ret += '\f'; break;
+    case 'n': ret += '\n'; break;
+    case 'r': ret += '\r'; break;
+    case 't': ret += '\t'; break;
+    case 'v': ret += '\v'; break;
+
+    case 'x':
+        {
+            ++it;
+            if (*it) {
+                auto hex = guts_hex2(it);
+                if (hex.size()) {
+                    unsigned long value = std::stoul(hex, NULL, 16);
+                    ret += static_cast<char>(value);
+                }
+            }
         }
-        switch (*it) {
-        case '\'': case '\"': case '?': case '\\':
-            result += *it;
-            break;
+        break;
 
-        case '0': result += '\0'; break;
-        case 'a': result += '\a'; break;
-        case 'b': result += '\b'; break;
-        case 'f': result += '\f'; break;
-        case 'n': result += '\n'; break;
-        case 'r': result += '\r'; break;
-        case 't': result += '\t'; break;
-        case 'v': result += '\v'; break;
+    case 'u':
+    case 'U':
+        {
+            ++it;
+            auto hex = guts_hex(it);
+            ret += '?';  // FIXME & TODO
+        }
+        break;
 
-        case 'x':
-            {
-                ++it;
-                auto hex = guts_hex(it, end);
-                unsigned long value = std::stoul(hex, NULL, 16);
-                result += static_cast<char>(value);
-            }
-            break;
-
-        case 'u':
-        case 'U':
-            {
-                ++it;
-                auto hex = guts_hex(it, end);
-                result += '?';  // FIXME & TODO
-            }
-            break;
-
-        default:
-            if ('0' <= *it && *it <= '7') {
-                auto octal = guts_octal(it, end);
-                unsigned long value = std::stoul(octal, NULL, 8);
-                result += static_cast<char>(value);
-            } else {
-                result += *it;
-            }
+    default:
+        if ('0' <= *it && *it <= '7') {
+            auto octal = guts_octal(it);
+            long value = std::stol(octal, NULL, 8);
+            ret += static_cast<char>(value);
+        } else {
+            ret += *it;
         }
     }
-    return result;
+    return ret;
 } // guts_escape_sequence
 
 std::string
-cparser::Lexer::guts_string(str_iterator& it, str_iterator end) const {
-    std::string result;
-    assert(it != end && *it == '\"');
-    for (++it; it != end; ++it) {
+cparser::Lexer::guts_string(const char *& it) const {
+    std::string ret;
+    assert(*it && *it == '\"');
+    for (++it; *it; ++it) {
         switch (*it) {
         case '\"':
             ++it;
-            if (it != end) {
+            if (*it) {
                 if (*it == '\"') {
-                    result += '\"';
+                    ret += '\"';
                 } else {
-                    return result;
+                    return ret;
                 }
             } else {
-                return result;
+                return ret;
             }
             break;
 
         case '\\':
             {
-                auto text = guts_escape_sequence(it, end);
-                result += text;
-                if (it == end) {
-                    return result;
+                ++it;
+                auto text = guts_escape_sequence(it);
+                ret += text;
+                if (*it == 0) {
+                    return ret;
                 }
             }
             break;
 
         default:
-            result += *it;
+            ret += *it;
         }
     }
-    return result;
+    return ret;
 } // guts_string
 
 std::string
-cparser::Lexer::guts_char(str_iterator& it, str_iterator end) const {
-    std::string result;
-    assert(it != end && *it == '\'');
-    for (++it; it != end; ++it) {
+cparser::Lexer::guts_char(const char *& it) const {
+    std::string ret;
+    assert(*it && *it == '\'');
+    for (++it; *it; ++it) {
         switch (*it) {
         case '\'':
-            return result;
+            ++it;
+            return ret;
 
         case '\\':
             {
-                auto text = guts_escape_sequence(it, end);
-                result += text;
+                ++it;
+                auto text = guts_escape_sequence(it);
+                ret += text;
+                if (*it == 0) {
+                    break;
+                }
+                --it;
             }
             break;
 
         default:
-            result += *it;
+            ret += *it;
         }
     }
-    return result;
+    return ret;
 } // guts_char
 
 std::string
-cparser::Lexer::guts_hex(str_iterator& it, str_iterator end) const {
-    std::string result;
-    for (; it != end; ++it) {
+cparser::Lexer::guts_hex(const char *& it) const {
+    std::string ret;
+    for (; *it; ++it) {
         if (isxdigit(*it)) {
-            result += *it;
+            ret += *it;
         } else {
             break;
         }
     }
-    return result;
+    return ret;
 } // guts_hex
 
 std::string
-cparser::Lexer::guts_digits(str_iterator& it, str_iterator end) const {
-    std::string result;
-    for (; it != end; ++it) {
-        if (isdigit(*it)) {
-            result += *it;
+cparser::Lexer::guts_hex2(const char *& it) const {
+    std::string ret;
+    for (; *it && ret.size() < 2; ++it) {
+        if (isxdigit(*it)) {
+            ret += *it;
         } else {
             break;
         }
     }
-    return result;
+    return ret;
+} // guts_hex
+
+std::string
+cparser::Lexer::guts_digits(const char *& it) const {
+    std::string ret;
+    for (; *it; ++it) {
+        if (isdigit(*it)) {
+            ret += *it;
+        } else {
+            break;
+        }
+    }
+    return ret;
 } // guts_digits
 
 std::string
-cparser::Lexer::guts_octal(str_iterator& it, str_iterator end) const {
-    std::string result;
-    for (; it != end; ++it) {
+cparser::Lexer::guts_octal(const char *& it) const {
+    std::string ret;
+    for (; *it && ret.size() < 3; ++it) {
         if ('0' <= *it && *it <= '7') {
-            result += *it;
-            if (result.size() == 3) {
-                break;
-            }
+            ret += *it;
         } else {
             break;
         }
     }
-    return result;
+    return ret;
 } // guts_octal
 
 std::string
-cparser::Lexer::guts_floating(str_iterator& it, str_iterator end) const {
-    std::string result;
-    if (it != end && *it == '.') {
+cparser::Lexer::guts_floating(const char *& it) const {
+    std::string ret;
+    if (*it == '.') {
         ++it;
-        std::string digits = guts_digits(it, end);
+        std::string digits = guts_digits(it);
     }
-    return result;
+    return ret;
 } // guts_floating
 
 std::string
-cparser::Lexer::guts_indentifier(str_iterator& it, str_iterator end) const {
-    std::string result;
-    if (it != end && (isalpha(*it) || *it == '_')) {
-        result += *it;
-        for (++it; it != end; ++it) {
+cparser::Lexer::guts_indentifier(const char *& it) const {
+    std::string ret;
+    if (isalpha(*it) || *it == '_') {
+        ret += *it;
+        for (++it; *it; ++it) {
             if (isalnum(*it) || *it == '_') {
-                result += *it;
+                ret += *it;
             } else {
                 break;
             }
         }
     }
-    //std::puts(result.data());
-    return result;
+    //std::puts(ret.data());
+    return ret;
 } // guts_indentifier
 
 std::string
 cparser::Lexer::guts_integer_suffix(
-    str_iterator& it, str_iterator end, CR_TypeFlags& flags) const
+    const char *& it, CR_TypeFlags& flags) const
 {
-    std::string result;
-    for (; it != end; ++it) {
+    std::string ret;
+    for (; *it; ++it) {
         if (*it == 'u' || *it == 'U') {
-            result += *it;
+            ret += *it;
             flags |= TF_UNSIGNED;
         } else if (*it == 'l' || *it == 'L') {
-            result += *it;
+            ret += *it;
             if (flags & TF_LONG) {
                 flags &= ~TF_LONG;
                 flags |= TF_LONGLONG;
@@ -358,33 +374,33 @@ cparser::Lexer::guts_integer_suffix(
             }
         } else if (*it == 'i') {
             ++it;
-            if (it != end && *it == '6') {
+            if (*it && *it == '6') {
                 ++it;
-                if (it != end && *it == '4') {
+                if (*it && *it == '4') {
                     ++it;
-                    result = "i64";
+                    ret = "i64";
                     flags |= TF_LONGLONG;
                 }
             }
-            if (it != end && *it == '3') {
+            if (*it && *it == '3') {
                 ++it;
-                if (it != end && *it == '2') {
+                if (*it && *it == '2') {
                     ++it;
-                    result = "i32";
+                    ret = "i32";
                     flags |= TF_LONG;
                 }
             }
-            if (it != end && *it == '1') {
+            if (*it && *it == '1') {
                 ++it;
-                if (it != end && *it == '6') {
+                if (*it && *it == '6') {
                     ++it;
-                    result = "i16";
+                    ret = "i16";
                     flags |= TF_SHORT;
                 }
             }
-            if (it != end && *it == '8') {
+            if (*it && *it == '8') {
                 ++it;
-                result = "i8";
+                ret = "i8";
                 flags |= TF_CHAR;
             }
             break;
@@ -392,15 +408,15 @@ cparser::Lexer::guts_integer_suffix(
             break;
         }
     }
-    return result;
+    return ret;
 } // guts_integer_suffix
 
 std::string
 cparser::Lexer::guts_floating_suffix(
-    str_iterator& it, str_iterator end, CR_TypeFlags& flags) const
+    const char *& it, CR_TypeFlags& flags) const
 {
-    std::string result;
-    for (; it != end; ++it) {
+    std::string ret;
+    for (; *it; ++it) {
         if (*it == 'f' || *it == 'F') {
             flags &= ~TF_DOUBLE;
             flags |= TF_FLOAT;
@@ -410,47 +426,51 @@ cparser::Lexer::guts_floating_suffix(
             break;
         }
     }
-    return result;
+    return ret;
 } // guts_floating_suffix
 
 std::string
-cparser::Lexer::guts_exponent(str_iterator& it, str_iterator end) const
+cparser::Lexer::guts_exponent(const char *& it) const
 {
-    std::string result;
-    if (it != end) {
+    std::string ret;
+    if (*it) {
         if (*it == 'e' || *it == 'E') {
-            result += *it;
+            ret += *it;
             ++it;
-            if (it != end) {
+            if (*it) {
                 if (*it == '+') {
-                    result += *it;
+                    ret += *it;
                     ++it;
                 } else if (*it == '-') {
-                    result += *it;
+                    ret += *it;
                     ++it;
                 }
-                if (it != end) {
-                    auto exponent = guts_digits(it, end);
-                    result += exponent;
+                if (*it) {
+                    auto exponent = guts_digits(it);
+                    ret += exponent;
                 }
             }
         }
     }
-    return result;
+    return ret;
 } // guts_exponent
 
 bool cparser::Lexer::lexeme(
-    str_iterator& it, str_iterator end, const std::string& str)
+    const char *& it, const std::string& str)
 {
-    str_iterator saved = it;
+    const char *saved = it;
     std::size_t i = 0, siz = str.size();
-    for (; i < siz && it != end; ++it, ++i) {
+    for (; i < siz && *it; ++it, ++i) {
         if (*it != str[i]) {
             it = saved;
             return false;
         }
     }
-    return i == siz;
+    if (i != siz) {
+        it = saved;
+        return false;
+    }
+    return true;
 } // lexeme
 
 void cparser::Lexer::just_do_it(
@@ -471,8 +491,6 @@ void cparser::Lexer::just_do_it(
 
     // token resynthesization
     resynth(base, infos);
-
-    m_type_names.clear();   // no use
 } // just_do_it
 
 void cparser::Lexer::just_do_it2(
@@ -496,39 +514,41 @@ void cparser::Lexer::just_do_it2(
 
     // token resynthesization
     resynth(base, infos);
-
-    m_type_names.clear();   // no use
 } // just_do_it2
 
 std::string cparser::Lexer::get_line(LexerBase& base) {
     std::string line;
-    // get line
     char ch;
     line.reserve(64);
-    do {
+    for (;;) {
         ch = base.getch();
-        if (ch == '\n') {
-            line += ch;
+        if (ch == -1 || ch == 0) {
+            // EOF or NUL
             break;
         }
         line += ch;
-    } while (ch != -1);
+        if (ch == '\n') {
+            break;
+        }
+    }
     return line;
 }
 
 std::string cparser::Lexer::get_line2(LexerBase2& base) {
     std::string line;
-    // get line
     char ch;
     line.reserve(64);
-    do {
+    for (;;) {
         ch = base.getch();
-        if (ch == '\n') {
-            line += ch;
+        if (ch == -1 || ch == 0) {
+            // EOF or NUL
             break;
         }
         line += ch;
-    } while (ch != -1);
+        if (ch == '\n') {
+            break;
+        }
+    }
     return line;
 }
 
@@ -552,354 +572,11 @@ retry:
     }
 
     auto line = get_line(base);
+    if (line.empty()) {
+        return false;
+    }
+    do_line(line, infos);
 
-    auto end = line.end();
-    for (auto it = line.begin(); it != end; ++it) {
-        std::string extra;
-        switch (*it) {
-        case ' ': case '\t':
-            continue;
-
-        case '\n':
-            newline(infos);
-            break;
-
-        case '#':
-            infos.emplace_back(T_SHARP, "#");
-            break;
-
-        case 'u':
-            ++it;
-            if (*it == '8') {
-                ++it;
-                extra = "u8";
-            } else {
-                extra = "u";
-            }
-            if (*it == '"') {
-                auto text = guts_string(it, end);
-                --it;
-                infos.emplace_back(T_STRING, text, extra);
-            } else if (*it == '\'') {
-                auto text = guts_char(it, end);
-                --it;
-                {
-                    auto s = std::to_string(text[0]);
-                    infos.emplace_back(T_CONSTANT, s, extra);
-                }
-            } else {
-                --it;
-                goto label_default;
-            }
-            break;
-
-        case 'L': case 'U':
-            extra += *it;
-            ++it;
-            if (*it == '"') {
-                auto text = guts_string(it, end);
-                --it;
-                infos.emplace_back(T_STRING, text, extra);
-            } else if (*it == '\'') {
-                auto text = guts_char(it, end);
-                --it;
-                auto s = std::to_string(text[0]);
-                infos.emplace_back(T_CONSTANT, s, extra);
-            } else {
-                --it;
-                goto label_default;
-            }
-            break;
-
-        case '"':
-            {
-                auto text = guts_string(it, end);
-                --it;
-                infos.emplace_back(T_STRING, text);
-            }
-            break;
-
-        case '\'':
-            {
-                auto text = guts_char(it, end);
-                auto s = std::to_string(text[0]);
-                infos.emplace_back(T_CONSTANT, s);
-            }
-            break;
-
-        case '0':
-            ++it;
-            if (*it == 'x' || *it == 'X') {
-                // 0x or 0X
-                ++it;
-                auto text = guts_hex(it, end);
-                CR_TypeFlags flags = 0;
-                extra = guts_integer_suffix(it, end, flags);
-                --it;
-                infos.emplace_back(T_CONSTANT, "0x" + text, extra, flags);
-            } else if (*it == '.') {
-                // 0.
-                auto text = guts_floating(it, end);
-                CR_TypeFlags flags = TF_DOUBLE;
-                extra = guts_floating_suffix(it, end, flags);
-                --it;
-                infos.emplace_back(T_CONSTANT, "0." + text, extra, flags);
-            } else {
-                // octal
-                --it;
-                auto text = guts_octal(it, end);
-                CR_TypeFlags flags = 0;
-                extra = guts_integer_suffix(it, end, flags);
-                --it;
-                infos.emplace_back(T_CONSTANT, text, extra, flags);
-            }
-            break;
-
-        case '.':
-            if (lexeme(it, end, "...")) {
-                --it;
-                infos.emplace_back(T_ELLIPSIS, "...");
-            } else {
-                // .
-                auto text = guts_floating(it, end);
-                if (text.size() > 1) {
-                    CR_TypeFlags flags = TF_DOUBLE;
-                    extra = guts_floating_suffix(it, end, flags);
-                    --it;
-                    infos.emplace_back(T_CONSTANT, "0." + text, extra, flags);
-                } else {
-                    --it;
-                    infos.emplace_back(T_DOT, ".");
-                }
-            }
-            break;
-
-        case '<':
-            if (lexeme(it, end, "<<=")) {
-                --it;
-                infos.emplace_back(T_L_SHIFT_ASSIGN, "<<=");
-            } else if (lexeme(it, end, "<<")) {
-                --it;
-                infos.emplace_back(T_L_SHIFT, "<<");
-            } else if (lexeme(it, end, "<=")) {
-                --it;
-                infos.emplace_back(T_LE, "<=");
-            } else if (lexeme(it, end, "<:")) {
-                --it;
-                infos.emplace_back(T_L_BRACKET, "<:");
-            } else {
-                infos.emplace_back(T_LT, "<");
-            }
-            break;
-
-        case '>':
-            if (lexeme(it, end, ">>=")) {
-                --it;
-                infos.emplace_back(T_R_SHIFT_ASSIGN, ">>=");
-            } else if (lexeme(it, end, ">>")) {
-                --it;
-                infos.emplace_back(T_R_SHIFT, ">>");
-            } else if (lexeme(it, end, ">=")) {
-                --it;
-                infos.emplace_back(T_GE, ">=");
-            } else {
-                infos.emplace_back(T_GT, ">");
-            }
-            break;
-
-        case '+':
-            if (lexeme(it, end, "+=")) {
-                --it;
-                infos.emplace_back(T_ADD_ASSIGN, "+=");
-            } else if (lexeme(it, end, "++")) {
-                --it;
-                infos.emplace_back(T_INC, "++");
-            } else {
-                infos.emplace_back(T_PLUS, "+");
-            }
-            break;
-
-        case '-':
-            if (lexeme(it, end, "-=")) {
-                --it;
-                infos.emplace_back(T_SUB_ASSIGN, "-=");
-            } else if (lexeme(it, end, "--")) {
-                --it;
-                infos.emplace_back(T_DEC, "--");
-            } else if (lexeme(it, end, "->")) {
-                --it;
-                infos.emplace_back(T_ARROW, "->");
-            } else {
-                infos.emplace_back(T_MINUS, "-");
-            }
-            break;
-
-        case '*':
-            if (lexeme(it, end, "*=")) {
-                --it;
-                infos.emplace_back(T_MUL_ASSIGN, "*=");
-            } else {
-                infos.emplace_back(T_ASTERISK, "*");
-            }
-            break;
-
-        case '/':
-            if (lexeme(it, end, "/*")) {    // */
-                --it;
-                m_in_c_comment = true;
-                infos.emplace_back(T_C_COMMENT_BEGIN, "/*");    // */
-                skip_block_comment(base, infos);
-            } else if (lexeme(it, end, "//")) {
-                --it;
-                m_in_cxx_comment = true;
-                infos.emplace_back(T_CPP_COMMENT, "//");
-                skip_line_comment(base, infos);
-            } else if (lexeme(it, end, "/=")) {
-                --it;
-                infos.emplace_back(T_DIV_ASSIGN, "/=");
-            } else {
-                infos.emplace_back(T_SLASH, "/");
-            }
-            break;
-
-        case '%':
-            if (lexeme(it, end, "%=")) {
-                --it;
-                infos.emplace_back(T_MOD_ASSIGN, "%=");
-            } else if (lexeme(it, end, "%>")) {
-                --it;
-                infos.emplace_back(T_R_BRACE, "%>");
-            } else {
-                infos.emplace_back(T_PERCENT, "%");
-            }
-            break;
-
-        case '&':
-            if (lexeme(it, end, "&=")) {
-                --it;
-                infos.emplace_back(T_AND_ASSIGN, "&=");
-            } else if (lexeme(it, end, "&&")) {
-                --it;
-                infos.emplace_back(T_L_AND, "&&");
-            } else {
-                infos.emplace_back(T_AND, "&");
-            }
-            break;
-            
-        case '^':
-            if (lexeme(it, end, "^=")) {
-                --it;
-                infos.emplace_back(T_XOR_ASSIGN, "^=");
-            } else {
-                infos.emplace_back(T_XOR, "^");
-            }
-            break;
-
-        case '|':
-            if (lexeme(it, end, "|=")) {
-                --it;
-                infos.emplace_back(T_OR_ASSIGN, "|=");
-            } else if (lexeme(it, end, "||")) {
-                --it;
-                infos.emplace_back(T_L_OR, "||");
-            } else {
-                infos.emplace_back(T_OR, "|");
-            }
-            break;
-
-        case '=':
-            if (lexeme(it, end, "==")) {
-                --it;
-                infos.emplace_back(T_EQUAL, "==");
-            } else {
-                infos.emplace_back(T_ASSIGN, "=");
-            }
-            break;
-
-        case '!':
-            if (lexeme(it, end, "!=")) {
-                --it;
-                infos.emplace_back(T_NE, "!=");
-            } else {
-                infos.emplace_back(T_BANG, "!");
-            }
-            break;
-
-        case ';':
-            infos.emplace_back(T_SEMICOLON, ";");
-            break;
-
-        case ':':
-            if (lexeme(it, end, ":>")) {
-                --it;
-                infos.emplace_back(T_R_BRACKET, ":>");
-            } else {
-                infos.emplace_back(T_COLON, ":");
-            }
-            break;
-
-        case ',': infos.emplace_back(T_COMMA, ","); break;
-        case '{': infos.emplace_back(T_L_BRACE, "{"); break;
-        case '}': infos.emplace_back(T_R_BRACE, "}"); break;
-        case '(': infos.emplace_back(T_L_PAREN, "("); break;
-        case ')': infos.emplace_back(T_R_PAREN, ")"); break;
-        case '[': infos.emplace_back(T_L_BRACKET, "["); break;
-        case ']': infos.emplace_back(T_R_BRACKET, "]"); break;
-        case '~': infos.emplace_back(T_TILDA, "~"); break;
-        case '?': infos.emplace_back(T_QUESTION, "?"); break;
-
-label_default:
-        default:
-            if (isspace(*it)) {
-                assert(*it != '\n');
-                continue;
-            }
-            if (isdigit(*it)) {
-                auto digits = guts_digits(it, end);
-                if (*it == '.') {
-                    ++it;
-                    // 123.1232
-                    auto decimals = guts_digits(it, end);
-                    auto text = digits + '.' + decimals;
-                    CR_TypeFlags flags = TF_DOUBLE;
-                    extra = guts_floating_suffix(it, end, flags);
-                    --it;
-                    infos.emplace_back(T_CONSTANT, text, extra, flags);
-                } else {
-                    auto exponent = guts_exponent(it, end);
-                    if (exponent.size()) {
-                        // exponent was found. it's a floating
-                        CR_TypeFlags flags = TF_DOUBLE;
-                        extra = guts_floating_suffix(it, end, flags);
-                        --it;
-                        auto text = digits + exponent + extra;
-                        infos.emplace_back(T_CONSTANT, text, extra, flags);
-                    } else {
-                        // exponent not found. it's a integer
-                        CR_TypeFlags flags = 0;
-                        extra = guts_integer_suffix(it, end, flags);
-                        --it;
-                        infos.emplace_back(T_CONSTANT, digits, extra, flags);
-                    }
-                }
-            } else if (isalpha(*it) || *it == '_') {
-                // identifier or keyword
-                auto text = guts_indentifier(it, end);
-                --it;
-                if (text.find("__builtin_") == 0 && text.size() > 10) {
-                    if (text != "__builtin_va_list") {
-                        text = text.substr(10);
-                    }
-                }
-                Token token = parse_identifier(text);
-                infos.emplace_back(token, text);
-            } else {
-                std::string text;
-                text += *it;
-                infos.emplace_back(T_INVALID_CHAR, text);
-            }
-        } // switch (*it)
-    } // for (auto it = line.begin(); it != end; ++it)
     return true;
 } // get_tokens
 
@@ -923,20 +600,32 @@ retry:
     }
 
     auto line = get_line2(base);
+    if (line.empty()) {
+        return false;
+    }
+    do_line(line, infos);
 
-    auto end = line.end();
-    for (auto it = line.begin(); it != end; ++it) {
+    return true;
+} // get_tokens2
+
+void cparser::Lexer::do_line(
+    const std::string& line, node_container& infos)
+{
+    for (const char *it = line.c_str(); *it; ) {
         std::string extra;
         switch (*it) {
         case ' ': case '\t':
+            ++it;
             continue;
 
         case '\n':
             newline(infos);
+            ++it;
             break;
 
         case '#':
             infos.emplace_back(T_SHARP, "#");
+            ++it;
             break;
 
         case 'u':
@@ -948,16 +637,13 @@ retry:
                 extra = "u";
             }
             if (*it == '"') {
-                auto text = guts_string(it, end);
-                --it;
+                auto text = guts_string(it);
                 infos.emplace_back(T_STRING, text, extra);
             } else if (*it == '\'') {
-                auto text = guts_char(it, end);
-                --it;
-                {
-                    auto s = std::to_string(text[0]);
-                    infos.emplace_back(T_CONSTANT, s, extra);
-                }
+                auto text = guts_char(it);
+                auto n = static_cast<int>(text[0]);
+                text = std::to_string(n);
+                infos.emplace_back(T_CONSTANT, text, extra);
             } else {
                 --it;
                 goto label_default;
@@ -968,14 +654,13 @@ retry:
             extra += *it;
             ++it;
             if (*it == '"') {
-                auto text = guts_string(it, end);
-                --it;
+                auto text = guts_string(it);
                 infos.emplace_back(T_STRING, text, extra);
             } else if (*it == '\'') {
-                auto text = guts_char(it, end);
-                --it;
-                auto s = std::to_string(text[0]);
-                infos.emplace_back(T_CONSTANT, s, extra);
+                auto text = guts_char(it);
+                auto n = static_cast<int>(text[0]);
+                text = std::to_string(n);
+                infos.emplace_back(T_CONSTANT, text, extra);
             } else {
                 --it;
                 goto label_default;
@@ -984,17 +669,17 @@ retry:
 
         case '"':
             {
-                auto text = guts_string(it, end);
-                --it;
+                auto text = guts_string(it);
                 infos.emplace_back(T_STRING, text);
             }
             break;
 
         case '\'':
             {
-                auto text = guts_char(it, end);
-                auto s = std::to_string(text[0]);
-                infos.emplace_back(T_CONSTANT, s);
+                auto text = guts_char(it);
+                auto n = static_cast<int>(text[0]);
+                text = std::to_string(n);
+                infos.emplace_back(T_CONSTANT, text);
             }
             break;
 
@@ -1003,276 +688,274 @@ retry:
             if (*it == 'x' || *it == 'X') {
                 // 0x or 0X
                 ++it;
-                auto text = guts_hex(it, end);
+                auto text = guts_hex(it);
                 CR_TypeFlags flags = 0;
-                extra = guts_integer_suffix(it, end, flags);
-                --it;
+                if (*it) {
+                    extra = guts_integer_suffix(it, flags);
+                }
                 infos.emplace_back(T_CONSTANT, "0x" + text, extra, flags);
             } else if (*it == '.') {
                 // 0.
-                auto text = guts_floating(it, end);
+                auto text = guts_floating(it);
                 CR_TypeFlags flags = TF_DOUBLE;
-                extra = guts_floating_suffix(it, end, flags);
-                --it;
+                if (*it) {
+                    extra = guts_floating_suffix(it, flags);
+                }
                 infos.emplace_back(T_CONSTANT, "0." + text, extra, flags);
             } else {
                 // octal
                 --it;
-                auto text = guts_octal(it, end);
+                auto text = guts_octal(it);
                 CR_TypeFlags flags = 0;
-                extra = guts_integer_suffix(it, end, flags);
-                --it;
+                if (*it) {
+                    extra = guts_integer_suffix(it, flags);
+                }
                 infos.emplace_back(T_CONSTANT, text, extra, flags);
             }
             break;
 
         case '.':
-            if (lexeme(it, end, "...")) {
-                --it;
+            if (lexeme(it, "...")) {
                 infos.emplace_back(T_ELLIPSIS, "...");
             } else {
                 // .
-                auto text = guts_floating(it, end);
+                auto text = guts_floating(it);
                 if (text.size() > 1) {
                     CR_TypeFlags flags = TF_DOUBLE;
-                    extra = guts_floating_suffix(it, end, flags);
-                    --it;
+                    if (*it) {
+                        extra = guts_floating_suffix(it, flags);
+                    }
                     infos.emplace_back(T_CONSTANT, "0." + text, extra, flags);
                 } else {
-                    --it;
                     infos.emplace_back(T_DOT, ".");
                 }
             }
             break;
 
         case '<':
-            if (lexeme(it, end, "<<=")) {
-                --it;
+            if (lexeme(it, "<<=")) {
                 infos.emplace_back(T_L_SHIFT_ASSIGN, "<<=");
-            } else if (lexeme(it, end, "<<")) {
-                --it;
+            } else if (lexeme(it, "<<")) {
                 infos.emplace_back(T_L_SHIFT, "<<");
-            } else if (lexeme(it, end, "<=")) {
-                --it;
+            } else if (lexeme(it, "<=")) {
                 infos.emplace_back(T_LE, "<=");
-            } else if (lexeme(it, end, "<:")) {
-                --it;
+            } else if (lexeme(it, "<:")) {
                 infos.emplace_back(T_L_BRACKET, "<:");
             } else {
                 infos.emplace_back(T_LT, "<");
+                ++it;
             }
             break;
 
         case '>':
-            if (lexeme(it, end, ">>=")) {
-                --it;
+            if (lexeme(it, ">>=")) {
                 infos.emplace_back(T_R_SHIFT_ASSIGN, ">>=");
-            } else if (lexeme(it, end, ">>")) {
-                --it;
+            } else if (lexeme(it, ">>")) {
                 infos.emplace_back(T_R_SHIFT, ">>");
-            } else if (lexeme(it, end, ">=")) {
-                --it;
+            } else if (lexeme(it, ">=")) {
                 infos.emplace_back(T_GE, ">=");
             } else {
                 infos.emplace_back(T_GT, ">");
+                ++it;
             }
             break;
 
         case '+':
-            if (lexeme(it, end, "+=")) {
-                --it;
+            if (lexeme(it, "+=")) {
                 infos.emplace_back(T_ADD_ASSIGN, "+=");
-            } else if (lexeme(it, end, "++")) {
-                --it;
+            } else if (lexeme(it, "++")) {
                 infos.emplace_back(T_INC, "++");
             } else {
                 infos.emplace_back(T_PLUS, "+");
+                ++it;
             }
             break;
 
         case '-':
-            if (lexeme(it, end, "-=")) {
-                --it;
+            if (lexeme(it, "-=")) {
                 infos.emplace_back(T_SUB_ASSIGN, "-=");
-            } else if (lexeme(it, end, "--")) {
-                --it;
+            } else if (lexeme(it, "--")) {
                 infos.emplace_back(T_DEC, "--");
-            } else if (lexeme(it, end, "->")) {
-                --it;
+            } else if (lexeme(it, "->")) {
                 infos.emplace_back(T_ARROW, "->");
             } else {
                 infos.emplace_back(T_MINUS, "-");
+                ++it;
             }
             break;
 
         case '*':
-            if (lexeme(it, end, "*=")) {
-                --it;
+            if (lexeme(it, "*=")) {
                 infos.emplace_back(T_MUL_ASSIGN, "*=");
             } else {
                 infos.emplace_back(T_ASTERISK, "*");
+                ++it;
             }
             break;
 
         case '/':
-            if (lexeme(it, end, "/*")) {    // */
-                --it;
-                m_in_c_comment = true;
-                infos.emplace_back(T_C_COMMENT_BEGIN, "/*");    // */
-                skip_block_comment2(base, infos);
-            } else if (lexeme(it, end, "//")) {
-                --it;
-                m_in_cxx_comment = true;
-                infos.emplace_back(T_CPP_COMMENT, "//");
-                skip_line_comment2(base, infos);
-            } else if (lexeme(it, end, "/=")) {
-                --it;
+            if (lexeme(it, "/*")) {    // */
+                assert(0);
+            } else if (lexeme(it, "//")) {
+                assert(0);
+            } else if (lexeme(it, "/=")) {
                 infos.emplace_back(T_DIV_ASSIGN, "/=");
             } else {
                 infos.emplace_back(T_SLASH, "/");
+                ++it;
             }
             break;
 
         case '%':
-            if (lexeme(it, end, "%=")) {
-                --it;
+            if (lexeme(it, "%=")) {
                 infos.emplace_back(T_MOD_ASSIGN, "%=");
-            } else if (lexeme(it, end, "%>")) {
-                --it;
+            } else if (lexeme(it, "%>")) {
                 infos.emplace_back(T_R_BRACE, "%>");
             } else {
                 infos.emplace_back(T_PERCENT, "%");
+                ++it;
             }
             break;
 
         case '&':
-            if (lexeme(it, end, "&=")) {
-                --it;
+            if (lexeme(it, "&=")) {
                 infos.emplace_back(T_AND_ASSIGN, "&=");
-            } else if (lexeme(it, end, "&&")) {
-                --it;
+            } else if (lexeme(it, "&&")) {
                 infos.emplace_back(T_L_AND, "&&");
             } else {
                 infos.emplace_back(T_AND, "&");
+                ++it;
             }
             break;
             
         case '^':
-            if (lexeme(it, end, "^=")) {
-                --it;
+            if (lexeme(it, "^=")) {
                 infos.emplace_back(T_XOR_ASSIGN, "^=");
             } else {
                 infos.emplace_back(T_XOR, "^");
+                ++it;
             }
             break;
 
         case '|':
-            if (lexeme(it, end, "|=")) {
-                --it;
+            if (lexeme(it, "|=")) {
                 infos.emplace_back(T_OR_ASSIGN, "|=");
-            } else if (lexeme(it, end, "||")) {
-                --it;
+            } else if (lexeme(it, "||")) {
                 infos.emplace_back(T_L_OR, "||");
             } else {
                 infos.emplace_back(T_OR, "|");
+                ++it;
             }
             break;
 
         case '=':
-            if (lexeme(it, end, "==")) {
-                --it;
+            if (lexeme(it, "==")) {
                 infos.emplace_back(T_EQUAL, "==");
             } else {
                 infos.emplace_back(T_ASSIGN, "=");
+                ++it;
             }
             break;
 
         case '!':
-            if (lexeme(it, end, "!=")) {
-                --it;
+            if (lexeme(it, "!=")) {
                 infos.emplace_back(T_NE, "!=");
             } else {
                 infos.emplace_back(T_BANG, "!");
+                ++it;
             }
             break;
 
         case ';':
             infos.emplace_back(T_SEMICOLON, ";");
+            ++it;
             break;
 
         case ':':
-            if (lexeme(it, end, ":>")) {
-                --it;
+            if (lexeme(it, ":>")) {
                 infos.emplace_back(T_R_BRACKET, ":>");
             } else {
                 infos.emplace_back(T_COLON, ":");
+                ++it;
             }
             break;
 
-        case ',': infos.emplace_back(T_COMMA, ","); break;
-        case '{': infos.emplace_back(T_L_BRACE, "{"); break;
-        case '}': infos.emplace_back(T_R_BRACE, "}"); break;
-        case '(': infos.emplace_back(T_L_PAREN, "("); break;
-        case ')': infos.emplace_back(T_R_PAREN, ")"); break;
-        case '[': infos.emplace_back(T_L_BRACKET, "["); break;
-        case ']': infos.emplace_back(T_R_BRACKET, "]"); break;
-        case '~': infos.emplace_back(T_TILDA, "~"); break;
-        case '?': infos.emplace_back(T_QUESTION, "?"); break;
+        case ',': infos.emplace_back(T_COMMA, ","); ++it; break;
+        case '{': infos.emplace_back(T_L_BRACE, "{"); ++it; break;
+        case '}': infos.emplace_back(T_R_BRACE, "}"); ++it; break;
+        case '(': infos.emplace_back(T_L_PAREN, "("); ++it; break;
+        case ')': infos.emplace_back(T_R_PAREN, ")"); ++it; break;
+        case '[': infos.emplace_back(T_L_BRACKET, "["); ++it; break;
+        case ']': infos.emplace_back(T_R_BRACKET, "]"); ++it; break;
+        case '~': infos.emplace_back(T_TILDA, "~"); ++it; break;
+        case '?': infos.emplace_back(T_QUESTION, "?"); ++it; break;
+
+        case -1: // EOF
+            ++it;
+            break;
 
 label_default:
         default:
             if (isspace(*it)) {
                 assert(*it != '\n');
+                ++it;
                 continue;
             }
             if (isdigit(*it)) {
-                auto digits = guts_digits(it, end);
+                auto digits = guts_digits(it);
                 if (*it == '.') {
                     ++it;
                     // 123.1232
-                    auto decimals = guts_digits(it, end);
+                    auto decimals = guts_digits(it);
                     auto text = digits + '.' + decimals;
                     CR_TypeFlags flags = TF_DOUBLE;
-                    extra = guts_floating_suffix(it, end, flags);
-                    --it;
+                    if (*it) {
+                        extra = guts_floating_suffix(it, flags);
+                    }
                     infos.emplace_back(T_CONSTANT, text, extra, flags);
                 } else {
-                    auto exponent = guts_exponent(it, end);
+                    std::string exponent;
+                    if (*it) {
+                        exponent = guts_exponent(it);
+                    }
                     if (exponent.size()) {
                         // exponent was found. it's a floating
                         CR_TypeFlags flags = TF_DOUBLE;
-                        extra = guts_floating_suffix(it, end, flags);
-                        --it;
+                        if (*it) {
+                            extra = guts_floating_suffix(it, flags);
+                        }
                         auto text = digits + exponent + extra;
                         infos.emplace_back(T_CONSTANT, text, extra, flags);
                     } else {
                         // exponent not found. it's a integer
                         CR_TypeFlags flags = 0;
-                        extra = guts_integer_suffix(it, end, flags);
-                        --it;
+                        if (*it) {
+                            extra = guts_integer_suffix(it, flags);
+                        }
                         infos.emplace_back(T_CONSTANT, digits, extra, flags);
                     }
                 }
             } else if (isalpha(*it) || *it == '_') {
                 // identifier or keyword
-                auto text = guts_indentifier(it, end);
-                --it;
-                if (text.find("__builtin_") == 0 && text.size() > 10) {
-                    if (text != "__builtin_va_list") {
-                        text = text.substr(10);
+                auto text = guts_indentifier(it);
+                #ifdef __GNUC__
+                    if (text.find("__builtin_") == 0 && text.size() > 10) {
+                        if (text != "__builtin_va_list") {
+                            text = text.substr(10);
+                        }
                     }
-                }
+                #endif
                 Token token = parse_identifier(text);
                 infos.emplace_back(token, text);
             } else {
                 std::string text;
                 text += *it;
                 infos.emplace_back(T_INVALID_CHAR, text);
+                ++it;
             }
         } // switch (*it)
     } // for (auto it = line.begin(); it != end; ++it)
-    return true;
-} // get_tokens2
+}
 
 // token resynthesization
 void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
@@ -1304,20 +987,20 @@ void cparser::Lexer::resynth(LexerBase& base, node_container& c) {
 
 // token resynthesization
 void cparser::Lexer::resynth(LexerBase2& base, node_container& c) {
-	const bool c_show_tokens = false;
+    const bool c_show_tokens = false;
 
-	if (c_show_tokens) {
-		printf("\n#0\n");
-		show_tokens(c.begin(), c.end());
-		printf("\n--------------\n");
-		fflush(stdout);
-	}
+    if (c_show_tokens) {
+        printf("\n#0\n");
+        show_tokens(c.begin(), c.end());
+        printf("\n--------------\n");
+        fflush(stdout);
+    }
 
-	resynth3(c);
-	resynth4(c);
-	resynth5(c.begin(), c.end());
-	resynth6(c);
-	resynth7(c.begin(), c.end());
+    resynth3(c);
+    resynth4(c);
+    resynth5(c.begin(), c.end());
+    resynth6(c);
+    resynth7(c.begin(), c.end());
 }
 
 // 1. Delete all T_UNALIGNED.
@@ -1579,11 +1262,9 @@ void cparser::Lexer::resynth4(node_container& c) {
 // 4. Process typedef ... by resynth_typedef.
 // 5. If a registered type name was found, convert it to T_TYPEDEF_NAME.
 void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
-    m_type_names.clear();
     #ifdef __GNUC__
         m_type_names.insert("__builtin_va_list");   // fixup
     #else
-        m_type_names.insert("va_list");
         m_type_names.insert("SOCKADDR_STORAGE");    // fixup
     #endif
 
@@ -2157,123 +1838,121 @@ CR_TypedValue CrValueOnAssignExpr(CR_NameScope& namescope, AssignExpr *ae);
 CR_TypedValue CrValueOnExpr(CR_NameScope& namescope, Expr *e);
 CR_TypedValue CrValueOnCondExpr(CR_NameScope& namescope, CondExpr *ce);
 
-int CrCalcSizeOfTypedValue(CR_NameScope& namescope, const CR_TypedValue& result) {
-    return namescope.SizeOfType(result.m_type_id);
+int CrCalcSizeOfTypedValue(CR_NameScope& namescope, const CR_TypedValue& ret) {
+    return namescope.SizeOfType(ret.m_type_id);
 }
 
 CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     switch (pe->m_prim_type) {
     case PrimExpr::IDENTIFIER:
         {
             auto it = namescope.MapNameToVarID().find(pe->m_text);
             if (it != namescope.MapNameToVarID().end()) {
                 CR_VarID vid = it->second;
-                result = namescope.StaticCast(
-                    namescope.m_int_type,
-                        namescope.LogVar(vid).m_typed_value);
+                ret = namescope.LogVar(vid).m_typed_value;
             }
         }
         break;
 
     case PrimExpr::F_CONSTANT:
-        result.m_text = pe->m_text;
-        result.m_extra = pe->m_extra;
+        ret.m_text = pe->m_text;
+        ret.m_extra = pe->m_extra;
         if (pe->m_extra.find('f') != std::string::npos ||
             pe->m_extra.find('F') != std::string::npos)
         {
-            result.m_type_id = namescope.m_float_type;
-            result.assign<float>(std::stof(pe->m_text, NULL));
+            ret.m_type_id = namescope.m_float_type;
+            ret.assign<float>(std::stof(pe->m_text, NULL));
         } else if (pe->m_extra.find('l') != std::string::npos ||
                    pe->m_extra.find('L') != std::string::npos)
         {
-            result.m_type_id = namescope.m_long_double_type;
-            result.assign<long double>(std::stold(pe->m_text, NULL));
+            ret.m_type_id = namescope.m_long_double_type;
+            ret.assign<long double>(std::stold(pe->m_text, NULL));
         } else {
-            result.m_type_id = namescope.m_double_type;
-            result.assign<double>(std::stod(pe->m_text, NULL));
+            ret.m_type_id = namescope.m_double_type;
+            ret.assign<double>(std::stod(pe->m_text, NULL));
         }
         break;
 
     case PrimExpr::I_CONSTANT:
-        result.m_text = pe->m_text;
-        result.m_extra = pe->m_extra;
+        ret.m_text = pe->m_text;
+        ret.m_extra = pe->m_extra;
         {
             auto ull = std::stoull(pe->m_text, NULL, 0);
             bool is_unsigned = false;
-            if (result.m_extra.find("U") != std::string::npos ||
-                result.m_extra.find("u") != std::string::npos)
+            if (ret.m_extra.find("U") != std::string::npos ||
+                ret.m_extra.find("u") != std::string::npos)
             {
                 is_unsigned = true;
             }
 
-            if (result.m_extra.find("LL") != std::string::npos ||
-                result.m_extra.find("ll") != std::string::npos ||
-                result.m_extra.find("i64") != std::string::npos)
+            if (ret.m_extra.find("LL") != std::string::npos ||
+                ret.m_extra.find("ll") != std::string::npos ||
+                ret.m_extra.find("i64") != std::string::npos)
             {
                 if (is_unsigned) {
-                    result.m_type_id = namescope.m_ulong_long_type;
-                    result.assign<unsigned long long>(ull);
+                    ret.m_type_id = namescope.m_ulong_long_type;
+                    ret.assign<unsigned long long>(ull);
                 } else {
-                    result.m_type_id = namescope.m_long_long_type;
-                    result.assign<long long>(ull);
+                    ret.m_type_id = namescope.m_long_long_type;
+                    ret.assign<long long>(ull);
                 }
-            } else if (result.m_extra.find('L') != std::string::npos ||
-                       result.m_extra.find('l') != std::string::npos ||
-                       result.m_extra.find("i32") != std::string::npos)
+            } else if (ret.m_extra.find('L') != std::string::npos ||
+                       ret.m_extra.find('l') != std::string::npos ||
+                       ret.m_extra.find("i32") != std::string::npos)
             {
                 if (is_unsigned) {
-                    result.m_type_id = namescope.m_ulong_type;
-                    result.assign<unsigned long>(static_cast<unsigned long>(ull));
+                    ret.m_type_id = namescope.m_ulong_type;
+                    ret.assign<unsigned long>(static_cast<unsigned long>(ull));
                 } else {
-                    result.m_type_id = namescope.m_long_type;
-                    result.assign<long>(static_cast<long>(ull));
+                    ret.m_type_id = namescope.m_long_type;
+                    ret.assign<long>(static_cast<long>(ull));
                 }
-            } else if (result.m_extra.find("i16") != std::string::npos) {
+            } else if (ret.m_extra.find("i16") != std::string::npos) {
                 if (is_unsigned) {
-                    result.m_type_id = namescope.m_ushort_type;
-                    result.assign<unsigned short>(static_cast<unsigned short>(ull));
+                    ret.m_type_id = namescope.m_ushort_type;
+                    ret.assign<unsigned short>(static_cast<unsigned short>(ull));
                 } else {
-                    result.m_type_id = namescope.m_short_type;
-                    result.assign<short>(static_cast<short>(ull));
+                    ret.m_type_id = namescope.m_short_type;
+                    ret.assign<short>(static_cast<short>(ull));
                 }
-            } else if (result.m_extra.find("i8") != std::string::npos) {
+            } else if (ret.m_extra.find("i8") != std::string::npos) {
                 if (is_unsigned) {
-                    result.m_type_id = namescope.m_uchar_type;
-                    result.assign<unsigned char>(static_cast<unsigned char>(ull));
+                    ret.m_type_id = namescope.m_uchar_type;
+                    ret.assign<unsigned char>(static_cast<unsigned char>(ull));
                 } else {
-                    result.m_type_id = namescope.m_char_type;
-                    result.assign<short>(static_cast<char>(ull));
+                    ret.m_type_id = namescope.m_char_type;
+                    ret.assign<short>(static_cast<char>(ull));
                 }
             } else {
                 if (is_unsigned) {
-                    result.m_type_id = namescope.m_uint_type;
-                    result.assign<unsigned int>(static_cast<unsigned int>(ull));
+                    ret.m_type_id = namescope.m_uint_type;
+                    ret.assign<unsigned int>(static_cast<unsigned int>(ull));
                 } else {
-                    result.m_type_id = namescope.m_int_type;
-                    result.assign<int>(static_cast<int>(ull));
+                    ret.m_type_id = namescope.m_int_type;
+                    ret.assign<int>(static_cast<int>(ull));
                 }
             }
         }
         break;
 
     case PrimExpr::STRING:
-        result.m_text = pe->m_text;
-        result.m_extra = pe->m_extra;
-        if (result.m_extra.find("L") != std::string::npos ||
-            result.m_extra.find("l") != std::string::npos)
+        ret.m_text = pe->m_text;
+        ret.m_extra = pe->m_extra;
+        if (ret.m_extra.find("L") != std::string::npos ||
+            ret.m_extra.find("l") != std::string::npos)
         {
-            result.m_type_id = namescope.AddConstWStringType();
-            std::wstring wstr = MAnsiToWide(result.m_text.data());
-            result.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
+            ret.m_type_id = namescope.AddConstWStringType();
+            std::wstring wstr = MAnsiToWide(ret.m_text.data());
+            ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
         } else {
-            result.m_type_id = namescope.AddConstStringType();
-            result.assign(result.m_text.data(), result.m_text.size() + 1);
+            ret.m_type_id = namescope.AddConstStringType();
+            ret.assign(ret.m_text.data(), ret.m_text.size() + 1);
         }
         break;
 
     case PrimExpr::PAREN:
-        result = CrValueOnExpr(namescope, pe->m_expr.get());
+        ret = CrValueOnExpr(namescope, pe->m_expr.get());
         break;
 
     case PrimExpr::SELECTION:
@@ -2284,22 +1963,22 @@ CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     default:
         assert(0);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     switch (pe->m_postfix_type) {
     case PostfixExpr::SINGLE:
-        result = CrValueOnPrimExpr(namescope, pe->m_prim_expr.get());
+        ret = CrValueOnPrimExpr(namescope, pe->m_prim_expr.get());
         break;
 
     case PostfixExpr::ARRAYITEM:
         {
-            result = CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
+            ret = CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
             CR_TypedValue expr_value = CrValueOnExpr(namescope, pe->m_expr.get());
             int n = namescope.GetIntValue(expr_value);
-            result = namescope.ArrayItem(result, n);
+            ret = namescope.ArrayItem(ret, n);
         }
         break;
 
@@ -2310,13 +1989,13 @@ CR_TypedValue CrValueOnPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
         break;
 
     case PostfixExpr::DOT:
-        result = CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
-        result = namescope.Dot(result, pe->m_text);
+        ret = CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
+        ret = namescope.Dot(ret, pe->m_text);
         break;
 
     case PostfixExpr::ARROW:
-        result = CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
-        result = namescope.Arrow(result, pe->m_text);
+        ret = CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
+        ret = namescope.Arrow(ret, pe->m_text);
         break;
 
     case PostfixExpr::INC:
@@ -2328,7 +2007,7 @@ CR_TypedValue CrValueOnPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
     default:
         assert(0);
     }
-    return result;
+    return ret;
 }
 
 int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue);
@@ -2529,13 +2208,13 @@ int CrCalcSizeOfPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
 
     case PostfixExpr::ARRAYITEM:
         {
-            CR_TypedValue result =
+            CR_TypedValue ret =
                 CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
             CR_TypedValue index =
                 CrValueOnExpr(namescope, pe->m_expr.get());
             int n = namescope.GetIntValue(index);
-            result = namescope.ArrayItem(result, n);
-            return CrCalcSizeOfTypedValue(namescope, result);
+            ret = namescope.ArrayItem(ret, n);
+            return CrCalcSizeOfTypedValue(namescope, ret);
         }
         break;
 
@@ -2546,18 +2225,18 @@ int CrCalcSizeOfPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
 
     case PostfixExpr::DOT:
         {
-            CR_TypedValue result =
+            CR_TypedValue ret =
                 CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
-            result = namescope.Dot(result, pe->m_text);
-            return CrCalcSizeOfTypedValue(namescope, result);
+            ret = namescope.Dot(ret, pe->m_text);
+            return CrCalcSizeOfTypedValue(namescope, ret);
         }
 
     case PostfixExpr::ARROW:
         {
-            CR_TypedValue result =
+            CR_TypedValue ret =
                 CrValueOnPostfixExpr(namescope, pe->m_postfix_expr.get());
-            result = namescope.Arrow(result, pe->m_text);
-            return CrCalcSizeOfTypedValue(namescope, result);
+            ret = namescope.Arrow(ret, pe->m_text);
+            return CrCalcSizeOfTypedValue(namescope, ret);
         }
 
     case PostfixExpr::INC:
@@ -2582,35 +2261,35 @@ int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
 
     case UnaryExpr::ADDRESS:
         {
-            CR_TypedValue result =
+            CR_TypedValue ret =
                 CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
-            result = namescope.Address(result);
-            return CrCalcSizeOfTypedValue(namescope, result);
+            ret = namescope.Address(ret);
+            return CrCalcSizeOfTypedValue(namescope, ret);
         }
 
     case UnaryExpr::ASTERISK:
         {
-            CR_TypedValue result =
+            CR_TypedValue ret =
                 CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
-            result = namescope.Asterisk(result);
-            return CrCalcSizeOfTypedValue(namescope, result);
+            ret = namescope.Asterisk(ret);
+            return CrCalcSizeOfTypedValue(namescope, ret);
         }
 
     case UnaryExpr::PLUS:
     case UnaryExpr::MINUS:
     case UnaryExpr::BITWISE_NOT:
         {
-            CR_TypedValue result =
+            CR_TypedValue ret =
                 CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
-            return CrCalcSizeOfTypedValue(namescope, result);
+            return CrCalcSizeOfTypedValue(namescope, ret);
         }
 
     case UnaryExpr::NOT:
         {
-            CR_TypedValue result =
+            CR_TypedValue ret =
                 CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
-            result = namescope.Not(result);
-            return CrCalcSizeOfTypedValue(namescope, result);
+            ret = namescope.Not(ret);
+            return CrCalcSizeOfTypedValue(namescope, ret);
         }
 
     case UnaryExpr::SIZEOF1:
@@ -2644,10 +2323,10 @@ int CrCalcAlignOfTypeName(CR_NameScope& namescope, TypeName *tn) {
 }
 
 CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     switch (ue->m_unary_type) {
     case UnaryExpr::SINGLE:
-        result = CrValueOnPostfixExpr(namescope, ue->m_postfix_expr.get());
+        ret = CrValueOnPostfixExpr(namescope, ue->m_postfix_expr.get());
         break;
 
     case UnaryExpr::INC:
@@ -2657,43 +2336,43 @@ CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
         break;
 
     case UnaryExpr::ADDRESS:
-        result = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
-        result = namescope.Address(result);
+        ret = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+        ret = namescope.Address(ret);
         break;
 
     case UnaryExpr::ASTERISK:
-        result = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
-        result = namescope.Asterisk(result);
+        ret = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+        ret = namescope.Asterisk(ret);
         break;
 
     case UnaryExpr::PLUS:
-        result = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+        ret = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
         break;
 
     case UnaryExpr::MINUS:
-        result = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
-        result = namescope.Minus(result);
+        ret = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+        ret = namescope.Minus(ret);
         break;
 
     case UnaryExpr::BITWISE_NOT:
-        result = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
-        result = namescope.Not(result);
+        ret = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+        ret = namescope.Not(ret);
         break;
 
     case UnaryExpr::NOT:
-        result = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
-        result = namescope.LNot(result);
+        ret = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+        ret = namescope.LNot(ret);
         break;
 
     case UnaryExpr::SIZEOF1:
         {
             size_t size = CrCalcSizeOfUnaryExpr(namescope, ue->m_unary_expr.get());
             if (namescope.Is64Bit()) {
-                result.m_type_id = namescope.m_ulong_long_type;
-                result.assign<unsigned long long>(size);
+                ret.m_type_id = namescope.m_ulong_long_type;
+                ret.assign<unsigned long long>(size);
             } else {
-                result.m_type_id = namescope.m_uint_type;
-                result.assign<unsigned int>(static_cast<unsigned int>(size));
+                ret.m_type_id = namescope.m_uint_type;
+                ret.assign<unsigned int>(static_cast<unsigned int>(size));
             }
         }
         break;
@@ -2702,11 +2381,11 @@ CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
         {
             size_t size = CrCalcSizeOfTypeName(namescope, ue->m_type_name.get());
             if (namescope.Is64Bit()) {
-                result.m_type_id = namescope.m_ulong_long_type;
-                result.assign<unsigned long long>(size);
+                ret.m_type_id = namescope.m_ulong_long_type;
+                ret.assign<unsigned long long>(size);
             } else {
-                result.m_type_id = namescope.m_uint_type;
-                result.assign<unsigned int>(static_cast<unsigned int>(size));
+                ret.m_type_id = namescope.m_uint_type;
+                ret.assign<unsigned int>(static_cast<unsigned int>(size));
             }
         }
         break;
@@ -2714,14 +2393,14 @@ CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
     default:
         assert(0);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnCastExpr(CR_NameScope& namescope, CastExpr *ce) {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     switch (ce->m_cast_type) {
     case CastExpr::UNARY:
-        result = CrValueOnUnaryExpr(namescope, ce->m_unary_expr.get());
+        ret = CrValueOnUnaryExpr(namescope, ce->m_unary_expr.get());
         break;
     
     case CastExpr::INITERLIST:
@@ -2733,235 +2412,235 @@ CR_TypedValue CrValueOnCastExpr(CR_NameScope& namescope, CastExpr *ce) {
 
     case CastExpr::CAST:
         {
-            result = CrValueOnCastExpr(namescope, ce->m_cast_expr.get());
+            CR_TypedValue value = CrValueOnCastExpr(namescope, ce->m_cast_expr.get());
             CR_TypeID tid = CrGetTypeIDOfTypeName(namescope, ce->m_type_name.get());
-            result = namescope.Cast(tid, result);
+            ret = namescope.Cast(tid, value);
         }
         break;
 
     default:
         assert(0);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnMulExpr(CR_NameScope& namescope, MulExpr *me) {
-    CR_TypedValue n1, n2, result;
+    CR_TypedValue n1, n2, ret;
     switch (me->m_mul_type) {
     case MulExpr::SINGLE:
-        result = CrValueOnCastExpr(namescope, me->m_cast_expr.get());
+        ret = CrValueOnCastExpr(namescope, me->m_cast_expr.get());
         break;
 
     case MulExpr::ASTERISK:
         n1 = CrValueOnMulExpr(namescope, me->m_mul_expr.get());
         n2 = CrValueOnCastExpr(namescope, me->m_cast_expr.get());
-        result = namescope.Mul(n1, n2);
+        ret = namescope.Mul(n1, n2);
         break;
 
     case MulExpr::SLASH:
         n1 = CrValueOnMulExpr(namescope, me->m_mul_expr.get());
         n2 = CrValueOnCastExpr(namescope, me->m_cast_expr.get());
-        result = namescope.Div(n1, n2);
+        ret = namescope.Div(n1, n2);
         break;
 
     case MulExpr::PERCENT:
         n1 = CrValueOnMulExpr(namescope, me->m_mul_expr.get());
         n2 = CrValueOnCastExpr(namescope, me->m_cast_expr.get());
-        result = namescope.Mod(n1, n2);
+        ret = namescope.Mod(n1, n2);
         break;
 
     default:
         assert(0);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnAddExpr(CR_NameScope& namescope, AddExpr *ae) {
-    CR_TypedValue n1, n2, result;
+    CR_TypedValue n1, n2, ret;
     switch (ae->m_add_type) {
     case AddExpr::SINGLE:
-        result = CrValueOnMulExpr(namescope, ae->m_mul_expr.get());
+        ret = CrValueOnMulExpr(namescope, ae->m_mul_expr.get());
         break;
 
     case AddExpr::PLUS:
         n1 = CrValueOnAddExpr(namescope, ae->m_add_expr.get());
         n2 = CrValueOnMulExpr(namescope, ae->m_mul_expr.get());
-        result = namescope.Add(n1, n2);
+        ret = namescope.Add(n1, n2);
         break;
 
     case AddExpr::MINUS:
         n1 = CrValueOnAddExpr(namescope, ae->m_add_expr.get());
         n2 = CrValueOnMulExpr(namescope, ae->m_mul_expr.get());
-        result = namescope.Sub(n1, n2);
+        ret = namescope.Sub(n1, n2);
         break;
 
     default:
         assert(0);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnShiftExpr(CR_NameScope& namescope, ShiftExpr *se) {
-    CR_TypedValue n1, n2, result;
+    CR_TypedValue n1, n2, ret;
     switch (se->m_shift_type) {
     case ShiftExpr::SINGLE:
-        result = CrValueOnAddExpr(namescope, se->m_add_expr.get());
+        ret = CrValueOnAddExpr(namescope, se->m_add_expr.get());
         break;
 
     case ShiftExpr::L_SHIFT:
         n1 = CrValueOnShiftExpr(namescope, se->m_shift_expr.get());
         n2 = CrValueOnAddExpr(namescope, se->m_add_expr.get());
-        result = namescope.Shl(n1, n2);
+        ret = namescope.Shl(n1, n2);
         break;
 
     case ShiftExpr::R_SHIFT:
         n1 = CrValueOnShiftExpr(namescope, se->m_shift_expr.get());
         n2 = CrValueOnAddExpr(namescope, se->m_add_expr.get());
-        result = namescope.Shr(n1, n2);
+        ret = namescope.Shr(n1, n2);
         break;
 
     default:
         assert(0);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnRelExpr(CR_NameScope& namescope, RelExpr *re) {
-    CR_TypedValue n1, n2, result;
+    CR_TypedValue n1, n2, ret;
     switch (re->m_rel_type) {
     case RelExpr::SINGLE:
-        result = CrValueOnShiftExpr(namescope, re->m_shift_expr.get());
+        ret = CrValueOnShiftExpr(namescope, re->m_shift_expr.get());
         break;
 
     case RelExpr::LT:
         n1 = CrValueOnRelExpr(namescope, re->m_rel_expr.get());
         n2 = CrValueOnShiftExpr(namescope, re->m_shift_expr.get());
-        result = namescope.Lt(n1, n2);
+        ret = namescope.Lt(n1, n2);
         break;
 
     case RelExpr::GT:
         n1 = CrValueOnRelExpr(namescope, re->m_rel_expr.get());
         n2 = CrValueOnShiftExpr(namescope, re->m_shift_expr.get());
-        result = namescope.Gt(n1, n2);
+        ret = namescope.Gt(n1, n2);
         break;
 
     case RelExpr::LE:
         n1 = CrValueOnRelExpr(namescope, re->m_rel_expr.get());
         n2 = CrValueOnShiftExpr(namescope, re->m_shift_expr.get());
-        result = namescope.Le(n1, n2);
+        ret = namescope.Le(n1, n2);
         break;
 
     case RelExpr::GE:
         n1 = CrValueOnRelExpr(namescope, re->m_rel_expr.get());
         n2 = CrValueOnShiftExpr(namescope, re->m_shift_expr.get());
-        result = namescope.Ge(n1, n2);
+        ret = namescope.Ge(n1, n2);
         break;
 
     default:
         assert(0);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnEqualExpr(CR_NameScope& namescope, EqualExpr *ee) {
-    CR_TypedValue n1, n2, result;
+    CR_TypedValue n1, n2, ret;
     switch (ee->m_equal_type) {
     case EqualExpr::SINGLE:
-        result = CrValueOnRelExpr(namescope, ee->m_rel_expr.get());
+        ret = CrValueOnRelExpr(namescope, ee->m_rel_expr.get());
         break;
 
     case EqualExpr::EQUAL:
         n1 = CrValueOnEqualExpr(namescope, ee->m_equal_expr.get());
         n2 = CrValueOnRelExpr(namescope, ee->m_rel_expr.get());
-        result = namescope.Eq(n1, n2);
+        ret = namescope.Eq(n1, n2);
         break;
 
     case EqualExpr::NE:
         n1 = CrValueOnEqualExpr(namescope, ee->m_equal_expr.get());
         n2 = CrValueOnRelExpr(namescope, ee->m_rel_expr.get());
-        result = namescope.Ne(n1, n2);
+        ret = namescope.Ne(n1, n2);
         break;
 
     default:
         assert(0);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnAndExpr(CR_NameScope& namescope, AndExpr *ae) {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     if (ae->size() == 1) {
-        result = CrValueOnEqualExpr(namescope, (*ae)[0].get());
+        ret = CrValueOnEqualExpr(namescope, (*ae)[0].get());
     } else {
-        result = CrValueOnEqualExpr(namescope, (*ae)[0].get());
+        ret = CrValueOnEqualExpr(namescope, (*ae)[0].get());
         for (std::size_t i = 1; i < ae->size(); ++i) {
-            result = namescope.And(
-                result, CrValueOnEqualExpr(namescope, (*ae)[i].get()));
+            ret = namescope.And(
+                ret, CrValueOnEqualExpr(namescope, (*ae)[i].get()));
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnExclOrExpr(CR_NameScope& namescope, ExclOrExpr *eoe) {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     if (eoe->size() == 1) {
-        result = CrValueOnAndExpr(namescope, (*eoe)[0].get());
+        ret = CrValueOnAndExpr(namescope, (*eoe)[0].get());
     } else {
-        namescope.IntZero(result);
+        namescope.IntZero(ret);
         for (auto& ae : *eoe) {
-            result =
+            ret =
                 namescope.Xor(
-                    result, CrValueOnAndExpr(namescope, ae.get()));
+                    ret, CrValueOnAndExpr(namescope, ae.get()));
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     if (ioe->size() == 1) {
-        result = CrValueOnExclOrExpr(namescope, (*ioe)[0].get());
+        ret = CrValueOnExclOrExpr(namescope, (*ioe)[0].get());
     } else {
-        namescope.IntZero(result);
+        namescope.IntZero(ret);
         for (auto& eoe : *ioe) {
-            result = namescope.Or(
-                result, CrValueOnExclOrExpr(namescope, eoe.get()));
+            ret = namescope.Or(
+                ret, CrValueOnExclOrExpr(namescope, eoe.get()));
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae) {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     if (lae->size() == 1) {
-        result = CrValueOnInclOrExpr(namescope, (*lae)[0].get());
+        ret = CrValueOnInclOrExpr(namescope, (*lae)[0].get());
     } else {
-        namescope.IntOne(result);
+        namescope.IntOne(ret);
         for (auto& ioe : *lae) {
-            result = namescope.LAnd(
-                result, CrValueOnInclOrExpr(namescope, ioe.get()));
-            if (namescope.GetIntValue(result) == 0) {
+            ret = namescope.LAnd(
+                ret, CrValueOnInclOrExpr(namescope, ioe.get()));
+            if (namescope.GetIntValue(ret) == 0) {
                 break;
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe) {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     if (loe->size() == 1) {
-        result = CrValueOnLogAndExpr(namescope, (*loe)[0].get());
+        ret = CrValueOnLogAndExpr(namescope, (*loe)[0].get());
     } else {
         for (auto& lae : *loe) {
-            result = CrValueOnLogAndExpr(namescope, lae.get());
-            if (namescope.GetIntValue(result) != 0) {
-                namescope.IntOne(result);
+            ret = CrValueOnLogAndExpr(namescope, lae.get());
+            if (namescope.GetIntValue(ret) != 0) {
+                namescope.IntOne(ret);
                 break;
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnAssignExpr(CR_NameScope& namescope, AssignExpr *ae) {
@@ -3042,27 +2721,27 @@ CR_TypedValue CrValueOnAssignExpr(CR_NameScope& namescope, AssignExpr *ae) {
 }
 
 CR_TypedValue CrValueOnExpr(CR_NameScope& namescope, Expr *e) {
-    CR_TypedValue result;
-    namescope.IntZero(result);
+    CR_TypedValue ret;
+    namescope.IntZero(ret);
     for (auto& ae : *e) {
-        result = CrValueOnAssignExpr(namescope, ae.get());
+        ret = CrValueOnAssignExpr(namescope, ae.get());
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CrValueOnCondExpr(CR_NameScope& namescope, CondExpr *ce) {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     switch (ce->m_cond_type) {
     case CondExpr::SINGLE:
-        result = CrValueOnLogOrExpr(namescope, ce->m_log_or_expr.get());
+        ret = CrValueOnLogOrExpr(namescope, ce->m_log_or_expr.get());
         break;
 
     case CondExpr::QUESTION:
-        result = CrValueOnLogOrExpr(namescope, ce->m_log_or_expr.get());
-        if (namescope.GetIntValue(result) != 0) {
-            result = CrValueOnExpr(namescope, ce->m_expr.get());
+        ret = CrValueOnLogOrExpr(namescope, ce->m_log_or_expr.get());
+        if (namescope.GetIntValue(ret) != 0) {
+            ret = CrValueOnExpr(namescope, ce->m_expr.get());
         } else {
-            result = CrValueOnCondExpr(namescope, ce->m_cond_expr.get());
+            ret = CrValueOnCondExpr(namescope, ce->m_cond_expr.get());
         }
         break;
 
@@ -3070,7 +2749,7 @@ CR_TypedValue CrValueOnCondExpr(CR_NameScope& namescope, CondExpr *ce) {
         assert(0);
         break;
     }
-    return result;
+    return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -3799,7 +3478,6 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 if (flags & TF_CONST) {
                     tid = namescope.AddConstType(tid);
                 }
-                assert(tid != cr_invalid_id);
                 return tid;
 
             case TF_UNION:
@@ -3840,7 +3518,6 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 if (flags & TF_CONST) {
                     tid = namescope.AddConstType(tid);
                 }
-                assert(tid != cr_invalid_id);
                 return tid;
 
             case TF_ENUM:
@@ -3857,7 +3534,6 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 if (flags & TF_CONST) {
                     tid = namescope.AddConstType(tid);
                 }
-                assert(tid != cr_invalid_id);
                 return tid;
 
             case TF_ATOMIC:
@@ -3892,10 +3568,8 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
 
     flags = CrNormalizeTypeFlags(flags);
     tid = namescope.TypeIDFromFlags(flags & ~TF_CONST);
-    assert(tid != cr_invalid_id);
     if (flags & TF_CONST) {
         tid = namescope.AddConstType(tid);
-        assert(tid != cr_invalid_id);
     }
     return tid;
 }
@@ -3931,12 +3605,12 @@ void CrReplaceString(
 }
 
 std::string CrConvertCmdLineParam(const std::string& str) {
-    std::string result = str;
-    CrReplaceString(result, "\"", "\"\"");
-    if (result.find_first_of("\" \t\f\v") != std::string::npos) {
-        result = "\"" + str + "\"";
+    std::string ret = str;
+    CrReplaceString(ret, "\"", "\"\"");
+    if (ret.find_first_of("\" \t\f\v") != std::string::npos) {
+        ret = "\"" + str + "\"";
     }
-    return result;
+    return ret;
 }
 
 // do input
@@ -4145,6 +3819,13 @@ bool CrParseMacros(
     for (auto it : namescope.MapNameToTypeID()) {
         type_names.emplace(it.first);
     }
+    for (auto it : namescope.MapTypeIDToName()) {
+        type_names.emplace(it.second);
+    }
+    type_names.erase("");
+
+    auto error_info_saved = namescope.ErrorInfo();
+    namescope.ErrorInfo() = make_shared<CR_ErrorInfo>();
 
     auto end = macro_set.end();
     for (auto it = macro_set.begin(); it != end; ++it) {
@@ -4159,29 +3840,32 @@ bool CrParseMacros(
         // expand macro
         auto expanded = CrExpandMacro(macro_set, macro.m_contents);
 
-        CR_NameScope ns(namescope);
-		auto error_info = make_shared<CR_ErrorInfo>();
-		ns.ErrorInfo() = error_info;
-
         // parse as expression
         shared_ptr<Expr> expr;
-        if (parse_expression(error_info, expr, expanded.begin(), expanded.end(),
+        if (parse_expression(namescope.ErrorInfo(), expr, 
+                             expanded.begin(), expanded.end(),
                              type_names, namescope.Is64Bit()))
         {
             CR_LogVar var;
-            CR_TypedValue typed_value = CrValueOnExpr(ns, expr.get());
+            CR_TypedValue typed_value = CrValueOnExpr(namescope, expr.get());
             var.m_location = macro.m_location;
             var.m_typed_value = typed_value;
 
             // add macro as variable
             auto vid = namescope.LogVars().insert(var);
-            namescope.MapVarIDToName()[vid] = name;
+            namescope.MapVarIDToName().emplace(vid, name);
             if (name.size()) {
-                namescope.MapNameToVarID()[name] = vid;
+                namescope.MapNameToVarID().emplace(name, vid);
             }
+        } else {
+            #if 1
+                std::cerr << name << ": " << macro.m_contents << std::endl;
+            #endif
         }
     }
-    return false;
+
+    namescope.ErrorInfo() = error_info_saved;
+    return true;
 }
 
 int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {
@@ -4356,25 +4040,25 @@ int main(int argc, char **argv) {
         return cr_exit_ok;
     }
 
-    int result = cr_exit_ok;
+    int ret = cr_exit_ok;
 
     shared_ptr<TransUnit> tu;
     auto error_info = make_shared<CR_ErrorInfo>();
     if (i < argc) {
-        std::cerr << "Parsing..." << std::endl;
+        std::cerr << "Parsing headers..." << std::endl;
         // argv[i] == input-file
         // argv[i + 1] == compiler option #1
         // argv[i + 2] == compiler option #2
         // argv[i + 3] == ...
-        result = CrInputCSrc(error_info, tu, i, argc, argv, is_64bit);
+        ret = CrInputCSrc(error_info, tu, i, argc, argv, is_64bit);
     } else {
         error_info->add_error("no input files");
-        result = cr_exit_no_input;
+        ret = cr_exit_no_input;
     }
 
-    if (result) {
+    if (ret) {
         error_info->emit_all();
-        return result;
+        return ret;
     }
 
     if (tu) {
@@ -4382,19 +4066,23 @@ int main(int argc, char **argv) {
         if (is_64bit) {
             CR_NameScope namescope(error_info, true);
 
-            result = CrSemanticAnalysis(namescope, tu);
+            ret = CrSemanticAnalysis(namescope, tu);
             tu = shared_ptr<TransUnit>();
-            if (result == 0) {
+            if (ret == 0) {
+                std::cerr << "Parsing macros..." << std::endl;
                 CrParseMacros(namescope, strPrefix, strSuffix, true);
+                std::cerr << "Dumping..." << std::endl;
                 CrDumpSemantic(namescope, strPrefix, strSuffix);
             }
         } else {
             CR_NameScope namescope(error_info, false);
 
-            result = CrSemanticAnalysis(namescope, tu);
+            ret = CrSemanticAnalysis(namescope, tu);
             tu = shared_ptr<TransUnit>();
-            if (result == 0) {
+            if (ret == 0) {
+                std::cerr << "Parsing macros..." << std::endl;
                 CrParseMacros(namescope, strPrefix, strSuffix, false);
+                std::cerr << "Dumping..." << std::endl;
                 CrDumpSemantic(namescope, strPrefix, strSuffix);
             }
         }
@@ -4404,9 +4092,17 @@ int main(int argc, char **argv) {
 
     if (error_info->errors().empty()) {
         std::cerr << "Done." << std::endl;
+    } else {
+        if (error_info->warnings().size()) {
+            std::cerr << error_info->errors().size() << " errors, " <<
+                         error_info->warnings().size() << " warnings." << std::endl;
+        } else {
+            std::cerr << error_info->errors().size() << " errors." << std::endl;
+        }
+        return cr_exit_parse_error;
     }
 
-    return result;
+    return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////

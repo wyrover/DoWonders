@@ -525,7 +525,6 @@ public:
 
     // get size of type
     int SizeOfType(CR_TypeID tid) const {
-        assert(tid != cr_invalid_id);
         if (tid == cr_invalid_id)
             return 0;
         auto& type = LogType(tid);
@@ -748,6 +747,21 @@ public:
     CR_TypeID                           m_float_type;
     CR_TypeID                           m_double_type;
     CR_TypeID                           m_long_double_type;
+    CR_TypeID                           m_const_char_type;
+    CR_TypeID                           m_const_uchar_type;
+    CR_TypeID                           m_const_short_type;
+    CR_TypeID                           m_const_ushort_type;
+    CR_TypeID                           m_const_int_type;
+    CR_TypeID                           m_const_uint_type;
+    CR_TypeID                           m_const_long_type;
+    CR_TypeID                           m_const_ulong_type;
+    CR_TypeID                           m_const_long_long_type;
+    CR_TypeID                           m_const_ulong_long_type;
+    CR_TypeID                           m_const_float_type;
+    CR_TypeID                           m_const_double_type;
+    CR_TypeID                           m_const_long_double_type;
+    CR_TypeID                           m_const_string_type;
+    CR_TypeID                           m_const_wstring_type;
 }; // class CR_NameScope
 
 #endif  // ndef TYPESYSTEM_H_

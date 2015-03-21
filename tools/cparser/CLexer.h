@@ -179,32 +179,31 @@ namespace cparser
         }
 
         void skip_block_comment(LexerBase& base, node_container& infos);
-        void skip_line_comment(LexerBase& base, node_container& infos);
-
         void skip_block_comment2(LexerBase2& base, node_container& infos);
+        void skip_line_comment(LexerBase& base, node_container& infos);
         void skip_line_comment2(LexerBase2& base, node_container& infos);
 
-        std::string guts_escape_sequence(str_iterator& it, str_iterator end) const;
-        std::string guts_string(str_iterator& it, str_iterator end) const;
-        std::string guts_char(str_iterator& it, str_iterator end) const;
-        std::string guts_hex(str_iterator& it, str_iterator end) const;
-        std::string guts_digits(str_iterator& it, str_iterator end) const;
-        std::string guts_octal(str_iterator& it, str_iterator end) const;
-        std::string guts_floating(str_iterator& it, str_iterator end) const;
-        std::string guts_indentifier(str_iterator& it, str_iterator end) const;
+        std::string guts_escape_sequence(const char *& it) const;
+        std::string guts_string(const char *& it) const;
+        std::string guts_char(const char *& it) const;
+        std::string guts_hex(const char *& it) const;
+        std::string guts_hex2(const char *& it) const;
+        std::string guts_digits(const char *& it) const;
+        std::string guts_octal(const char *& it) const;
+        std::string guts_floating(const char *& it) const;
+        std::string guts_indentifier(const char *& it) const;
 
-        std::string guts_integer_suffix(
-            str_iterator& it, str_iterator end, CR_TypeFlags& flags) const;
-        std::string guts_floating_suffix(
-            str_iterator& it, str_iterator end, CR_TypeFlags& flags) const;
-        std::string guts_exponent(str_iterator& it, str_iterator end) const;
+        std::string guts_integer_suffix(const char *& it, CR_TypeFlags& flags) const;
+        std::string guts_floating_suffix(const char *& it, CR_TypeFlags& flags) const;
+        std::string guts_exponent(const char *& it) const;
 
-        bool lexeme(str_iterator& it, str_iterator end, const std::string& str);
+        bool lexeme(const char *& it, const std::string& str);
 
         std::string get_line(LexerBase& base);
         std::string get_line2(LexerBase2& base);
         bool get_tokens(LexerBase& base, node_container& infos);
         bool get_tokens2(LexerBase2& base, node_container& infos);
+        void do_line(const std::string& line, node_container& infos);
         bool token_pattern_match(
             LexerBase& base, node_iterator it, node_iterator end,
             const std::vector<Token>& tokens) const;
@@ -232,9 +231,9 @@ namespace cparser
         void resynth6(node_container& c);
         void resynth7(node_iterator begin, node_iterator end);
 
-		void resynth(LexerBase2& base, node_container& c);
-		void resynth1(LexerBase2& base, node_container& c);
-		void resynth2(LexerBase2& base, node_container& c);
+        void resynth(LexerBase2& base, node_container& c);
+        void resynth1(LexerBase2& base, node_container& c);
+        void resynth2(LexerBase2& base, node_container& c);
 
         Token parse_identifier(const std::string& text) const;
 

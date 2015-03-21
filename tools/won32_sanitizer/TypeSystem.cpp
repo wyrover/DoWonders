@@ -40,45 +40,45 @@ void CrChop(std::string& str) {
 }
 
 std::string CrEscapeString(const std::string& str) {
-    std::string result;
+    std::string ret;
     size_t count = 0;
     const size_t siz = str.size();
     for (size_t i = 0; i < siz; ++i) {
         char ch = str[i];
         switch (ch) {
         case '\'': case '\"': case '\?': case '\\':
-            result += '\\';
-            result += ch;
+            ret += '\\';
+            ret += ch;
             count += 2;
             break;
         case '\a':
-            result += '\\';
-            result += 'a';
+            ret += '\\';
+            ret += 'a';
             count += 2;
             break;
         case '\b':
-            result += '\\';
-            result += 'b';
+            ret += '\\';
+            ret += 'b';
             count += 2;
             break;
         case '\f':
-            result += '\\';
-            result += 'f';
+            ret += '\\';
+            ret += 'f';
             count += 2;
             break;
         case '\r':
-            result += '\\';
-            result += 'r';
+            ret += '\\';
+            ret += 'r';
             count += 2;
             break;
         case '\t':
-            result += '\\';
-            result += 't';
+            ret += '\\';
+            ret += 't';
             count += 2;
             break;
         case '\v':
-            result += '\\';
-            result += 'v';
+            ret += '\\';
+            ret += 'v';
             count += 2;
             break;
         default:
@@ -87,20 +87,20 @@ std::string CrEscapeString(const std::string& str) {
                 std::strstream ss;
                 ss << "\\x" << std::hex <<
                     std::setfill('0') << std::setw(2) << n;
-                result += ss.str();
+                ret += ss.str();
                 count += 4;
             } else {
-                result += ch;
+                ret += ch;
                 count++;
             }
         }
     }
-    result.resize(count);
-    return "\"" + result + "\"";
+    ret.resize(count);
+    return "\"" + ret + "\"";
 }
 
-bool CrUnscapeString(std::string& result, const std::string& str) {
-    result.clear();
+bool CrUnscapeString(std::string& ret, const std::string& str) {
+    ret.clear();
     size_t siz = str.size();
     bool inside = false, is_valid = true;
     for (size_t i = 0; i < siz; ++i) {
@@ -108,7 +108,7 @@ bool CrUnscapeString(std::string& result, const std::string& str) {
         if (ch == '\"') {
             if (inside) {
                 if (++i < siz && str[i] == '\"') {
-                    result += '\"';
+                    ret += '\"';
                 } else {
                     --i;
                     inside = false;
@@ -125,7 +125,7 @@ bool CrUnscapeString(std::string& result, const std::string& str) {
             continue;
         }
         if (ch != '\\') {
-            result += ch;
+            ret += ch;
             continue;
         }
         if (++i >= siz) {
@@ -134,15 +134,15 @@ bool CrUnscapeString(std::string& result, const std::string& str) {
         ch = str[i];
         switch (ch) {
         case '\'': case '\"': case '\?': case '\\':
-            result += ch;
+            ret += ch;
             break;
-        case 'a': result += '\a'; break;
-        case 'b': result += '\b'; break;
-        case 'f': result += '\f'; break;
-        case 'n': result += '\n'; break;
-        case 'r': result += '\r'; break;
-        case 't': result += '\t'; break;
-        case 'v': result += '\v'; break;
+        case 'a': ret += '\a'; break;
+        case 'b': ret += '\b'; break;
+        case 'f': ret += '\f'; break;
+        case 'n': ret += '\n'; break;
+        case 'r': ret += '\r'; break;
+        case 't': ret += '\t'; break;
+        case 'v': ret += '\v'; break;
         case 'x':
             {
                 std::string hex;
@@ -158,7 +158,7 @@ bool CrUnscapeString(std::string& result, const std::string& str) {
                     is_valid = false; // invalid escape sequence
                 }
                 auto n = std::stoul(hex, NULL, 16);
-                result += static_cast<char>(n);
+                ret += static_cast<char>(n);
             }
             break;
         default:
@@ -176,7 +176,7 @@ bool CrUnscapeString(std::string& result, const std::string& str) {
                     --i;
                 }
                 auto n = std::stoul(oct, NULL, 8);
-                result += static_cast<char>(n);
+                ret += static_cast<char>(n);
             }
         }
     }
@@ -189,7 +189,7 @@ bool CrUnscapeString(std::string& result, const std::string& str) {
 CR_TypedValue::CR_TypedValue(const void *ptr, size_t size) :
     m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(0)
 {
-    assign(ptr, size);
+	assign(ptr, size);
 }
 
 CR_TypedValue::CR_TypedValue(const CR_TypedValue& value) :
@@ -199,7 +199,7 @@ CR_TypedValue::CR_TypedValue(const CR_TypedValue& value) :
     m_text = value.m_text;
     m_extra = value.m_extra;
     m_addr = value.m_addr;
-    assign(value.m_ptr, value.m_size);
+	assign(value.m_ptr, value.m_size);
 }
 
 CR_TypedValue& CR_TypedValue::operator=(const CR_TypedValue& value) {
@@ -208,7 +208,7 @@ CR_TypedValue& CR_TypedValue::operator=(const CR_TypedValue& value) {
         m_text = value.m_text;
         m_extra = value.m_extra;
         m_addr = value.m_addr;
-        assign(value.m_ptr, value.m_size);
+		assign(value.m_ptr, value.m_size);
     }
     return *this;
 }
@@ -237,21 +237,29 @@ CR_TypedValue& CR_TypedValue::operator=(CR_TypedValue&& value) {
 }
 
 void CR_TypedValue::assign(const void *ptr, size_t size) {
-    assert(ptr != m_ptr);
-    if (ptr == NULL || size == 0) {
-        free(m_ptr);
-        m_ptr = NULL;
-        m_size = size;
-        return;
-    }
-    m_ptr = realloc(m_ptr, size);
-    if (m_ptr) {
-        memmove(m_ptr, ptr, size);
-        m_size = size;
-    } else {
-        m_size = 0;
-        throw std::bad_alloc();
-    }
+	if (ptr == NULL || size == 0) {
+		free(m_ptr);
+		m_ptr = NULL;
+		m_size = size;
+	} else if (ptr == m_ptr) {
+		if (m_size < size) {
+			m_ptr = realloc(m_ptr, size);
+			if (m_ptr == NULL) {
+				m_size = 0;
+				throw std::bad_alloc();
+			}
+		}
+		m_size = size;
+	} else {
+		m_ptr = realloc(m_ptr, size);
+		if (m_ptr) {
+			memmove(m_ptr, ptr, size);
+			m_size = size;
+		} else {
+			m_size = 0;
+			throw std::bad_alloc();
+		}
+	}
 }
 
 /*virtual*/ CR_TypedValue::~CR_TypedValue() {
@@ -343,7 +351,23 @@ CR_NameScope::CR_NameScope(const CR_NameScope& ns) :
     m_uint_type(ns.m_uint_type),
     m_float_type(ns.m_float_type),
     m_double_type(ns.m_double_type),
-    m_long_double_type(ns.m_long_double_type) { }
+    m_long_double_type(ns.m_long_double_type),
+    m_const_char_type(ns.m_const_char_type),
+    m_const_uchar_type(ns.m_const_uchar_type),
+    m_const_short_type(ns.m_const_short_type),
+    m_const_ushort_type(ns.m_const_ushort_type),
+    m_const_int_type(ns.m_const_int_type),
+    m_const_uint_type(ns.m_const_uint_type),
+    m_const_long_type(ns.m_const_long_type),
+    m_const_ulong_type(ns.m_const_ulong_type),
+    m_const_long_long_type(ns.m_const_long_long_type),
+    m_const_ulong_long_type(ns.m_const_ulong_long_type),
+    m_const_float_type(ns.m_const_float_type),
+    m_const_double_type(ns.m_const_double_type),
+    m_const_long_double_type(ns.m_const_long_double_type),
+    m_const_string_type(ns.m_const_string_type),
+    m_const_wstring_type(ns.m_const_wstring_type)
+    { }
 
 CR_NameScope& CR_NameScope::operator=(const CR_NameScope& ns) {
     m_error_info = ns.m_error_info;
@@ -372,6 +396,21 @@ CR_NameScope& CR_NameScope::operator=(const CR_NameScope& ns) {
     m_float_type = ns.m_float_type;
     m_double_type = ns.m_double_type;
     m_long_double_type = ns.m_long_double_type;
+    m_const_char_type = ns.m_const_char_type;
+    m_const_uchar_type = ns.m_const_uchar_type;
+    m_const_short_type = ns.m_const_short_type;
+    m_const_ushort_type = ns.m_const_ushort_type;
+    m_const_int_type = ns.m_const_int_type;
+    m_const_uint_type = ns.m_const_uint_type;
+    m_const_long_type = ns.m_const_long_type;
+    m_const_ulong_type = ns.m_const_ulong_type;
+    m_const_long_long_type = ns.m_const_long_long_type;
+    m_const_ulong_long_type = ns.m_const_ulong_long_type;
+    m_const_float_type = ns.m_const_float_type;
+    m_const_double_type = ns.m_const_double_type;
+    m_const_long_double_type = ns.m_const_long_double_type;
+    m_const_string_type = ns.m_const_string_type;
+    m_const_wstring_type = ns.m_const_wstring_type;
     return *this;
 }
 
@@ -412,6 +451,22 @@ void CR_NameScope::Init() {
     #else
         m_long_double_type = AddType("long double", TF_LONG | TF_DOUBLE, sizeof(long double), location);
     #endif
+
+    m_const_char_type = AddConstCharType();
+    m_const_uchar_type = AddConstUCharType();
+    m_const_short_type = AddConstShortType();
+    m_const_ushort_type = AddConstUShortType();
+    m_const_int_type = AddConstIntType();
+    m_const_uint_type = AddConstUIntType();
+    m_const_long_type = AddConstLongType();
+    m_const_ulong_type = AddConstULongType();
+    m_const_long_long_type = AddConstLongLongType();
+    m_const_ulong_long_type = AddConstULongLongType();
+    m_const_float_type = AddConstFloatType();
+    m_const_double_type = AddConstDoubleType();
+    m_const_long_double_type = AddConstLongDoubleType();
+    m_const_string_type = AddConstStringType();
+    m_const_wstring_type = AddConstWStringType();
 }
 
 CR_TypeID CR_NameScope::AddAliasType(
@@ -449,14 +504,17 @@ CR_TypeID CR_NameScope::AddAliasType(
 CR_VarID CR_NameScope::AddVar(
     const std::string& name, CR_TypeID tid, const CR_Location& location)
 {
-    assert(tid != cr_invalid_id);
+    if (tid == cr_invalid_id) {
+        return cr_invalid_id;
+    }
     CR_LogVar var;
     var.m_typed_value.m_type_id = tid;
+    var.m_typed_value.m_size = SizeOfType(tid);
     var.location() = location;
     auto vid = m_vars.insert(var);
+    m_mVarIDToName[vid] = name;
     if (!name.empty()) {
         m_mNameToVarID[name] = vid;
-        m_mVarIDToName[vid] = name;
     }
     return vid;
 }
@@ -465,7 +523,9 @@ CR_VarID CR_NameScope::AddVar(
     const std::string& name, CR_TypeID tid, int value,
     const CR_Location& location)
 {
-    assert(tid != cr_invalid_id);
+    if (tid == cr_invalid_id) {
+        return cr_invalid_id;
+    }
     CR_LogVar var;
     var.m_typed_value = CR_TypedValue(tid);
     var.m_typed_value.assign<int>(value);
@@ -479,7 +539,9 @@ CR_VarID CR_NameScope::AddVar(
 }
 
 CR_TypeID CR_NameScope::AddConstType(CR_TypeID tid) {
-    assert(tid != cr_invalid_id);
+    if (tid == cr_invalid_id) {
+        return tid;
+    }
     CR_LogType type1;
     auto type2 = LogType(tid);
     if (type2.m_flags & TF_INCOMPLETE) {
@@ -506,7 +568,9 @@ CR_TypeID CR_NameScope::AddConstType(CR_TypeID tid) {
 CR_TypeID CR_NameScope::AddPointerType(
     CR_TypeID tid, CR_TypeFlags flags, const CR_Location& location)
 {
-    assert(tid != cr_invalid_id);
+    if (tid == cr_invalid_id) {
+        return tid;
+    }
     CR_LogType type1;
     type1.m_flags = TF_POINTER | flags;
     if (Is64Bit()) {
@@ -555,7 +619,9 @@ CR_TypeID CR_NameScope::AddPointerType(
 CR_TypeID CR_NameScope::AddArrayType(
     CR_TypeID tid, int count, const CR_Location& location)
 {
-    assert(tid != cr_invalid_id);
+    if (tid == cr_invalid_id) {
+        return tid;
+    }
     CR_LogType type1;
     auto& type2 = LogType(tid);
     if (type2.m_flags & TF_INCOMPLETE) {
@@ -584,7 +650,9 @@ CR_TypeID CR_NameScope::AddVectorType(
     const std::string& name, CR_TypeID tid, int vector_size,
     const CR_Location& location)
 {
-    assert(tid != cr_invalid_id);
+    if (tid == cr_invalid_id) {
+        return tid;
+    }
     CR_LogType type1;
     auto& type2 = LogType(tid);
     if (type2.m_flags & TF_INCOMPLETE) {
@@ -1111,7 +1179,6 @@ void CR_NameScope::CompleteTypeInfo() {
 std::string CR_NameScope::StringOfEnum(
     const std::string& name, CR_EnumID eid) const
 {
-    assert(eid != cr_invalid_id);
     if (eid == cr_invalid_id) {
         return "";  // invalid ID
     }
@@ -1331,7 +1398,6 @@ std::string CR_NameScope::StringOfParamList(
 } // StringOfParamList
 
 bool CR_NameScope::IsFuncType(CR_TypeID tid) const {
-    assert(tid != cr_invalid_id);
     if (tid == cr_invalid_id)
         return false;
     tid = ResolveAlias(tid);
@@ -1341,82 +1407,114 @@ bool CR_NameScope::IsFuncType(CR_TypeID tid) const {
 } // IsFuncType
 
 bool CR_NameScope::IsPredefinedType(CR_TypeID tid) const {
-    auto& type = LogType(tid);
-    if (type.m_flags & (TF_POINTER | TF_ARRAY | TF_CONST)) {
-        return IsPredefinedType(type.m_sub_id);
+    while (tid != cr_invalid_id) {
+        auto& type = LogType(tid);
+        if (type.m_flags & (TF_POINTER | TF_ARRAY | TF_CONST)) {
+            tid = type.m_sub_id;
+            continue;
+        }
+        if (type.location().m_file == "(predefined)") {
+            return true;
+        }
+        break;
     }
-    return (type.location().m_file == "(predefined)");
+    return false;
 } // IsPredefinedType
 
 bool CR_NameScope::IsIntegralType(CR_TypeID tid) const {
-    assert(tid != cr_invalid_id);
-    if (tid == cr_invalid_id)
-        return false;
-    tid = ResolveAlias(tid);
-    auto& type = LogType(tid);
-    const CR_TypeFlags not_flags =
-        (TF_DOUBLE | TF_FLOAT | TF_POINTER | TF_ARRAY | TF_VECTOR |
-         TF_FUNCTION | TF_STRUCT | TF_UNION | TF_ENUM);
-    if (type.m_flags & not_flags)
-        return false;
-    const CR_TypeFlags flags =
-        (TF_INT | TF_CHAR | TF_SHORT | TF_LONG | TF_LONGLONG);
-    if (type.m_flags & flags)
-        return true;
-    if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST)
-        return IsIntegralType(type.m_sub_id);
+    while (tid != cr_invalid_id) {
+        tid = ResolveAlias(tid);
+        if (tid == cr_invalid_id) {
+            break;
+        }
+        auto& type = LogType(tid);
+        const CR_TypeFlags not_flags =
+            (TF_DOUBLE | TF_FLOAT | TF_POINTER | TF_ARRAY | TF_VECTOR |
+             TF_FUNCTION | TF_STRUCT | TF_UNION | TF_ENUM);
+        if (type.m_flags & not_flags)
+            return false;
+        const CR_TypeFlags flags =
+            (TF_INT | TF_CHAR | TF_SHORT | TF_LONG | TF_LONGLONG);
+        if (type.m_flags & flags)
+            return true;
+        if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            tid = type.m_sub_id;
+        } else {
+            break;
+        }
+    }
     return false;
 } // IsIntegralType
 
 bool CR_NameScope::IsFloatingType(CR_TypeID tid) const {
-    assert(tid != cr_invalid_id);
-    if (tid == cr_invalid_id)
-        return false;
-    tid = ResolveAlias(tid);
-    auto& type = LogType(tid);
-    if (type.m_flags & (TF_DOUBLE | TF_FLOAT))
-        return true;
-    if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST)
-        return IsFloatingType(type.m_sub_id);
+    while (tid != cr_invalid_id) {
+        tid = ResolveAlias(tid);
+        if (tid == cr_invalid_id) {
+            break;
+        }
+        auto& type = LogType(tid);
+        if (type.m_flags & (TF_DOUBLE | TF_FLOAT))
+            return true;
+        if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            tid = type.m_sub_id;
+        } else {
+            break;
+        }
+    }
     return false;
 } // IsFloatingType
 
 bool CR_NameScope::IsUnsignedType(CR_TypeID tid) const {
-    assert(tid != cr_invalid_id);
-    if (tid == cr_invalid_id)
-        return false;
-    tid = ResolveAlias(tid);
-    auto& type = LogType(tid);
-    if (type.m_flags & TF_UNSIGNED)
-        return true;
-    if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST)
-        return IsUnsignedType(type.m_sub_id);
+    while (tid != cr_invalid_id) {
+        tid = ResolveAlias(tid);
+        if (tid == cr_invalid_id) {
+            break;
+        }
+        auto& type = LogType(tid);
+        if (type.m_flags & TF_UNSIGNED)
+            return true;
+        if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            tid = type.m_sub_id;
+        } else {
+            break;
+        }
+    }
     return false;
 } // IsUnsignedType
 
 bool CR_NameScope::IsPointerType(CR_TypeID tid) const {
-    assert(tid != cr_invalid_id);
-    if (tid == cr_invalid_id)
-        return false;
-    tid = ResolveAlias(tid);
-    auto& type = LogType(tid);
-    if (type.m_flags & TF_POINTER)
-        return true;
-    if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST)
-        return IsUnsignedType(type.m_sub_id);
+    while (tid != cr_invalid_id) {
+        tid = ResolveAlias(tid);
+        if (tid == cr_invalid_id) {
+            break;
+        }
+        auto& type = LogType(tid);
+        if (type.m_flags & TF_POINTER)
+            return true;
+        if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            tid = type.m_sub_id;
+        } else {
+            break;
+        }
+    }
     return false;
 }
 
 bool CR_NameScope::IsFunctionType(CR_TypeID tid) const {
-    assert(tid != cr_invalid_id);
-    if (tid == cr_invalid_id)
-        return false;
-    tid = ResolveAlias(tid);
-    auto& type = LogType(tid);
-    if (type.m_flags & TF_POINTER)
-        return true;
-    if ((type.m_flags & (TF_ALIAS | TF_FUNCTION)) == TF_FUNCTION)
-        return IsFunctionType(type.m_sub_id);
+    while (tid != cr_invalid_id) {
+        tid = ResolveAlias(tid);
+        if (tid != cr_invalid_id) {
+            break;
+        }
+        auto& type = LogType(tid);
+        if (type.m_flags & TF_POINTER)
+            return true;
+        if ((type.m_flags & (TF_ALIAS | TF_FUNCTION)) == TF_FUNCTION) {
+            tid = type.m_sub_id;
+        } else {
+            break;
+        }
+    }
     return false;
 }
 
@@ -1435,13 +1533,14 @@ CR_TypeID CR_NameScope::ResolveAlias(CR_TypeID tid) const {
 CR_TypeID CR_NameScope::ResolveAliasAndCV(CR_TypeID tid) const {
     while (tid != cr_invalid_id) {
         tid = ResolveAlias(tid);
+        if (tid == cr_invalid_id) {
+            break;
+        }
         auto& type = LogType(tid);
         if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
             tid = type.m_sub_id;
-        } else {
-            if (!(type.m_flags & TF_ALIAS)) {
-                break;
-            }
+        } else if (!(type.m_flags & TF_ALIAS)) {
+            break;
         }
     }
     return tid;
@@ -1574,6 +1673,9 @@ CR_TypeID CR_NameScope::AddConstWStringType() {
 
 CR_TypeID CR_NameScope::IsStringType(CR_TypeID tid) const {
     tid = ResolveAliasAndCV(tid);
+	if (tid == cr_invalid_id) {
+		return tid;
+	}
     auto& type1 = LogType(tid);
     if (type1.m_flags & (TF_POINTER | TF_ARRAY)) {
         auto tid2 = ResolveAliasAndCV(type1.m_sub_id);
@@ -1590,7 +1692,10 @@ CR_TypeID CR_NameScope::IsStringType(CR_TypeID tid) const {
 }
 
 CR_TypeID CR_NameScope::IsWStringType(CR_TypeID tid) const {
-    tid = ResolveAliasAndCV(tid);
+	tid = ResolveAliasAndCV(tid);
+	if (tid == cr_invalid_id) {
+		return tid;
+	}
     auto& type1 = LogType(tid);
     if (type1.m_flags & (TF_POINTER | TF_ARRAY)) {
         auto tid2 = ResolveAliasAndCV(type1.m_sub_id);
@@ -1607,61 +1712,70 @@ CR_TypeID CR_NameScope::IsWStringType(CR_TypeID tid) const {
 }
 
 long long CR_NameScope::GetLongLongValue(const CR_TypedValue& value) const {
-    long long result = 0;
+    long long ret = 0;
+	if (value.m_type_id == cr_invalid_id) {
+		return ret;
+	}
     auto& type = LogType(value.m_type_id);
     if (type.m_size != value.m_size) {
         return 0;
     }
     if (type.m_size == sizeof(int)) {
-        result = static_cast<long long>(value.get<int>());
+        ret = static_cast<long long>(value.get<int>());
     } else if (type.m_size == sizeof(char)) {
-        result = static_cast<long long>(value.get<char>());
+        ret = static_cast<long long>(value.get<char>());
     } else if (type.m_size == sizeof(short)) {
-        result = static_cast<long long>(value.get<short>());
+        ret = static_cast<long long>(value.get<short>());
     } else if (type.m_size == sizeof(long)) {
-        result = static_cast<long long>(value.get<long>());
+        ret = static_cast<long long>(value.get<long>());
     } else if (type.m_size == sizeof(long long)) {
-        result = value.get<long long>();
+        ret = value.get<long long>();
     }
-    return result;
+    return ret;
 }
 
 unsigned long long CR_NameScope::GetULongLongValue(const CR_TypedValue& value) const {
-    unsigned long long result = 0;
+    unsigned long long ret = 0;
+	if (value.m_type_id == cr_invalid_id) {
+		return ret;
+	}
     auto& type = LogType(value.m_type_id);
     if (type.m_size != value.m_size) {
         return 0;
     }
     if (type.m_size == sizeof(unsigned int)) {
-        result = static_cast<unsigned long long>(value.get<unsigned int>());
+        ret = static_cast<unsigned long long>(value.get<unsigned int>());
     } else if (type.m_size == sizeof(unsigned char)) {
-        result = static_cast<unsigned long long>(value.get<unsigned char>());
+        ret = static_cast<unsigned long long>(value.get<unsigned char>());
     } else if (type.m_size == sizeof(unsigned short)) {
-        result = static_cast<unsigned long long>(value.get<unsigned short>());
+        ret = static_cast<unsigned long long>(value.get<unsigned short>());
     } else if (type.m_size == sizeof(unsigned long)) {
-        result = static_cast<unsigned long long>(value.get<unsigned long>());
+        ret = static_cast<unsigned long long>(value.get<unsigned long>());
     } else if (type.m_size == sizeof(unsigned long long)) {
-        result = value.get<unsigned long long>();
+        ret = value.get<unsigned long long>();
     }
-    return result;
+    return ret;
 }
 
 long double CR_NameScope::GetLongDoubleValue(const CR_TypedValue& value) const {
-    long double result = 0;
+    long double ret = 0;
+	if (value.m_type_id == cr_invalid_id) {
+		return ret;
+	}
     auto& type = LogType(value.m_type_id);
     if (type.m_size != value.m_size) {
         return 0;
     }
     if (type.m_size == sizeof(float)) {
-        result = value.get<float>();
+        ret = value.get<float>();
     } else if (type.m_size == sizeof(double)) {
-        result = value.get<double>();
+        ret = value.get<double>();
     } else if (type.m_size == sizeof(long double)) {
-        result = value.get<long double>();
+        ret = value.get<long double>();
     } else {
         assert(0);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CR_NameScope::StaticCast(
@@ -1670,10 +1784,9 @@ CR_TypedValue CR_NameScope::StaticCast(
     if (tid == value.m_type_id) {
         return value;
     }
-
-    CR_TypedValue result;
-    result.m_type_id = tid;
-    result.m_size = SizeOfType(tid);
+    CR_TypedValue ret;
+    ret.m_type_id = tid;
+    ret.m_size = SizeOfType(tid);
     auto& type = LogType(tid);
     if (HasValue(value)) {
         auto tid2 = value.m_type_id;
@@ -1681,21 +1794,21 @@ CR_TypedValue CR_NameScope::StaticCast(
         if (IsIntegralType(tid2)) {
             if (IsUnsignedType(tid2)) {
                 auto u2 = GetULongLongValue(value);
-                SetULongLongValue(result, u2);
+                SetULongLongValue(ret, u2);
             } else {
                 auto n2 = GetLongLongValue(value);
-                SetLongLongValue(result, n2);
+                SetLongLongValue(ret, n2);
             }
         } else if (IsFloatingType(tid2)) {
             auto ld2 = GetLongDoubleValue(value);
-            SetLongDoubleValue(result, ld2);
+            SetLongDoubleValue(ret, ld2);
         } else if (IsPointerType(tid2)) {
             auto u2 = GetULongLongValue(value);
-            SetULongLongValue(result, u2);
+            SetULongLongValue(ret, u2);
         }
     }
 
-    return result;
+    return ret;
 }
 
 CR_TypedValue CR_NameScope::ReinterpretCast(
@@ -1704,53 +1817,60 @@ CR_TypedValue CR_NameScope::ReinterpretCast(
     if (value.m_type_id == tid) {
         return value;
     }
-    CR_TypedValue result(value);
-    result.m_type_id = tid;
-    return result;
+    CR_TypedValue ret(value);
+    ret.m_type_id = tid;
+    return ret;
 }
 
 CR_TypedValue CR_NameScope::Cast(
     CR_TypeID tid, const CR_TypedValue& value) const
 {
-    CR_TypedValue result;
+    CR_TypedValue ret;
+    if (tid == cr_invalid_id || value.m_type_id == cr_invalid_id) {
+        ret.m_type_id = cr_invalid_id;
+        return ret;
+    }
     auto& type1 = LogType(tid);
     auto& type2 = LogType(value.m_type_id);
     if (IsPointerType(tid)) {
         int pointer_size = type1.m_size;
         if (IsPointerType(value.m_type_id)) {
-            result = ReinterpretCast(tid, value);
+            ret = ReinterpretCast(tid, value);
         } else {
             if (pointer_size == 8) {
-                result = StaticCast(m_ulong_long_type, value);
-                result.m_type_id = tid;
+                ret = StaticCast(m_ulong_long_type, value);
+                ret.m_type_id = tid;
             } else if (pointer_size == 4) {
-                result = StaticCast(m_uint_type, value);
-                result.m_type_id = tid;
+                ret = StaticCast(m_uint_type, value);
+                ret.m_type_id = tid;
             }
         }
     } else {
         if (type1.m_size == type2.m_size) {
-            result = value;
-            result.m_type_id = tid;
+            ret = value;
+            ret.m_type_id = tid;
         } else if (IsPointerType(value.m_type_id)) {
             if (type1.m_size == sizeof(int)) {
-                result = StaticCast(m_int_type, value);
+                ret = StaticCast(m_int_type, value);
             } else if (type1.m_size == sizeof(char)) {
-                result = StaticCast(m_char_type, value);
+                ret = StaticCast(m_char_type, value);
             } else if (type1.m_size == sizeof(short)) {
-                result = StaticCast(m_short_type, value);
+                ret = StaticCast(m_short_type, value);
             } else if (type1.m_size == sizeof(long)) {
-                result = StaticCast(m_long_type, value);
+                ret = StaticCast(m_long_type, value);
             } else if (type1.m_size == sizeof(long long)) {
-                result = StaticCast(m_long_long_type, value);
+                ret = StaticCast(m_long_long_type, value);
             }
-            result.m_type_id = tid;
+            ret.m_type_id = tid;
         }
     }
-    return result;
+    return ret;
 }
 
 void CR_NameScope::SetAlignas(CR_TypeID tid, int alignas_) {
+	if (tid == cr_invalid_id) {
+		return;
+	}
     auto& type = LogType(tid);
     type.m_align = alignas_;
     type.m_alignas = alignas_;
@@ -1764,29 +1884,37 @@ void CR_NameScope::SetAlignas(CR_TypeID tid, int alignas_) {
 
 CR_TypedValue
 CR_NameScope::ArrayItem(const CR_TypedValue& array, size_t index) const {
-    CR_TypedValue result;
+    CR_TypedValue ret;
+	if (array.m_type_id == cr_invalid_id) {
+		ret.m_type_id = cr_invalid_id;
+		return ret;
+	}
     auto& array_type = LogType(array.m_type_id);
     auto item_tid = array_type.m_sub_id;
     auto& item_type = LogType(item_tid);
     if (0 <= index && index < array_type.m_count) {
     } else {
-        return result;
+        return ret;
     }
 
-    result.m_addr = array.m_addr + index * item_type.m_size;
+    ret.m_addr = array.m_addr + index * item_type.m_size;
     const char *ptr = array.get_at<char>(
         index * item_type.m_size, item_type.m_size);
     if (ptr) {
-        SetValue(result, item_tid, ptr, item_type.m_size);
+        SetValue(ret, item_tid, ptr, item_type.m_size);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CR_NameScope::Dot(
     const CR_TypedValue& struct_value, const std::string& name) const
 {
     const int bits_of_one_byte = 8;
-    CR_TypedValue result;
+    CR_TypedValue ret;
+	if (struct_value.m_type_id == cr_invalid_id) {
+		ret.m_type_id = cr_invalid_id;
+		return ret;
+	}
     auto& struct_type = LogType(struct_value.m_type_id);
     std::vector<CR_StructMember> children;
     GetStructMemberList(struct_type.m_sub_id, children);
@@ -1796,25 +1924,25 @@ CR_TypedValue CR_NameScope::Dot(
                 // bitfield not supported yet
                 break;
             }
-            result.m_type_id = child.m_type_id;
-            result.m_addr = struct_value.m_addr +
+            ret.m_type_id = child.m_type_id;
+            ret.m_addr = struct_value.m_addr +
                             child.m_bit_offset / bits_of_one_byte;
-            result.m_size = SizeOfType(child.m_type_id);
+            ret.m_size = SizeOfType(child.m_type_id);
             const char *ptr =
                 struct_value.get_at<char>(
-                    child.m_bit_offset / bits_of_one_byte, result.m_size);
+                    child.m_bit_offset / bits_of_one_byte, ret.m_size);
             if (ptr) {
-                SetValue(result, child.m_type_id, ptr, result.m_size);
+                SetValue(ret, child.m_type_id, ptr, ret.m_size);
             }
             break;
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Asterisk(const CR_TypedValue& pointer_value) const {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     auto tid = ResolveAlias(pointer_value.m_type_id);
     if (IsPointerType(tid)) {
         auto& type = LogType(tid);
@@ -1823,35 +1951,35 @@ CR_NameScope::Asterisk(const CR_TypedValue& pointer_value) const {
         if (HasValue(pointer_value)) {
             auto addr = GetULongLongValue(pointer_value);
             const void *ptr = GetAddressPointer(addr, type2.m_size);
-            SetValue(result, tid2, ptr, type2.m_size);
+            SetValue(ret, tid2, ptr, type2.m_size);
         } else {
-            result.m_type_id = tid2;
-            result.m_size = type2.m_size;
+            ret.m_type_id = tid2;
+            ret.m_size = type2.m_size;
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Address(const CR_TypedValue& value) const {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     if (Is64Bit()) {
-        result.m_type_id = m_ulong_long_type;
-        result.assign<unsigned long long>(value.m_addr);
+        ret.m_type_id = m_ulong_long_type;
+        ret.assign<unsigned long long>(value.m_addr);
     } else {
-        result.m_type_id = m_uint_type;
-        result.assign<unsigned int>(
+        ret.m_type_id = m_uint_type;
+        ret.assign<unsigned int>(
             static_cast<unsigned int>(value.m_addr));
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue CR_NameScope::Arrow(
     const CR_TypedValue& pointer_value, const std::string& name) const
 {
-    CR_TypedValue result = Asterisk(pointer_value);
-    result = Dot(result, name);
-    return result;
+    CR_TypedValue ret = Asterisk(pointer_value);
+    ret = Dot(ret, name);
+    return ret;
 }
 
 void CR_NameScope::SetLongLongValue(CR_TypedValue& value, long long n) const {
@@ -1968,8 +2096,10 @@ bool CR_NameScope::IsNonZero(const CR_TypedValue& value1) const {
 }
 
 CR_TypedValue CR_NameScope::BiOp(CR_TypedValue& v1, CR_TypedValue& v2) const {
-    CR_TypedValue result;
-    if (IsIntegralType(v1.m_type_id)) {
+    CR_TypedValue ret;
+    if (v1.m_type_id == cr_invalid_id || v2.m_type_id == cr_invalid_id) {
+        ret.m_type_id = cr_invalid_id;
+    } else if (IsIntegralType(v1.m_type_id)) {
         if (IsIntegralType(v2.m_type_id)) {
             int size1 = SizeOfType(v1.m_type_id);
             if (size1 < 4) {
@@ -1982,40 +2112,43 @@ CR_TypedValue CR_NameScope::BiOp(CR_TypedValue& v1, CR_TypedValue& v2) const {
                 size2 = 4;
             }
             if (size1 >= size2) {
-                result.m_type_id = v1.m_type_id;
-                result.m_size = size1;
+                ret.m_type_id = v1.m_type_id;
+                ret.m_size = size1;
             } else {
-                result.m_type_id = v2.m_type_id;
-                result.m_size = size2;
+                ret.m_type_id = v2.m_type_id;
+                ret.m_size = size2;
             }
         } else if (IsFloatingType(v2.m_type_id)) {
             v1 = StaticCast(v2.m_type_id, v1);
-            result.m_type_id = v2.m_type_id;
-            result.m_size = SizeOfType(v2.m_type_id);
+            ret.m_type_id = v2.m_type_id;
+            ret.m_size = SizeOfType(v2.m_type_id);
         }
     } else if (IsFloatingType(v1.m_type_id)) {
         if (IsIntegralType(v2.m_type_id)) {
             v2 = StaticCast(v1.m_type_id, v2);
-            result.m_type_id = v1.m_type_id;
-            result.m_size = SizeOfType(v1.m_type_id);
+            ret.m_type_id = v1.m_type_id;
+            ret.m_size = SizeOfType(v1.m_type_id);
         } else if (IsFloatingType(v2.m_type_id)) {
             int size1 = SizeOfType(v1.m_type_id);
             int size2 = SizeOfType(v2.m_type_id);
             if (size1 >= size2) {
-                result.m_type_id = v1.m_type_id;
-                result.m_size = size1;
+                ret.m_type_id = v1.m_type_id;
+                ret.m_size = size1;
             } else {
-                result.m_type_id = v2.m_type_id;
-                result.m_size = size2;
+                ret.m_type_id = v2.m_type_id;
+                ret.m_size = size2;
             }
         }
     }
-    return result;
+    return ret;
 }
 
 int CR_NameScope::CompareValue(
     const CR_TypedValue& v1, const CR_TypedValue& v2) const
 {
+    if (v1.m_type_id == cr_invalid_id || v2.m_type_id == cr_invalid_id) {
+        return -2;
+    }
     if (!HasValue(v1) || !HasValue(v2)) {
         return -2;
     }
@@ -2075,8 +2208,10 @@ int CR_NameScope::CompareValue(
 
 CR_TypedValue
 CR_NameScope::BiOpInt(CR_TypedValue& v1, CR_TypedValue& v2) const {
-    CR_TypedValue result;
-    if (IsIntegralType(v1.m_type_id) && IsIntegralType(v2.m_type_id)) {
+    CR_TypedValue ret;
+    if (v1.m_type_id == cr_invalid_id || v2.m_type_id == cr_invalid_id) {
+        ret.m_type_id = cr_invalid_id;
+    } else if (IsIntegralType(v1.m_type_id) && IsIntegralType(v2.m_type_id)) {
         int size1 = SizeOfType(v1.m_type_id);
         if (size1 < 4) {
             v1 = StaticCast(m_int_type, v1);
@@ -2088,14 +2223,14 @@ CR_NameScope::BiOpInt(CR_TypedValue& v1, CR_TypedValue& v2) const {
             size2 = 4;
         }
         if (size1 >= size2) {
-            result.m_type_id = v1.m_type_id;
-            result.m_size = size1;
+            ret.m_type_id = v1.m_type_id;
+            ret.m_size = size1;
         } else {
-            result.m_type_id = v2.m_type_id;
-            result.m_size = size2;
+            ret.m_type_id = v2.m_type_id;
+            ret.m_size = size2;
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
@@ -2103,20 +2238,20 @@ CR_NameScope::Add(const CR_TypedValue& value1,
                   const CR_TypedValue& value2) const
 {
     CR_TypedValue v1 = value1, v2 = value2;
-    auto result = BiOp(v1, v2);
-    if (result.m_type_id != cr_invalid_id) {
+    auto ret = BiOp(v1, v2);
+    if (ret.m_type_id != cr_invalid_id) {
         if (HasValue(v1) && HasValue(v2)) {
-            if (IsFloatingType(result.m_type_id)) {
+            if (IsFloatingType(ret.m_type_id)) {
                 auto ld1 = GetLongDoubleValue(v1);
                 auto ld2 = GetLongDoubleValue(v2);
-                SetLongDoubleValue(result, ld1 + ld2);
-            } else if (IsIntegralType(result.m_type_id)) {
+                SetLongDoubleValue(ret, ld1 + ld2);
+            } else if (IsIntegralType(ret.m_type_id)) {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(result.m_type_id)) {
-                    SetULongLongValue(result, n1 + n2);
+                if (IsUnsignedType(ret.m_type_id)) {
+                    SetULongLongValue(ret, n1 + n2);
                 } else {
-                    SetLongLongValue(result, n1 + n2);
+                    SetLongLongValue(ret, n1 + n2);
                 }
             }
         }
@@ -2128,22 +2263,22 @@ CR_NameScope::Add(const CR_TypedValue& value1,
             v1.m_type_id = ResolveAlias(v1.m_type_id);
             auto& type1 = LogType(v1.m_type_id);
             auto& type2 = LogType(type1.m_sub_id);
-            result.m_type_id = v1.m_type_id;
-            result.m_size = v1.m_size;
+            ret.m_type_id = v1.m_type_id;
+            ret.m_size = v1.m_size;
             if (HasValue(v1) && HasValue(v2)) {
                 if (IsUnsignedType(v2.m_type_id)) {
                     auto u1 = GetULongLongValue(v1);
                     auto u2 = GetULongLongValue(v2);
-                    SetULongLongValue(result, u1 + u2 * type2.m_size);
+                    SetULongLongValue(ret, u1 + u2 * type2.m_size);
                 } else {
                     auto u1 = GetULongLongValue(v1);
                     auto n2 = GetLongLongValue(v2);
-                    SetULongLongValue(result, u1 + n2 * type2.m_size);
+                    SetULongLongValue(ret, u1 + n2 * type2.m_size);
                 }
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
@@ -2151,20 +2286,20 @@ CR_NameScope::Sub(const CR_TypedValue& value1,
                   const CR_TypedValue& value2) const
 {
     CR_TypedValue v1 = value1, v2 = value2;
-    auto result = BiOp(v1, v2);
-    if (result.m_type_id != cr_invalid_id) {
+    auto ret = BiOp(v1, v2);
+    if (ret.m_type_id != cr_invalid_id) {
         if (HasValue(v1) && HasValue(v2)) {
-            if (IsFloatingType(result.m_type_id)) {
+            if (IsFloatingType(ret.m_type_id)) {
                 auto ld1 = GetLongDoubleValue(v1);
                 auto ld2 = GetLongDoubleValue(v2);
-                SetLongDoubleValue(result, ld1 - ld2);
-            } else if (IsIntegralType(result.m_type_id)) {
+                SetLongDoubleValue(ret, ld1 - ld2);
+            } else if (IsIntegralType(ret.m_type_id)) {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(result.m_type_id)) {
-                    SetULongLongValue(result, n1 - n2);
+                if (IsUnsignedType(ret.m_type_id)) {
+                    SetULongLongValue(ret, n1 - n2);
                 } else {
-                    SetLongLongValue(result, n1 - n2);
+                    SetLongLongValue(ret, n1 - n2);
                 }
             }
         }
@@ -2177,17 +2312,17 @@ CR_NameScope::Sub(const CR_TypedValue& value1,
             auto& type2_1 = LogType(v2.m_type_id);
             auto& type2_2 = LogType(type2_1.m_sub_id);
             if (type1_2.m_size == type2_2.m_size) {
-                result.m_type_id = v1.m_type_id;
-                result.m_size = v1.m_size;
+                ret.m_type_id = v1.m_type_id;
+                ret.m_size = v1.m_size;
                 if (HasValue(v1) && HasValue(v2)) {
                     auto u1 = GetULongLongValue(v1);
                     auto u2 = GetULongLongValue(v2);
-                    SetULongLongValue(result, (u1 - u2) / type1_2.m_size);
+                    SetULongLongValue(ret, (u1 - u2) / type1_2.m_size);
                 }
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
@@ -2195,25 +2330,25 @@ CR_NameScope::Mul(const CR_TypedValue& value1,
                   const CR_TypedValue& value2) const
 {
     CR_TypedValue v1 = value1, v2 = value2;
-    auto result = BiOp(v1, v2);
-    if (result.m_type_id != cr_invalid_id) {
+    auto ret = BiOp(v1, v2);
+    if (ret.m_type_id != cr_invalid_id) {
         if (HasValue(v1) && HasValue(v2)) {
-            if (IsFloatingType(result.m_type_id)) {
+            if (IsFloatingType(ret.m_type_id)) {
                 auto ld1 = GetLongDoubleValue(v1);
                 auto ld2 = GetLongDoubleValue(v2);
-                SetLongDoubleValue(result, ld1 * ld2);
-            } else if (IsIntegralType(result.m_type_id)) {
+                SetLongDoubleValue(ret, ld1 * ld2);
+            } else if (IsIntegralType(ret.m_type_id)) {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(result.m_type_id)) {
-                    SetULongLongValue(result, n1 * n2);
+                if (IsUnsignedType(ret.m_type_id)) {
+                    SetULongLongValue(ret, n1 * n2);
                 } else {
-                    SetLongLongValue(result, n1 * n2);
+                    SetLongLongValue(ret, n1 * n2);
                 }
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
@@ -2221,25 +2356,25 @@ CR_NameScope::Div(const CR_TypedValue& value1,
                   const CR_TypedValue& value2) const
 {
     CR_TypedValue v1 = value1, v2 = value2;
-    auto result = BiOp(v1, v2);
-    if (result.m_type_id != cr_invalid_id) {
+    auto ret = BiOp(v1, v2);
+    if (ret.m_type_id != cr_invalid_id) {
         if (HasValue(v1) && HasValue(v2)) {
-            if (IsFloatingType(result.m_type_id)) {
+            if (IsFloatingType(ret.m_type_id)) {
                 auto ld1 = GetLongDoubleValue(v1);
                 auto ld2 = GetLongDoubleValue(v2);
-                SetLongDoubleValue(result, ld1 / ld2);
-            } else if (IsIntegralType(result.m_type_id)) {
+                SetLongDoubleValue(ret, ld1 / ld2);
+            } else if (IsIntegralType(ret.m_type_id)) {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(result.m_type_id)) {
-                    SetULongLongValue(result, n1 / n2);
+                if (IsUnsignedType(ret.m_type_id)) {
+                    SetULongLongValue(ret, n1 / n2);
                 } else {
-                    SetLongLongValue(result, n1 / n2);
+                    SetLongLongValue(ret, n1 / n2);
                 }
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
@@ -2247,54 +2382,54 @@ CR_NameScope::Mod(const CR_TypedValue& value1,
                   const CR_TypedValue& value2) const
 {
     CR_TypedValue v1 = value1, v2 = value2;
-    auto result = BiOpInt(v1, v2);
-    if (result.m_type_id != cr_invalid_id) {
+    auto ret = BiOpInt(v1, v2);
+    if (ret.m_type_id != cr_invalid_id) {
         if (HasValue(v1) && HasValue(v2)) {
-            if (IsIntegralType(result.m_type_id)) {
+            if (IsIntegralType(ret.m_type_id)) {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(result.m_type_id)) {
-                    SetULongLongValue(result, n1 / n2);
+                if (IsUnsignedType(ret.m_type_id)) {
+                    SetULongLongValue(ret, n1 / n2);
                 } else {
-                    SetLongLongValue(result, n1 / n2);
+                    SetLongLongValue(ret, n1 / n2);
                 }
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Not(const CR_TypedValue& value1) const {
-    CR_TypedValue result = value1;
-    if (IsIntegralType(result.m_type_id) && HasValue(result)) {
-        char *p = reinterpret_cast<char *>(result.m_ptr);
-        for (size_t i = 0; i < result.m_size; ++i) {
+    CR_TypedValue ret = value1;
+    if (IsIntegralType(ret.m_type_id) && HasValue(ret)) {
+        char *p = reinterpret_cast<char *>(ret.m_ptr);
+        for (size_t i = 0; i < ret.m_size; ++i) {
             *p = ~*p;
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Minus(const CR_TypedValue& value1) const
 {
-    CR_TypedValue result = value1;
-    if (HasValue(result)) {
+    CR_TypedValue ret = value1;
+    if (HasValue(ret)) {
         if (IsIntegralType(value1.m_type_id)) {
             if (IsUnsignedType(value1.m_type_id)) {
                 auto u = GetULongLongValue(value1);
-                SetULongLongValue(result, u);
+                SetULongLongValue(ret, u);
             } else {
                 auto n = GetLongLongValue(value1);
-                SetLongLongValue(result, n);
+                SetLongLongValue(ret, n);
             }
         } else if (IsFloatingType(value1.m_type_id)) {
             auto ld = GetLongDoubleValue(value1);
-            SetLongDoubleValue(result, -ld);
+            SetLongDoubleValue(ret, -ld);
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
@@ -2302,21 +2437,21 @@ CR_NameScope::And(const CR_TypedValue& value1,
                   const CR_TypedValue& value2) const
 {
     CR_TypedValue v1 = value1, v2 = value2;
-    auto result = BiOpInt(v1, v2);
-    if (result.m_type_id != cr_invalid_id) {
-        if (HasValue(result)) {
-            if (IsIntegralType(result.m_type_id)) {
+    auto ret = BiOpInt(v1, v2);
+    if (ret.m_type_id != cr_invalid_id) {
+        if (HasValue(ret)) {
+            if (IsIntegralType(ret.m_type_id)) {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(result.m_type_id)) {
-                    SetULongLongValue(result, n1 & n2);
+                if (IsUnsignedType(ret.m_type_id)) {
+                    SetULongLongValue(ret, n1 & n2);
                 } else {
-                    SetLongLongValue(result, n1 & n2);
+                    SetLongLongValue(ret, n1 & n2);
                 }
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
@@ -2324,21 +2459,21 @@ CR_NameScope::Or(const CR_TypedValue& value1,
                  const CR_TypedValue& value2) const
 {
     CR_TypedValue v1 = value1, v2 = value2;
-    auto result = BiOpInt(v1, v2);
-    if (result.m_type_id != cr_invalid_id) {
-        if (HasValue(result)) {
-            if (IsIntegralType(result.m_type_id)) {
+    auto ret = BiOpInt(v1, v2);
+    if (ret.m_type_id != cr_invalid_id) {
+        if (HasValue(ret)) {
+            if (IsIntegralType(ret.m_type_id)) {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(result.m_type_id)) {
-                    SetULongLongValue(result, n1 | n2);
+                if (IsUnsignedType(ret.m_type_id)) {
+                    SetULongLongValue(ret, n1 | n2);
                 } else {
-                    SetLongLongValue(result, n1 | n2);
+                    SetLongLongValue(ret, n1 | n2);
                 }
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
@@ -2346,177 +2481,177 @@ CR_NameScope::Xor(const CR_TypedValue& value1,
                   const CR_TypedValue& value2) const
 {
     CR_TypedValue v1 = value1, v2 = value2;
-    auto result = BiOpInt(v1, v2);
-    if (result.m_type_id != cr_invalid_id) {
-        if (HasValue(result)) {
-            if (IsIntegralType(result.m_type_id)) {
+    auto ret = BiOpInt(v1, v2);
+    if (ret.m_type_id != cr_invalid_id) {
+        if (HasValue(ret)) {
+            if (IsIntegralType(ret.m_type_id)) {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(result.m_type_id)) {
-                    SetULongLongValue(result, n1 ^ n2);
+                if (IsUnsignedType(ret.m_type_id)) {
+                    SetULongLongValue(ret, n1 ^ n2);
                 } else {
-                    SetLongLongValue(result, n1 ^ n2);
+                    SetLongLongValue(ret, n1 ^ n2);
                 }
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Eq(const CR_TypedValue& value1,
                  const CR_TypedValue& value2) const
 {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     int compare = CompareValue(value1, value2);
     if (compare == 0) {
-        IntOne(result);
+        IntOne(ret);
     } else {
-        IntZero(result);
+        IntZero(ret);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Ne(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     int compare = CompareValue(value1, value2);
     if (compare != 0) {
-        IntOne(result);
+        IntOne(ret);
     } else {
-        IntZero(result);
+        IntZero(ret);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Gt(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     int compare = CompareValue(value1, value2);
     if (compare > 0) {
-        IntOne(result);
+        IntOne(ret);
     } else {
-        IntZero(result);
+        IntZero(ret);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Lt(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     int compare = CompareValue(value1, value2);
     if (compare < 0) {
-        IntOne(result);
+        IntOne(ret);
     } else {
-        IntZero(result);
+        IntZero(ret);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Ge(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     int compare = CompareValue(value1, value2);
     if (compare >= 0) {
-        IntOne(result);
+        IntOne(ret);
     } else {
-        IntZero(result);
+        IntZero(ret);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Le(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     int compare = CompareValue(value1, value2);
     if (compare <= 0) {
-        IntOne(result);
+        IntOne(ret);
     } else {
-        IntZero(result);
+        IntZero(ret);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Shl(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
     CR_TypedValue v1 = value1, v2 = value2;
-    auto result = BiOpInt(v1, v2);
-    if (result.m_type_id != cr_invalid_id) {
-        if (HasValue(result)) {
-            if (IsIntegralType(result.m_type_id)) {
+    auto ret = BiOpInt(v1, v2);
+    if (ret.m_type_id != cr_invalid_id) {
+        if (HasValue(ret)) {
+            if (IsIntegralType(ret.m_type_id)) {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(result.m_type_id)) {
-                    SetULongLongValue(result, n1 << n2);
+                if (IsUnsignedType(ret.m_type_id)) {
+                    SetULongLongValue(ret, n1 << n2);
                 } else {
-                    SetLongLongValue(result, n1 << n2);
+                    SetLongLongValue(ret, n1 << n2);
                 }
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::Shr(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
     CR_TypedValue v1 = value1, v2 = value2;
-    auto result = BiOpInt(v1, v2);
-    if (result.m_type_id != cr_invalid_id) {
-        if (HasValue(result)) {
-            if (IsIntegralType(result.m_type_id)) {
+    auto ret = BiOpInt(v1, v2);
+    if (ret.m_type_id != cr_invalid_id) {
+        if (HasValue(ret)) {
+            if (IsIntegralType(ret.m_type_id)) {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(result.m_type_id)) {
-                    SetULongLongValue(result, n1 >> n2);
+                if (IsUnsignedType(ret.m_type_id)) {
+                    SetULongLongValue(ret, n1 >> n2);
                 } else {
-                    SetLongLongValue(result, n1 >> n2);
+                    SetLongLongValue(ret, n1 >> n2);
                 }
             }
         }
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::LNot(const CR_TypedValue& value1) const {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     if (IsZero(value1)) {
-        IntOne(result);
+        IntOne(ret);
     } else {
-        IntZero(result);
+        IntZero(ret);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::LAnd(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     if (IsZero(value1) || IsZero(value2)) {
-        IntZero(result);
+        IntZero(ret);
     } else {
-        IntOne(result);
+        IntOne(ret);
     }
-    return result;
+    return ret;
 }
 
 CR_TypedValue
 CR_NameScope::LOr(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
-    CR_TypedValue result;
+    CR_TypedValue ret;
     if (IsNonZero(value1) || IsNonZero(value2)) {
-        IntOne(result);
+        IntOne(ret);
     } else {
-        IntZero(result);
+        IntZero(ret);
     }
-    return result;
+    return ret;
 }
 
 int CR_NameScope::GetIntValue(const CR_TypedValue& value) const {
@@ -2815,7 +2950,7 @@ bool CR_NameScope::LoadFromFiles(
                     extra.find("LL") != std::string::npos)
                 {
                     if (is_unsigned) {
-                        var.m_typed_value.assign<long long>(
+                        var.m_typed_value.assign<unsigned long long>(
                             sign * std::stoull(text, NULL, 0));
                     } else {
                         var.m_typed_value.assign<long long>(
@@ -2825,8 +2960,8 @@ bool CR_NameScope::LoadFromFiles(
                            extra.find('L') != std::string::npos)
                 {
                     if (is_unsigned) {
-                        var.m_typed_value.assign<long>(
-                            static_cast<long>(
+                        var.m_typed_value.assign<unsigned long>(
+                            static_cast<unsigned long>(
                                 sign * std::stoull(text, NULL, 0)));
                     } else {
                         var.m_typed_value.assign<long>(
@@ -2835,8 +2970,8 @@ bool CR_NameScope::LoadFromFiles(
                     }
                 } else {
                     if (is_unsigned) {
-                        var.m_typed_value.assign<int>(
-                            static_cast<int>(
+                        var.m_typed_value.assign<unsigned int>(
+                            static_cast<unsigned int>(
                                 sign * std::stoull(text, NULL, 0)));
                     } else {
                         var.m_typed_value.assign<int>(
@@ -2869,6 +3004,15 @@ bool CR_NameScope::LoadFromFiles(
                     var.m_typed_value.m_text = text;
                 } else {
                     ErrorInfo()->add_error("invalid string: '" + text + "'");
+                }
+            } else if (text.size() && value_type == "p" && IsPointerType(type_id)) {
+                auto& type = LogType(type_id);
+                if (type.m_size == 8) {
+                    var.m_typed_value.assign<unsigned long long>(
+                        std::stoull(text, NULL, 0));
+                } else if (type.m_size == 4) {
+                    var.m_typed_value.assign<unsigned int>(
+                        static_cast<unsigned int >(std::stoull(text, NULL, 0)));
                 }
             }
             var.m_typed_value.m_extra = extra;
@@ -3041,6 +3185,8 @@ bool CR_NameScope::SaveToFiles(
             auto it = MapVarIDToName().find(vid);
             if (it != MapVarIDToName().end()) {
                 name = it->second;
+            } else {
+                continue;
             }
             auto& location = var.location();
 
@@ -3054,6 +3200,8 @@ bool CR_NameScope::SaveToFiles(
                 value_type = "s";
             } else if (IsWStringType(tid)) {
                 value_type = "S";
+            } else if (IsPointerType(tid)) {
+                value_type = "p";
             }
 
             std::string text;
