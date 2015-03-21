@@ -1,0 +1,12 @@
++---------------------------+
+|GCC AND MINGW BUGS WE FOUND|
++---------------------------+
+
+(1) MinGW's <dhcpsapi.h> on (_WIN32_WINNT >= 0x0600) has bug.
+
+(2) MinGW's <pdh.h> on (_WIN32_WINNT >= 0x0600) has bug.
+
+(3) GCC __alignof(DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY) == 8
+    on DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY in <wingdi.h>.
+
+Could you fix them? Please!

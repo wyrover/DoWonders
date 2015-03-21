@@ -59,10 +59,8 @@
 
 /* performance data */
 #include <winperf.h>
-#if !defined(__GNUC__) || (_WIN32_WINNT < 0x0600)
-    // NOTE: MinGW has bug in <pdh.h> on _WIN32_WINNT >= 0x0600
-    #include <pdh.h>
-#endif
+// NOTE: MinGW has bug in <pdh.h> on _WIN32_WINNT >= 0x0600
+#include <pdh.h>
 
 /* setup-related */
 #include <msi.h>
@@ -107,10 +105,10 @@
 
 /* more misc. */
 #include <lmrepl.h>
-#if !defined(__GNUC__) || (_WIN32_WINNT < 0x0600)
-    // NOTE: MinGW has bug in <dhcpsapi.h> on _WIN32_WINNT >= 0x0600
-    #include <dhcpsapi.h>
-#endif
+
+// NOTE: MinGW has bug in <dhcpsapi.h> on _WIN32_WINNT >= 0x0600
+#include <dhcpsapi.h>
+
 #include <urlmon.h>
 #include <ipexport.h>
 #include <icmpapi.h>

@@ -1,6 +1,6 @@
                       ------------------------------
                                 DoWonders
-                                     
+
                         Win32 API Database Project
                               by katahiromz
                       ------------------------------
@@ -10,7 +10,7 @@
 +--------+
 This is Win32 API Database Project (DoWonders). 100% open technology.
 
-DoWonders contains C/Win32 parser (cparser), a hacked C preprocessor 
+DoWonders contains C / Win32 parser (cparser), a hacked C preprocessor 
 (mcpp-hacked), and DLL info dumper (dllexpdumper).
 
 cparser extracts type information on Win32 API. mcpp-hacked extracts macro 
@@ -42,9 +42,9 @@ We are testing on Visual C++ 2013 and TDM-GCC-64 + MSYS.
 
 Now I have implemented "typed values" and I am sanitizing API Database.
 
-NOTE: We couldn't sanitize database on GCC, because GCC contains specific 
-      bugs and differences from Visual C++. We just trust Visual C++'s 
-      behavior.
+NOTE: We couldn't sanitize database on GCC, because GCC and MinGW contains 
+      specific bugs and differences from Visual C++. We just trust Visual 
+      C++'s behavior. See GCC-BUGS.txt about bugs.
 
 +-----+
 |TO DO|

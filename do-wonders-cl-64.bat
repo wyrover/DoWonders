@@ -209,7 +209,7 @@ cd ..
 exit /b 0
 
 :error
-echo ERROR: ERRORLEVEL
+echo ERROR: %ERRORLEVEL%
 exit /b 1
 
 :label_no_redirector64
