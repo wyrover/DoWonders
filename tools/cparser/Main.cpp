@@ -1263,9 +1263,9 @@ void cparser::Lexer::resynth4(node_container& c) {
 // 5. If a registered type name was found, convert it to T_TYPEDEF_NAME.
 void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
     #ifdef __GNUC__
-        m_type_names.insert("__builtin_va_list");   // fixup
+		m_type_names->emplace("__builtin_va_list");   // fixup
     #else
-        m_type_names.insert("SOCKADDR_STORAGE");    // fixup
+        m_type_names->emplace("SOCKADDR_STORAGE");    // fixup
     #endif
 
     for (node_iterator it = begin; it != end; ++it) {
@@ -1284,7 +1284,7 @@ void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
                     (it + 1)->m_token == T_VECTOR_SIZE)
                 {
                     // struct tag_name; fixup
-                    m_type_names.insert(it->m_text);
+                    m_type_names->emplace(it->m_text);
                 }
             }
         }
@@ -1294,7 +1294,7 @@ void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
         if (it->m_token == T_TYPEDEF) {
             it = resynth_typedef(++it, end);
         } else if (it->m_token == T_IDENTIFIER) {
-            if (m_type_names.count(it->m_text)) {
+            if (m_type_names->count(it->m_text)) {
                 it->set_token(T_TYPEDEF_NAME);
             }
         }
@@ -1334,7 +1334,7 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
             }
         } else if (it->m_token == T_IDENTIFIER) {
             if (brace_nest == 0 && bracket_nest == 0) {
-                if (m_type_names.count(it->m_text)) {
+                if (m_type_names->count(it->m_text)) {
                     ++it;
                     if (it->m_token == T_SEMICOLON || it->m_token == T_VECTOR_SIZE ||
                         it->m_token == T_R_PAREN ||
@@ -1349,7 +1349,7 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
                     }
                 } else {
                     it->set_token(T_TYPEDEF_TAG);
-                    m_type_names.insert(it->m_text);
+                    m_type_names->emplace(it->m_text);
 
                     ++it;
                     if (it->m_token == T_L_PAREN) {
@@ -1358,7 +1358,7 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
                         --it;
                     }
                 }
-            } else if (m_type_names.count(it->m_text)) {
+            } else if (m_type_names->count(it->m_text)) {
                 // found a type name not in brace or bracket
                 it->set_token(T_TYPEDEF_NAME);
             }
@@ -1396,7 +1396,7 @@ cparser::Lexer::resynth_parameter_list(
             } else
                 --it;
         } else if (it->m_token == T_IDENTIFIER) {
-            if (m_type_names.count(it->m_text)) {
+            if (m_type_names->count(it->m_text)) {
                 ++it;
                 if (fresh) {
                     --it;
@@ -3815,14 +3815,14 @@ bool CrParseMacros(
         return false;
     }
 
-    std::unordered_set<std::string> type_names;
+    auto type_names = make_shared<std::unordered_set<std::string>>();
     for (auto it : namescope.MapNameToTypeID()) {
-        type_names.emplace(it.first);
+        type_names->emplace(it.first);
     }
     for (auto it : namescope.MapTypeIDToName()) {
-        type_names.emplace(it.second);
+        type_names->emplace(it.second);
     }
-    type_names.erase("");
+    type_names->erase("");
 
     auto error_info_saved = namescope.ErrorInfo();
     namescope.ErrorInfo() = make_shared<CR_ErrorInfo>();

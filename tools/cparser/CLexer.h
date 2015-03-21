@@ -153,7 +153,8 @@ namespace cparser
     public:
         Lexer(shared_ptr<CR_ErrorInfo> error_info, bool is_64bit = false) :
             m_error_info(error_info), m_is_64bit(is_64bit),
-            m_in_c_comment(false), m_in_cxx_comment(false)
+            m_in_c_comment(false), m_in_cxx_comment(false),
+            m_type_names(make_shared<std::unordered_set<std::string>>())
         {
             init_symbol_table();
         }
@@ -248,10 +249,10 @@ namespace cparser
         bool                        m_is_64bit;
         bool                        m_in_c_comment;
         bool                        m_in_cxx_comment;
-        std::unordered_map<std::string, Token> m_symbol_table;
+        std::unordered_map<std::string, Token>          m_symbol_table;
 
     public:
-        std::unordered_set<std::string>     m_type_names;
+        shared_ptr<std::unordered_set<std::string>>     m_type_names;
 
         //
         // pragma

@@ -96,7 +96,7 @@ namespace cparser
     inline bool parse_expression(
         shared_ptr<CR_ErrorInfo> error_info, shared_ptr<Expr>& expr,
         str_iterator begin, str_iterator end,
-        const std::unordered_set<std::string>& type_names,
+        shared_ptr<std::unordered_set<std::string>>& type_names,
         bool is_64bit = false)
     {
         using namespace cparser;
