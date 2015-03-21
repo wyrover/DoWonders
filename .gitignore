@@ -21,14 +21,13 @@ tools/cparser/CParser.h
 tools/cparser/cparser.exe
 tools/cparser/cparser64.exe
 tools/cparser/test/*.exe
-tools/cparser/test/*.obj
-tools/cparser/test/*.o
 tools/mcpp-2.7.2-hacked/confdefs.h
 tools/mcpp-2.7.2-hacked/config.log
 tools/mcpp-2.7.2-hacked/config.status
 tools/mcpp-2.7.2-hacked/conftest.defines
 tools/mcpp-2.7.2-hacked/libtool
 tools/mcpp-2.7.2-hacked/src/mcpp.exe
+tools/mcpp-2.7.2-hacked/src/mcpp64.exe
 tools/mcpp-2.7.2-hacked/Debug
 tools/mcpp-2.7.2-hacked/Release
 tools/mcpp-2.7.2-hacked/x64

@@ -31,7 +31,8 @@ If build of tools was ended, execute "do-wonders-cl-64.bat" on 64-bit Visual
 Studio (VS) command prompt,and/or execute "do-wonders-cl-32.bat" on 32-bit
 VS command prompt. Then, construction of Win32 API database will begin.
 
-If everything was ended, ".dat" files will be generated. Use them for free.
+If everything was ended, some ".dat" files will be generated. Use them for
+free.
 
 You can check the database by "sanitize-cl-32.bat" or "sanitize-cl-64.bat".
 
@@ -44,7 +45,7 @@ Now I have implemented "typed values" and I am sanitizing API Database.
 
 NOTE: We couldn't sanitize database on GCC, because GCC and MinGW contains 
       specific bugs and differences from Visual C++. We just trust Visual 
-      C++'s behavior. See GCC-BUGS.txt about bugs.
+      C++'s behavior. See GCC-BUGS.txt about GCC's bugs.
 
 +-----+
 |TO DO|
