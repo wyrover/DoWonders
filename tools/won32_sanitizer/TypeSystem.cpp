@@ -2770,7 +2770,7 @@ bool CR_NameScope::LoadFromFiles(
         for (; std::getline(in1, line); ) {
             CrChop(line);
             std::vector<std::string> fields;
-            katahiromz::split(fields, line, "\t");
+            katahiromz::splitbychar(fields, line, '\t');
 
             CR_TypeID type_id = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
@@ -2811,7 +2811,7 @@ bool CR_NameScope::LoadFromFiles(
         for (; std::getline(in2, line);) {
             CrChop(line);
             std::vector<std::string> fields;
-            katahiromz::split(fields, line, "\t");
+            katahiromz::splitbychar(fields, line, '\t');
 
             //CR_StructID struct_id = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
@@ -2857,7 +2857,7 @@ bool CR_NameScope::LoadFromFiles(
         for (; std::getline(in3, line);) {
             CrChop(line);
             std::vector<std::string> fields;
-            katahiromz::split(fields, line, "\t");
+            katahiromz::splitbychar(fields, line, '\t');
 
             //CR_EnumID eid = std::stol(fields[0], NULL, 0);
             int num_items = std::stol(fields[1], NULL, 0);
@@ -2883,7 +2883,7 @@ bool CR_NameScope::LoadFromFiles(
         for (; std::getline(in4, line);) {
             CrChop(line);
             std::vector<std::string> fields;
-            katahiromz::split(fields, line, "\t");
+            katahiromz::splitbychar(fields, line, '\t');
 
             //CR_FuncID fid = std::stol(fields[0], NULL, 0);
             int return_type = std::stol(fields[1], NULL, 0);
@@ -2920,7 +2920,7 @@ bool CR_NameScope::LoadFromFiles(
         for (; std::getline(in5, line);) {
             CrChop(line);
             std::vector<std::string> fields;
-            katahiromz::split(fields, line, "\t");
+            katahiromz::splitbychar(fields, line, '\t');
 
             //CR_VarID vid = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];

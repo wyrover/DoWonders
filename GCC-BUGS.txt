@@ -2,11 +2,30 @@
 |GCC AND MINGW BUGS WE FOUND|
 +---------------------------+
 
-(1) MinGW's <dhcpsapi.h> on (_WIN32_WINNT >= 0x0600) has bug.
+(1) MinGW's <pdh.h> on (_WIN32_WINNT >= 0x0600) has bug.
 
-(2) MinGW's <pdh.h> on (_WIN32_WINNT >= 0x0600) has bug.
+	c:/TDM-GCC-64/x86_64-w64-mingw32/include/pdh.h:584:12: error: conflicting types for 'PdhValidatePathExA'
+	 PDH_STATUS PdhValidatePathExA(
+	            ^
+	c:/TDM-GCC-64/x86_64-w64-mingw32/include/pdh.h:579:12: note: previous declaration of 'PdhValidatePathExA' was here
+	 PDH_STATUS PdhValidatePathExA(
+	            ^
 
-(3) GCC __alignof(DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY) == 8
+(2) MinGW's <dhcpsapi.h> on (_WIN32_WINNT >= 0x0600) has bug.
+
+	c:/TDM-GCC-64/x86_64-w64-mingw32/include/dhcpsapi.h:266:16: error: redefinition of 'struct _DHCP_BINARY_DATA'
+	 typedef struct _DHCP_BINARY_DATA {
+	                ^
+	c:/TDM-GCC-64/x86_64-w64-mingw32/include/dhcpsapi.h:42:16: note: originally defined here
+	 typedef struct _DHCP_BINARY_DATA {
+	                ^
+	c:/TDM-GCC-64/x86_64-w64-mingw32/include/dhcpsapi.h:269:3: error: conflicting types for 'DHCP_BINARY_DATA'
+	 } DHCP_BINARY_DATA, *LPDHCP_BINARY_DATA;
+	   ^
+	...
+
+(3) __alignof(DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY) == 8
     on DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY in <wingdi.h>.
+    This must be 4.
 
 Could you fix them? Please!

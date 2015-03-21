@@ -49,6 +49,9 @@ using std::make_shared;
 #include "Main.h"
 #include "TypeSystem.h"
 
+#define KATAHIROMZ_NAMESPACE katahiromz
+#include "splitjoin.h"
+
 ////////////////////////////////////////////////////////////////////////////
 
 #define EXTENDS_MOBJECT

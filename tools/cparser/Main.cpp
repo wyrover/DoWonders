@@ -3858,7 +3858,7 @@ bool CrParseMacros(
                 namescope.MapNameToVarID().emplace(name, vid);
             }
         } else {
-            #if 1
+            #if 0
                 std::cerr << name << ": " << macro.m_contents << std::endl;
             #endif
         }
