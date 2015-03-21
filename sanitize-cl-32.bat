@@ -46,7 +46,7 @@ exit /b 0
 
 :error
 cd ..
-echo ERROR: ERRORLEVEL
+echo ERROR: %ERRORLEVEL%
 exit /b 1
 
 :label_no_sanitizer
