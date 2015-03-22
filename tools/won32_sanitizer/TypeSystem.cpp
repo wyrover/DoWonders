@@ -2419,10 +2419,12 @@ CR_NameScope::Minus(const CR_TypedValue& value1) const
         if (IsIntegralType(value1.m_type_id)) {
             if (IsUnsignedType(value1.m_type_id)) {
                 auto u = GetULongLongValue(value1);
-                SetULongLongValue(ret, u);
+                SetULongLongValue(ret,
+                    static_cast<unsigned long long>(
+                        -static_cast<long long>(u)));
             } else {
                 auto n = GetLongLongValue(value1);
-                SetLongLongValue(ret, n);
+                SetLongLongValue(ret, -n);
             }
         } else if (IsFloatingType(value1.m_type_id)) {
             auto ld = GetLongDoubleValue(value1);
@@ -3225,9 +3227,9 @@ bool CR_NameScope::SaveToFiles(
                     value_type = "i";
                 } else if (IsFloatingType(tid)) {
                     value_type = "f";
-                } else if (IsStringType(tid)) {
+                } else if (IsStringType(tid) && text[0] == '\"') {
                     value_type = "s";
-                } else if (IsWStringType(tid)) {
+                } else if (IsWStringType(tid) && text[0] == '\"') {
                     value_type = "S";
                 } else if (IsPointerType(tid)) {
                     value_type = "p";
