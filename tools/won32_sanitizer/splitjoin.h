@@ -28,7 +28,7 @@ namespace KATAHIROMZ_NAMESPACE
 
     // string join(const string_container&, char);
 	template <typename t_string_container,
-	          typename t_string = t_string_container::value_type>
+	          typename t_string = typename t_string_container::value_type>
 	typename t_string_container::value_type
 	joinbychar(const t_string_container& container,
 	           typename t_string::value_type sep)
@@ -67,7 +67,7 @@ namespace KATAHIROMZ_NAMESPACE
 
 	// void splitbychar(string_container&, const string&, char);
 	template <typename t_string_container, 
-	          typename t_string = t_string_container::value_type>
+	          typename t_string = typename t_string_container::value_type>
 	void splitbychar(t_string_container& container,
 	    const typename t_string_container::value_type& str,
 		typename t_string::value_type sep)
@@ -126,7 +126,7 @@ namespace KATAHIROMZ_NAMESPACE
 		std::size_t i, j;
 		for (i = 0; ;) {
 			j = str.find_first_not_of(seps, i);
-			if (j == npos) {
+			if (j == t_string_container::value_type::npos) {
 				return;
 			}
 			i = str.find_first_of(seps, j);

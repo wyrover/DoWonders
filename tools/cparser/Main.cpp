@@ -1944,7 +1944,7 @@ CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
             ret.m_extra.find("l") != std::string::npos)
         {
             ret.m_type_id = namescope.AddConstWStringType();
-            std::wstring wstr = MAnsiToWide(pe->m_text.data());
+            std::wstring wstr = MAnsiToWide(pe->m_text.data()).data();
             ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
         } else {
             ret.m_type_id = namescope.AddConstStringType();

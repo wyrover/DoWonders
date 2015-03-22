@@ -27,6 +27,9 @@ CR_HEADERS = \
 	TypeSystem.h \
 	C_AST.h \
 	mzc2mini.h \
+	splitjoin.h \
+	TextToText.hpp \
+	TextToText_inl.hpp \
 
 CPARSER_HEADER = \
 	CParseHeader.h \

@@ -21,7 +21,7 @@
 
 #include <iostream>         // for std::cout, std::cerr
 #include <fstream>          // for std::ifstream
-#include <strstream>        // for std::strstream
+#include <sstream>          // for std::strstream
 #include <iomanip>          // for std::setfill, std::setw
 #include <vector>           // for std::vector
 #include <string>           // for std::string
