@@ -494,7 +494,7 @@ CR_TypeID CR_NameScope::AddAliasType(
     }
     type1.m_sub_id = tid;
     type1.m_count = type2.m_count;
-    type1.location() = location;
+    type1.m_location = location;
     tid = m_types.insert(type1);
     m_mNameToTypeID[name] = tid;
     m_mTypeIDToName[tid] = name;
@@ -510,11 +510,11 @@ CR_VarID CR_NameScope::AddVar(
     CR_LogVar var;
     var.m_typed_value.m_type_id = tid;
     var.m_typed_value.m_size = SizeOfType(tid);
-    var.location() = location;
+    var.m_location = location;
     auto vid = m_vars.insert(var);
-    m_mVarIDToName[vid] = name;
-    if (!name.empty()) {
-        m_mNameToVarID[name] = vid;
+    m_mVarIDToName.emplace(vid, name);
+    if (name.size()) {
+        m_mNameToVarID.emplace(name, vid);
     }
     return vid;
 }
@@ -529,11 +529,11 @@ CR_VarID CR_NameScope::AddVar(
     CR_LogVar var;
     var.m_typed_value = CR_TypedValue(tid);
     var.m_typed_value.assign<int>(value);
-    var.location() = location;
+    var.m_location = location;
     auto vid = m_vars.insert(var);
-    if (!name.empty()) {
-        m_mNameToVarID[name] = vid;
-        m_mVarIDToName[vid] = name;
+    m_mVarIDToName.emplace(vid, name);
+    if (name.size()) {
+        m_mNameToVarID.emplace(name, vid);
     }
     return vid;
 }
@@ -586,7 +586,7 @@ CR_TypeID CR_NameScope::AddPointerType(
     } else {
         type1.m_align = type1.m_size = (Is64Bit() ? 8 : 4);
     }
-    type1.location() = location;
+    type1.m_location = location;
     auto tid2 = m_types.AddUnique(type1);
     auto type2 = LogType(tid);
     auto name = NameFromTypeID(tid);
@@ -640,7 +640,7 @@ CR_TypeID CR_NameScope::AddArrayType(
     }
     type1.m_sub_id = tid;
     type1.m_count = count;
-    type1.location() = location;
+    type1.m_location = location;
     tid = m_types.AddUnique(type1);
     m_mTypeIDToName[tid] = "";
     return tid;
@@ -668,7 +668,7 @@ CR_TypeID CR_NameScope::AddVectorType(
         type1.m_flags |= TF_BITFIELD;
     }
     type1.m_sub_id = tid;
-    type1.location() = location;
+    type1.m_location = location;
     tid = m_types.AddUnique(type1);
     m_mNameToTypeID[name] = tid;
     m_mTypeIDToName[tid] = name;
@@ -689,7 +689,7 @@ CR_TypeID CR_NameScope::AddFuncType(
     type1.m_sub_id = fid;
     type1.m_size = 1;
     type1.m_align = 1;
-    type1.location() = location;
+    type1.m_location = location;
     CR_TypeID tid1 = m_types.AddUnique(type1);
     m_mTypeIDToName[tid1] = "";
     return tid1;
@@ -706,7 +706,7 @@ CR_TypeID CR_NameScope::AddStructType(
         type1.m_sub_id = sid;
         type1.m_count = ls.m_members.size();
         type1.m_alignas = alignas_;
-        type1.location() = location;
+        type1.m_location = location;
         CR_TypeID tid2 = m_types.AddUnique(type1);
         LogStruct(sid).m_tid = tid2;
         m_mTypeIDToName[tid2] = name;
@@ -720,7 +720,7 @@ CR_TypeID CR_NameScope::AddStructType(
         type1.m_sub_id = sid;
         type1.m_count = ls.m_members.size();
         type1.m_alignas = alignas_;
-        type1.location() = location;
+        type1.m_location = location;
         CR_TypeID tid2 = m_types.AddUnique(type1);
         LogStruct(sid).m_tid = tid2;
         m_mNameToTypeID["struct " + name] = tid2;
@@ -735,7 +735,7 @@ CR_TypeID CR_NameScope::AddStructType(
             auto& type1 = LogType(tid2);
             type1.m_count = ls.m_members.size();
             type1.m_alignas = alignas_;
-            type1.location() = location;
+            type1.m_location = location;
             CR_StructID sid = type1.m_sub_id;
             LogStruct(sid) = ls;
             LogStruct(sid).m_tid = tid2;
@@ -756,7 +756,7 @@ CR_TypeID CR_NameScope::AddUnionType(
         type1.m_sub_id = sid;
         type1.m_count = ls.m_members.size();
         type1.m_alignas = alignas_;
-        type1.location() = location;
+        type1.m_location = location;
         CR_TypeID tid1 = m_types.AddUnique(type1);
         LogStruct(sid).m_tid = tid1;
         m_mTypeIDToName[tid1] = name;
@@ -770,7 +770,7 @@ CR_TypeID CR_NameScope::AddUnionType(
         type1.m_sub_id = sid;
         type1.m_count = ls.m_members.size();
         type1.m_alignas = alignas_;
-        type1.location() = location;
+        type1.m_location = location;
         CR_TypeID tid1 = m_types.AddUnique(type1);
         LogStruct(sid).m_tid = tid1;
         m_mNameToTypeID["union " + name] = tid1;
@@ -785,7 +785,7 @@ CR_TypeID CR_NameScope::AddUnionType(
             auto& type1 = LogType(tid2);
             type1.m_count = ls.m_members.size();
             type1.m_alignas = alignas_;
-            type1.location() = location;
+            type1.m_location = location;
             CR_StructID sid = type1.m_sub_id;
             LogStruct(sid) = ls;
             LogStruct(sid).m_tid = tid2;
@@ -807,7 +807,7 @@ CR_TypeID CR_NameScope::AddEnumType(
         #endif
         type1.m_sub_id = eid;
         type1.m_size = type1.m_align = 4;
-        type1.location() = location;
+        type1.m_location = location;
         CR_TypeID tid1 = m_types.AddUnique(type1);
         m_mTypeIDToName[tid1] = name;
         return tid1;
@@ -821,7 +821,7 @@ CR_TypeID CR_NameScope::AddEnumType(
         #endif
         type1.m_sub_id = eid;
         type1.m_size = type1.m_align = 4;
-        type1.location() = location;
+        type1.m_location = location;
         CR_TypeID tid1 = m_types.AddUnique(type1);
         m_mNameToTypeID["enum " + name] = tid1;
         m_mTypeIDToName[tid1] = "enum " + name;
@@ -860,7 +860,7 @@ bool CR_NameScope::CompleteStructType(CR_TypeID tid, CR_StructID sid) {
             if (!CompleteType(tid2, type2)) {
                 auto& name = ls.m_members[i].m_name;
                 m_error_info->add_warning(
-                    type2.location(), "'" + name + "' has incomplete type");
+                    type2.m_location, "'" + name + "' has incomplete type");
                 is_complete = false;
             }
         }
@@ -1011,7 +1011,7 @@ bool CR_NameScope::CompleteUnionType(CR_TypeID tid, CR_StructID sid) {
             if (!CompleteType(tid2, type2)) {
                 auto& name = ls.m_members[i].m_name;
                 m_error_info->add_warning(
-                    type2.location(), "'" + name + "' has incomplete type");
+                    type2.m_location, "'" + name + "' has incomplete type");
                 is_complete = false;
             }
             #ifdef __GNUC__
@@ -1413,7 +1413,7 @@ bool CR_NameScope::IsPredefinedType(CR_TypeID tid) const {
             tid = type.m_sub_id;
             continue;
         }
-        if (type.location().m_file == "(predefined)") {
+        if (type.m_location.m_file == "(predefined)") {
             return true;
         }
         break;
@@ -1652,7 +1652,7 @@ CR_TypeID CR_NameScope::AddConstStringType() {
     auto tid = m_char_type;
     auto& type = LogType(tid);
     tid = AddConstType(tid);
-    tid = AddPointerType(tid, TF_CONST, type.location());
+    tid = AddPointerType(tid, TF_CONST, type.m_location);
     return tid;
 }
 
@@ -1667,7 +1667,7 @@ CR_TypeID CR_NameScope::AddConstWStringType() {
     }
     auto& type = LogType(tid);
     tid = AddConstType(tid);
-    tid = AddPointerType(tid, TF_CONST, type.location());
+    tid = AddPointerType(tid, TF_CONST, type.m_location);
     return tid;
 }
 
@@ -2762,6 +2762,7 @@ bool CR_NameScope::LoadFromFiles(
     m_mTypeIDToName.clear();
     m_mNameToVarID.clear();
     m_mVarIDToName.clear();
+    m_mNameToName.clear();
 
     std::ifstream in1(prefix + "types" + suffix);
     if (in1) {
@@ -3019,10 +3020,35 @@ bool CR_NameScope::LoadFromFiles(
             var.m_location.set(file, lineno);
 
             auto vid = m_vars.insert(var);
-            m_mVarIDToName[vid] = name;
+            m_mVarIDToName.emplace(vid, name);
             if (name.size()) {
-                m_mNameToVarID[name] = vid;
+                m_mNameToVarID.emplace(name, vid);
             }
+        }
+    } else {
+        return false;
+    }
+
+    std::ifstream in6(prefix + "name2name" + suffix);
+    if (in6) {
+        std::string line;
+        std::getline(in6, line); // skip header
+        for (; std::getline(in6, line);) {
+            CrChop(line);
+            std::vector<std::string> fields;
+            katahiromz::splitbychar(fields, line, '\t');
+
+            std::string name1 = fields[0];
+            std::string name2 = fields[1];
+            std::string file = fields[2];
+            int line = std::stol(fields[3], NULL, 0);
+
+            CR_Name2Name name2name;
+            name2name.m_name1 = name1;
+            name2name.m_name2 = name2;
+            name2name.m_location = CR_Location(file, line);
+
+            m_mNameToName.emplace(name1, name2name);
         }
     } else {
         return false;
@@ -3041,7 +3067,7 @@ bool CR_NameScope::SaveToFiles(
             std::endl;
         for (CR_TypeID tid = 0; tid < LogTypes().size(); ++tid) {
             auto& type = LogType(tid);
-            auto& location = type.location();
+            auto& location = type.m_location;
             std::string name;
             auto it = MapTypeIDToName().find(tid);
             if (it != MapTypeIDToName().end()) {
@@ -3085,7 +3111,7 @@ bool CR_NameScope::SaveToFiles(
             auto& ls = LogStruct(sid);
             auto tid = ls.m_tid;
             auto& type = LogType(tid);
-            auto& location = type.location();
+            auto& location = type.m_location;
             std::string name;
             auto it = MapTypeIDToName().find(tid);
             if (it != MapTypeIDToName().end()) {
@@ -3188,27 +3214,24 @@ bool CR_NameScope::SaveToFiles(
             } else {
                 continue;
             }
-            auto& location = var.location();
+            auto& location = var.m_location;
+
+            std::string text = var.m_typed_value.m_text;
 
             std::string value_type;
             auto tid = var.m_typed_value.m_type_id;
-            if (IsIntegralType(tid)) {
-                value_type = "i";
-            } else if (IsFloatingType(tid)) {
-                value_type = "f";
-            } else if (IsStringType(tid)) {
-                value_type = "s";
-            } else if (IsWStringType(tid)) {
-                value_type = "S";
-            } else if (IsPointerType(tid)) {
-                value_type = "p";
-            }
-
-            std::string text;
-            if (value_type == "s" || value_type == "S") {
-                text = CrEscapeString(var.m_typed_value.m_text);
-            } else {
-                text = var.m_typed_value.m_text;
+            if (text.size()) {
+                if (IsIntegralType(tid)) {
+                    value_type = "i";
+                } else if (IsFloatingType(tid)) {
+                    value_type = "f";
+                } else if (IsStringType(tid)) {
+                    value_type = "s";
+                } else if (IsWStringType(tid)) {
+                    value_type = "S";
+                } else if (IsPointerType(tid)) {
+                    value_type = "p";
+                }
             }
 
             std::string file = location.m_file;
@@ -3227,6 +3250,20 @@ bool CR_NameScope::SaveToFiles(
                 value_type << "\t" <<
                 file << "\t" <<
                 location.m_line << std::endl;
+        }
+    } else {
+        return false;
+    }
+
+    std::ofstream out6(prefix + "name2name" + suffix);
+    if (out6) {
+        out6 << "(name1)\t(name2)\t(file)\t(line)" << std::endl;
+        for (auto& it : m_mNameToName) {
+            out6 <<
+                it.second.m_name1 << "\t" <<
+                it.second.m_name2 << "\t" <<
+                it.second.m_location.m_file << "\t" <<
+                it.second.m_location.m_line << std::endl;
         }
     } else {
         return false;

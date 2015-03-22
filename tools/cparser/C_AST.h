@@ -77,10 +77,6 @@ namespace cparser
         Node(const CR_Location& location) : m_location(location) { }
         virtual ~Node() { }
 
-              CR_Location& location()       { return m_location; }
-        const CR_Location& location() const { return m_location; }
-
-    protected:
         CR_Location  m_location;
     };
 
@@ -145,7 +141,8 @@ namespace cparser
     };
 
     struct TransUnit : Node, std::vector<shared_ptr<Decl>> {
-        shared_ptr<Expr> m_expr;
+        shared_ptr<Expr>        m_expr;
+        shared_ptr<TypeName>    m_type_name;
     };
 
     struct AtomicTypeSpec : Node {

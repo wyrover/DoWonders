@@ -220,9 +220,6 @@ struct CR_LogType {
     // incomplete comparison 
     bool operator==(const CR_LogType& type) const;
     bool operator!=(const CR_LogType& type) const;
-
-          CR_Location& location()       { return m_location; }
-    const CR_Location& location() const { return m_location; }
 }; // struct CR_LogType
 
 ////////////////////////////////////////////////////////////////////////////
@@ -315,10 +312,16 @@ struct CR_LogEnum {
 struct CR_LogVar {
     CR_TypedValue   m_typed_value;      // typed value
     CR_Location     m_location;         // the location
-
-          CR_Location& location()       { return m_location; }
-    const CR_Location& location() const { return m_location; }
 }; // struct CR_LogVar
+
+////////////////////////////////////////////////////////////////////////////
+// CR_Name2Name --- name mapping
+
+struct CR_Name2Name {
+    std::string     m_name1;
+    std::string     m_name2;
+    CR_Location     m_location;         // the location
+};
 
 ////////////////////////////////////////////////////////////////////////////
 // CR_NameScope --- universe of names, types, functions and variables etc.
@@ -394,7 +397,7 @@ public:
             m_mNameToTypeID[name] = tid;
             m_mTypeIDToName[tid] = name;
         }
-        return AddVar(name, tid, type.location());
+        return AddVar(name, tid, type.m_location);
     }
 
     // add a constant type
@@ -670,6 +673,12 @@ public:
     const std::map<CR_VarID, std::string>& MapVarIDToName() const
     { return m_mVarIDToName; }
 
+    std::map<std::string, CR_Name2Name>& MapNameToName()
+    { return m_mNameToName; }
+
+    const std::map<std::string, CR_Name2Name>& MapNameToName() const
+    { return m_mNameToName; }
+
     CR_LogStruct& LogStruct(CR_StructID sid) {
         assert(sid < m_structs.size());
         return m_structs[sid];
@@ -731,6 +740,7 @@ protected:
     CR_DeqSet<CR_LogStruct>             m_structs;
     CR_DeqSet<CR_LogEnum>               m_enums;
     CR_DeqSet<CR_LogVar>                m_vars;
+    std::map<std::string, CR_Name2Name> m_mNameToName;
 
 public:
     CR_TypeID                           m_void_type;

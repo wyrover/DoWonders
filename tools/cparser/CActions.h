@@ -65,6 +65,15 @@ namespace cparser
             return shared_ptr<TransUnit>(tu);
         }
 
+        shared_ptr<TransUnit> DoTransUnit4(shared_ptr<TypeName>& type_name) {
+            #ifdef DEEPDEBUG
+                printf("DoTransUnit4\n");
+            #endif
+            TransUnit *tu = new TransUnit;
+            tu->m_type_name = type_name;
+            return shared_ptr<TransUnit>(tu);
+        }
+
         shared_ptr<ExtDecl> DoExtDecl1(shared_ptr<Decl>& decl) {
             #ifdef DEEPDEBUG
                 printf("DoExtDecl1\n");
@@ -99,7 +108,7 @@ namespace cparser
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::FUNCTION;
             decl->m_decl_specs = ds;
-            decl->location() = d->location();
+            decl->m_location = d->m_location;
 
             DeclorList *declor_list = new DeclorList;
             declor_list->push_back(d);
@@ -119,7 +128,7 @@ namespace cparser
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::FUNCTION;
             decl->m_decl_specs = ds;
-            decl->location() = d->location();
+            decl->m_location = d->m_location;
 
             DeclorList *declor_list = new DeclorList;
             declor_list->push_back(d);
@@ -137,7 +146,7 @@ namespace cparser
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::FUNCTION;
-            decl->location() = d->location();
+            decl->m_location = d->m_location;
 
             DeclorList *declor_list = new DeclorList;
             declor_list->push_back(d);
@@ -155,7 +164,7 @@ namespace cparser
             #endif
             Decl *decl = new Decl;
             decl->m_decl_type = Decl::FUNCTION;
-            decl->location() = d->location();
+            decl->m_location = d->m_location;
 
             DeclorList *declor_list = new DeclorList;
             declor_list->push_back(d);
@@ -192,7 +201,7 @@ namespace cparser
                 printf("DoDecl1a\n");
             #endif
             Decl *decl = new Decl;
-            decl->location() = def->location();
+            decl->m_location = def->m_location;
             decl->m_decl_type = Decl::TYPEDEF;
             decl->m_decl_specs = ds;
             decl->m_declor_list = dl;
@@ -208,7 +217,7 @@ namespace cparser
                 printf("DoDecl1v\n");
             #endif
             Decl *decl = new Decl;
-            decl->location() = def->location();
+            decl->m_location = def->m_location;
             decl->m_decl_type = Decl::TYPEDEF;
             decl->m_decl_specs = ds;
             decl->m_declor_list = dl;
@@ -224,7 +233,7 @@ namespace cparser
                 printf("DoDecl1\n");
             #endif
             Decl *decl = new Decl;
-            decl->location() = def->location();
+            decl->m_location = def->m_location;
             decl->m_decl_type = Decl::TYPEDEF;
             decl->m_decl_specs = ds;
             decl->m_declor_list = dl;
@@ -239,7 +248,7 @@ namespace cparser
                 printf("DoDecl7a\n");
             #endif
             Decl *decl = new Decl;
-            decl->location() = def->location();
+            decl->m_location = def->m_location;
             decl->m_decl_type = Decl::TYPEDEF;
             decl->m_decl_specs = ds;
             decl->m_align_spec = align_spec;
@@ -254,7 +263,7 @@ namespace cparser
                 printf("DoDecl7\n");
             #endif
             Decl *decl = new Decl;
-            decl->location() = def->location();
+            decl->m_location = def->m_location;
             decl->m_decl_type = Decl::TYPEDEF;
             decl->m_decl_specs = ds;
             return shared_ptr<Decl>(decl);
@@ -756,7 +765,7 @@ namespace cparser
             ts->m_flag = TF_STRUCT;
             ts->m_name = tag->m_text;
             ts->m_decl_list = decl_list;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             ts->m_align_spec = align_spec;
             assert(ts->m_pack >= 1);
@@ -773,7 +782,7 @@ namespace cparser
             ts->m_flag = TF_STRUCT;
             ts->m_name = tag->m_text;
             ts->m_decl_list = decl_list;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             assert(ts->m_pack >= 1);
             return shared_ptr<TypeSpec>(ts);
@@ -789,7 +798,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
             ts->m_decl_list = decl_list;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             ts->m_align_spec = align_spec;
             assert(ts->m_pack >= 1);
@@ -805,7 +814,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
             ts->m_decl_list = decl_list;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             assert(ts->m_pack >= 1);
             return shared_ptr<TypeSpec>(ts);
@@ -821,7 +830,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
             ts->m_name = tag->m_text;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             ts->m_align_spec = align_spec;
             assert(ts->m_pack >= 1);
@@ -837,7 +846,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
             ts->m_name = tag->m_text;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             assert(ts->m_pack >= 1);
             return shared_ptr<TypeSpec>(ts);
@@ -854,7 +863,7 @@ namespace cparser
             ts->m_flag = TF_UNION;
             ts->m_name = tag->m_text;
             ts->m_decl_list = decl_list;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             ts->m_align_spec = align_spec;
             return shared_ptr<TypeSpec>(ts);
@@ -870,7 +879,7 @@ namespace cparser
             ts->m_flag = TF_UNION;
             ts->m_name = tag->m_text;
             ts->m_decl_list = decl_list;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             return shared_ptr<TypeSpec>(ts);
         }
@@ -885,7 +894,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
             ts->m_decl_list = decl_list;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             ts->m_align_spec = align_spec;
             return shared_ptr<TypeSpec>(ts);
@@ -900,7 +909,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
             ts->m_decl_list = decl_list;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             return shared_ptr<TypeSpec>(ts);
         }
@@ -915,7 +924,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
             ts->m_name = tag->m_text;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             ts->m_align_spec = align_spec;
             return shared_ptr<TypeSpec>(ts);
         }
@@ -929,7 +938,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
             ts->m_name = tag->m_text;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -1143,7 +1152,7 @@ namespace cparser
             declor->m_declor_type = Declor::BITS;
             declor->m_const_expr = ce;
             declor->m_declor = d;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1163,7 +1172,7 @@ namespace cparser
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::BITS;
             declor->m_const_expr = ce;
-            declor->location() = token->location();
+            declor->m_location = token->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1177,7 +1186,7 @@ namespace cparser
             ts->m_flag = TF_ENUM;
             ts->m_name = tag->m_text;
             ts->m_enumor_list = el;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -1191,7 +1200,7 @@ namespace cparser
             ts->m_flag = TF_ENUM;
             ts->m_name = tag->m_text;
             ts->m_enumor_list = el;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -1204,7 +1213,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
             ts->m_enumor_list = el;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -1217,7 +1226,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
             ts->m_enumor_list = el;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -1230,7 +1239,7 @@ namespace cparser
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
             ts->m_name = tag->m_text;
-            ts->location() = keyword->location();
+            ts->m_location = keyword->m_location;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -1284,7 +1293,7 @@ namespace cparser
             declor->m_declor_type = Declor::POINTERS;
             declor->m_declor = d;
             declor->m_pointers = ptrs;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1305,7 +1314,7 @@ namespace cparser
             declor->m_declor_type = Declor::POINTERS;
             declor->m_declor = d;
             declor->m_pointers = ptrs;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1323,7 +1332,7 @@ namespace cparser
             Declor *d = new Declor;
             d->m_declor_type = Declor::TYPEDEF_TAG;
             d->m_name = token->m_text;
-            d->location() = token->location();
+            d->m_location = token->m_location;
             return shared_ptr<Declor>(d);
         }
 
@@ -1344,7 +1353,7 @@ namespace cparser
             declor->m_declor_type = Declor::ARRAY;
             declor->m_declor = d;
             declor->m_const_expr = ce;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1355,7 +1364,7 @@ namespace cparser
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::ARRAY;
             declor->m_declor = d;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1369,7 +1378,7 @@ namespace cparser
             declor->m_declor_type = Declor::FUNCTION;
             declor->m_declor = d;
             declor->m_param_list = pl;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1380,7 +1389,7 @@ namespace cparser
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::FUNCTION;
             declor->m_declor = d;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1392,7 +1401,7 @@ namespace cparser
             d->m_declor_type = Declor::IDENTIFIER;
             d->m_name = token->m_text;
             d->m_flags = token->m_flags;
-            d->location() = token->location();
+            d->m_location = token->m_location;
             return shared_ptr<Declor>(d);
         }
 
@@ -1413,7 +1422,7 @@ namespace cparser
             declor->m_declor_type = Declor::ARRAY;
             declor->m_declor = d;
             declor->m_const_expr = ce;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1424,7 +1433,7 @@ namespace cparser
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::ARRAY;
             declor->m_declor = d;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1438,7 +1447,7 @@ namespace cparser
             declor->m_declor_type = Declor::FUNCTION;
             declor->m_declor = d;
             declor->m_param_list = pl;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -1449,7 +1458,7 @@ namespace cparser
             Declor *declor = new Declor;
             declor->m_declor_type = Declor::FUNCTION;
             declor->m_declor = d;
-            declor->location() = d->location();
+            declor->m_location = d->m_location;
             return shared_ptr<Declor>(declor);
         }
 
@@ -3167,7 +3176,7 @@ namespace cparser
             StaticAssertDecl *sad = new StaticAssertDecl;
             sad->m_const_expr = ce;
             sad->m_str = str->m_text;
-            sad->m_location = str->location();
+            sad->m_location = str->m_location;
             return shared_ptr<StaticAssertDecl>(sad);
         }
 

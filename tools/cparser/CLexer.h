@@ -95,9 +95,6 @@ namespace cparser
               Packing& packing()       { return m_packing; }
         const Packing& packing() const { return m_packing; }
 
-              CR_Location& location()       { return m_location; }
-        const CR_Location& location() const { return m_location; }
-
               int& default_packing()        { return packing().default_packing(); }
         const int& default_packing() const  { return packing().default_packing(); }
 
@@ -105,6 +102,7 @@ namespace cparser
         scanner_iterator    m_current;
         scanner_iterator    m_end;
         Packing             m_packing;
+	public:
         CR_Location         m_location;
     };
 
@@ -133,9 +131,6 @@ namespace cparser
               Packing& packing()       { return m_packing; }
         const Packing& packing() const { return m_packing; }
 
-              CR_Location& location()       { return m_location; }
-        const CR_Location& location() const { return m_location; }
-
               int& default_packing()        { return packing().default_packing(); }
         const int& default_packing() const  { return packing().default_packing(); }
 
@@ -143,8 +138,14 @@ namespace cparser
         str_iterator        m_current;
         str_iterator        m_end;
         Packing             m_packing;
+	public:
         CR_Location         m_location;
     };
+
+    //
+    // TypeNames
+    //
+    typedef std::unordered_set<std::string> TypeNames;
 
     //
     // Lexer
@@ -154,7 +155,7 @@ namespace cparser
         Lexer(shared_ptr<CR_ErrorInfo> error_info, bool is_64bit = false) :
             m_error_info(error_info), m_is_64bit(is_64bit),
             m_in_c_comment(false), m_in_cxx_comment(false),
-            m_type_names(make_shared<std::unordered_set<std::string>>())
+            m_type_names(make_shared<TypeNames>())
         {
             init_symbol_table();
         }
@@ -164,7 +165,7 @@ namespace cparser
 
         void just_do_it(node_container& infos,
                         scanner_iterator begin, scanner_iterator end);
-        void just_do_it2(node_container& infos,
+        void just_do_it2(node_container& infos, Token token,
                          str_iterator begin, str_iterator end);
 
         void show_tokens(node_iterator begin, node_iterator end) const {
@@ -249,10 +250,10 @@ namespace cparser
         bool                        m_is_64bit;
         bool                        m_in_c_comment;
         bool                        m_in_cxx_comment;
-        std::unordered_map<std::string, Token>          m_symbol_table;
+        std::unordered_map<std::string, Token>      m_symbol_table;
 
     public:
-        shared_ptr<std::unordered_set<std::string>>     m_type_names;
+        shared_ptr<TypeNames>                       m_type_names;
 
         //
         // pragma

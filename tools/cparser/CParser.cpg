@@ -45,7 +45,7 @@
 %token T_ELSE<CR_TokenNode>;            // else
 %token T_ENUM<CR_TokenNode>;            // enum
 %token T_EQUAL<CR_TokenNode>;           // ==
-%token T_EXPRESSION<CR_TokenNode>;      // specify this before expression
+%token T_EXPRESSION<CR_TokenNode>;      // expression only
 %token T_EXTERN<CR_TokenNode>;          // extern
 %token T_FASTCALL<CR_TokenNode>;        // __fastcall
 %token T_FLOAT<CR_TokenNode>;           // float
@@ -116,6 +116,7 @@
 %token T_SWITCH<CR_TokenNode>;          // switch
 %token T_TAGNAME<CR_TokenNode>;         // (tag name)
 %token T_THREAD_LOCAL<CR_TokenNode>;    // _Thread_local
+%token T_TYPE<CR_TokenNode>;            // type only
 %token T_TYPEDEF<CR_TokenNode>;         // typedef
 %token T_TYPEDEF_NAME<CR_TokenNode>;    // (typedef name)
 %token T_TYPEDEF_TAG<CR_TokenNode>;     // (typedef tag)
@@ -135,7 +136,8 @@
 translation_unit<TransUnit>
     : [DoTransUnit1] translation_unit(0) external_declaration(1)
     | [DoTransUnit2] external_declaration(0)
-    | [DoTransUnit3] T_EXPRESSION expression(0)
+    | [DoTransUnit3] T_EXPRESSION expression(0) T_EXPRESSION
+    | [DoTransUnit4] T_TYPE type_name(0) T_TYPE
     ;
 
 external_declaration<ExtDecl>

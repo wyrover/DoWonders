@@ -145,7 +145,7 @@ bool cparser::Lexer::token_pattern_match(
             it = saved;
         }
         if (it->m_token == T_NEWLINE) {
-            base.location()++;
+            base.m_location++;
         } else if (token != eof && it->m_token != token) {
             it = saved;
             return false;
@@ -494,13 +494,12 @@ void cparser::Lexer::just_do_it(
 } // just_do_it
 
 void cparser::Lexer::just_do_it2(
-    node_container& infos,
+    node_container& infos, Token token,
     str_iterator begin, str_iterator end)
 {
     LexerBase2 base(begin, end);
 
-    // we parse an expression at here
-    infos.emplace_back(T_EXPRESSION);
+    infos.emplace_back(token);
 
     // get tokens
     node_container read_infos;
@@ -510,6 +509,8 @@ void cparser::Lexer::just_do_it2(
     }
     infos.insert(infos.end(), read_infos.begin(), read_infos.end());
     read_infos.clear();
+
+    infos.emplace_back(token);
     infos.emplace_back(eof);
 
     // token resynthesization
@@ -1014,14 +1015,14 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
     bool    line_top = true;
     auto    end = c.end();
     for (auto it = c.begin(); it != end; ++it) {
-        it->location() = base.location();
+        it->m_location = base.m_location;
         it->m_pack = base.packing();
 
         // invalid character
         if (it->m_token == T_INVALID_CHAR) {
             std::string text = "unexpected character '";
             text += it->m_text + "'";
-            add_error(base.location(), text);
+            add_error(base.m_location, text);
             continue;
         }
 
@@ -1033,7 +1034,7 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
         // found '#'?
         if (it->m_token == T_SHARP) {
             if (!line_top) {
-                add_error(base.location(), "invalid character '#'");
+                add_error(base.m_location, "invalid character '#'");
                 continue;
             }
 
@@ -1053,10 +1054,10 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
                 int lineno = std::atoi(it->m_text.data()) - 1;
                 ++it;
                 if (it != end && it->m_token == T_STRING) {
-                    base.location().set(it->m_text, lineno);
+                    base.m_location.set(it->m_text, lineno);
                 } else {
                     --it;
-                    base.location().m_line = lineno;
+                    base.m_location.m_line = lineno;
                 }
                 is_lineno_directive = true;
             }
@@ -1072,7 +1073,7 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
             while (it != end) {
                 if (it->m_token == T_NEWLINE) {
                     line_top = true;
-                    ++base.location();
+                    ++base.m_location;
                     break;
                 }
                 ++it;
@@ -1083,7 +1084,7 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
         // is it '\n' ?
         if (it->m_token == T_NEWLINE) {
             line_top = true;
-            ++base.location();
+            ++base.m_location;
         } else {
             line_top = false;
             newc.emplace_back(*it);
@@ -1259,11 +1260,11 @@ void cparser::Lexer::resynth4(node_container& c) {
 // 1. Convert tag_name of enum tag_name to T_TAGNAME
 // 2. Convert tag_name of struct tag_name to T_TAGNAME
 // 3. Convert tag_name of union tag_name to T_TAGNAME
-// 4. Process typedef ... by resynth_typedef.
+// 4. Process typedef ... or T_TYPE ... by resynth_typedef.
 // 5. If a registered type name was found, convert it to T_TYPEDEF_NAME.
 void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
     #ifdef __GNUC__
-		m_type_names->emplace("__builtin_va_list");   // fixup
+        m_type_names->emplace("__builtin_va_list");   // fixup
     #else
         m_type_names->emplace("SOCKADDR_STORAGE");    // fixup
     #endif
@@ -1663,14 +1664,14 @@ cparser::Lexer::parse_pack(
         if ((it + 1)->m_text == "pop") {
             // #pragma pack(pop)
             if (c_show_pack) {
-                std::cerr << base.location().str() <<
+                std::cerr << base.m_location.str() <<
                     ": pragma pack(pop)" << std::endl;
             }
             base.packing().pop();
         } else if ((it + 1)->m_text == "push"){
             // #pragma pack(push)
             if (c_show_pack) {
-                std::cerr << base.location().str() <<
+                std::cerr << base.m_location.str() <<
                     ": pragma pack(push)" << std::endl;
             }
             base.packing().push(base.packing());
@@ -1678,7 +1679,7 @@ cparser::Lexer::parse_pack(
             // #pragma pack(#)
             int pack = std::stoi((it + 1)->m_text, NULL, 0);
             if (c_show_pack) {
-                std::cerr << base.location().str() <<
+                std::cerr << base.m_location.str() <<
                     ": pragma pack(" << pack << ")" << std::endl;
             }
             base.packing().set(pack);
@@ -1697,7 +1698,7 @@ cparser::Lexer::parse_pack(
             if ((it + 1)->m_text == "pop") {
                 // #pragma pack(pop, ident)
                 if (c_show_pack) {
-                    std::cerr << base.location().str() <<
+                    std::cerr << base.m_location.str() <<
                         ": pragma pack(pop," << param << ")" << std::endl;
                 }
                 base.packing().pop(param);
@@ -1705,7 +1706,7 @@ cparser::Lexer::parse_pack(
             } else if ((it + 1)->m_text == "push") {
                 // #pragma pack(push, ident)
                 if (c_show_pack) {
-                    std::cerr << base.location().str() <<
+                    std::cerr << base.m_location.str() <<
                         ": pragma pack(push," << param << ")" << std::endl;
                 }
                 base.packing().push(param);
@@ -1717,7 +1718,7 @@ cparser::Lexer::parse_pack(
                 // #pragma pack(pop, #)
                 int pack = std::stoi(param, NULL, 0);
                 if (c_show_pack) {
-                    std::cerr << base.location().str() <<
+                    std::cerr << base.m_location.str() <<
                         ": pragma pack(pop," << pack << ")" << std::endl;
                 }
                 base.packing().pop(pack);
@@ -1726,7 +1727,7 @@ cparser::Lexer::parse_pack(
                 // #pragma pack(push, #)
                 int pack = std::stoi(param, NULL, 0);
                 if (c_show_pack) {
-                    std::cerr << base.location().str() <<
+                    std::cerr << base.m_location.str() <<
                         ": pragma pack(push," << pack << ")" << std::endl;
                 }
                 base.packing().push(pack);
@@ -1747,7 +1748,7 @@ cparser::Lexer::parse_pack(
         auto param = (it + 5)->m_text;
         if (op == "push") {
             if (c_show_pack) {
-                std::cerr << base.location().str() <<
+                std::cerr << base.m_location.str() <<
                     ": pragma pack(push," << ident << "," <<
                         param << ")" << std::endl;
             }
@@ -1757,7 +1758,7 @@ cparser::Lexer::parse_pack(
         } else if (op == "pop") {
             int pack = std::stoi(param, NULL, 0);
             if (c_show_pack) {
-                std::cerr << base.location().str() <<
+                std::cerr << base.m_location.str() <<
                     ": pragma pack(pop," << ident << "," <<
                         param << ")" << std::endl;
             }
@@ -1790,7 +1791,7 @@ cparser::Lexer::parse_pragma(
             { T_L_PAREN, T_STRING, T_R_PAREN }
         );
         if (flag) {
-            message(base.location(), (it + 1)->m_text);
+            message(base.m_location, (it + 1)->m_text);
             it += 3;
         }
         return CR_ErrorInfo::NOTHING;
@@ -1846,7 +1847,7 @@ CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     CR_TypedValue ret;
     switch (pe->m_prim_type) {
     case PrimExpr::IDENTIFIER:
-        {
+        if (pe->m_text.size()) {
             auto it = namescope.MapNameToVarID().find(pe->m_text);
             if (it != namescope.MapNameToVarID().end()) {
                 CR_VarID vid = it->second;
@@ -1937,17 +1938,17 @@ CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
         break;
 
     case PrimExpr::STRING:
-        ret.m_text = pe->m_text;
+        ret.m_text = CrEscapeString(pe->m_text);
         ret.m_extra = pe->m_extra;
         if (ret.m_extra.find("L") != std::string::npos ||
             ret.m_extra.find("l") != std::string::npos)
         {
             ret.m_type_id = namescope.AddConstWStringType();
-            std::wstring wstr = MAnsiToWide(ret.m_text.data());
+            std::wstring wstr = MAnsiToWide(pe->m_text.data());
             ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
         } else {
             ret.m_type_id = namescope.AddConstStringType();
-            ret.assign(ret.m_text.data(), ret.m_text.size() + 1);
+            ret.assign(pe->m_text.data(), pe->m_text.size() + 1);
         }
         break;
 
@@ -2147,7 +2148,7 @@ int CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
 
     switch (pe->m_prim_type) {
     case PrimExpr::IDENTIFIER:
-        {
+        if (pe->m_text.size()) {
             auto it = namescope.MapNameToVarID().find(pe->m_text);
             if (it != namescope.MapNameToVarID().end()) {
                 auto& var = namescope.LogVar(it->second);
@@ -2874,7 +2875,7 @@ void CrAnalyseTypedefDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     if (d->m_param_list) {
                         CrAnalyseParamList(namescope, func, d->m_param_list.get());
                     }
-                    tid2 = namescope.AddFuncType(func, d->location());
+                    tid2 = namescope.AddFuncType(func, d->m_location);
                     d = d->m_declor.get();
                 }
                 continue;
@@ -2965,7 +2966,7 @@ void CrAnalyseTypedefDeclorListVector(
                     if (d->m_param_list) {
                         CrAnalyseParamList(namescope, func, d->m_param_list.get());
                     }
-                    tid2 = namescope.AddFuncType(func, d->location());
+                    tid2 = namescope.AddFuncType(func, d->m_location);
                     d = d->m_declor.get();
                 }
                 continue;
@@ -3002,7 +3003,7 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
             case Declor::IDENTIFIER:
                 if (d->m_flags && namescope.IsFuncType(tid2))
                     namescope.AddTypeFlags(tid2, d->m_flags);
-                namescope.AddVar(d->m_name, tid2, d->location());
+                namescope.AddVar(d->m_name, tid2, d->m_location);
                 #ifdef DEEPDEBUG
                     printf("#%s\n", namescope.StringOfType(tid2, d->m_name).data());
                 #endif
@@ -3015,7 +3016,7 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     auto ac = (*pointers)[0];
                     namescope.AddTypeFlags(tid2, ac->m_flags);
                 }
-                tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, d->location());
+                tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, d->m_location);
                 d = d->m_declor.get();
                 break;
 
@@ -3027,7 +3028,7 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 } else {
                     int_value = 0;
                 }
-                tid2 = namescope.AddArrayType(tid2, int_value, d->location());
+                tid2 = namescope.AddArrayType(tid2, int_value, d->m_location);
                 d = d->m_declor.get();
                 continue;
 
@@ -3038,7 +3039,7 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     if (d->m_param_list) {
                         CrAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
-                    tid2 = namescope.AddFuncType(lf, d->location());
+                    tid2 = namescope.AddFuncType(lf, d->m_location);
                     d = d->m_declor.get();
                 }
                 break;
@@ -3077,7 +3078,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     namescope.AddTypeFlags(tid2, ac->m_flags);
                 }
                 tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2,
-                                         d->location());
+                                         d->m_location);
                 d = d->m_declor.get();
                 continue;
 
@@ -3089,7 +3090,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 } else {
                     int_value = (ls.m_is_struct ? 0 : 1);
                 }
-                tid2 = namescope.AddArrayType(tid2, int_value, d->location());
+                tid2 = namescope.AddArrayType(tid2, int_value, d->m_location);
                 d = d->m_declor.get();
                 continue;
 
@@ -3099,7 +3100,7 @@ void CrAnalyseStructDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     if (d->m_param_list) {
                         CrAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
-                    tid2 = namescope.AddFuncType(lf, d->location());
+                    tid2 = namescope.AddFuncType(lf, d->m_location);
                     d = d->m_declor.get();
                 }
                 continue;
@@ -3136,11 +3137,11 @@ void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl) {
                     int vector_size = std::stoul(decl->m_constant, NULL, 0);
                     CrAnalyseTypedefDeclorListVector(namescope, tid,
                         decl->m_declor_list.get(), decl->m_align_spec.get(),
-                        vector_size, decl->location());
+                        vector_size, decl->m_location);
                 } else {
                     CrAnalyseTypedefDeclorList(namescope, tid,
                         decl->m_declor_list.get(), decl->m_align_spec.get(),
-                        decl->location());
+                        decl->m_location);
                 }
             }
             break;
@@ -3157,7 +3158,7 @@ void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl) {
                 value = CrValueOnCondExpr(namescope, const_expr.get());
                 if (namescope.GetIntValue(value) == 0) {
                     namescope.ErrorInfo()->add_error(
-                        decl->location(),
+                        decl->m_location,
                         "static assertion failed");
                 }
             }
@@ -3207,12 +3208,12 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
                     namescope.AddTypeFlags(tid2, ac->m_flags);
                 }
                 tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2,
-                                         d->location());
+                                         d->m_location);
                 d = d->m_declor.get();
                 continue;
 
             case Declor::ARRAY:
-                tid2 = namescope.AddPointerType(tid2, 0, d->location());
+                tid2 = namescope.AddPointerType(tid2, 0, d->m_location);
                 d = d->m_declor.get();
                 continue;
 
@@ -3223,7 +3224,7 @@ void CrAnalyseParamList(CR_NameScope& namescope, CR_LogFunc& func,
                     if (d->m_param_list) {
                         CrAnalyseParamList(namescope, lf, d->m_param_list.get());
                     }
-                    tid2 = namescope.AddFuncType(lf, d->location());
+                    tid2 = namescope.AddFuncType(lf, d->m_location);
                     d = d->m_declor.get();
                 }
                 continue;
@@ -3253,7 +3254,7 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
                 CrAnalyseDeclList(namescope, decl_list);
                 if (declor->m_param_list) {
                     CrAnalyseParamList(namescope, func, declor->m_param_list.get());
-                    namescope.AddFuncType(func, declor->location());
+                    namescope.AddFuncType(func, declor->m_location);
                 } else {
                     assert(0);
                 }
@@ -3261,7 +3262,7 @@ void CrAnalyseFunc(CR_NameScope& namescope, CR_TypeID return_type,
                 assert(declor->m_param_list);
                 if (declor->m_param_list) {
                     CrAnalyseParamList(namescope, func, declor->m_param_list.get());
-                    namescope.AddFuncType(func, declor->location());
+                    namescope.AddFuncType(func, declor->m_location);
                 }
             }
         }
@@ -3466,12 +3467,12 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                     if (ts->m_decl_list) {
                         tid = CrAnalyseStructDeclList(
                             namescope, name, ts->m_decl_list.get(), ts->m_pack,
-                            alignas_, ts->location());
+                            alignas_, ts->m_location);
                     } else {
                         tid = namescope.TypeIDFromName(name);
                         if (tid == cr_invalid_id) {
                             CR_LogStruct ls(true);
-                            tid = namescope.AddStructType(name, ls, alignas_, ts->location());
+                            tid = namescope.AddStructType(name, ls, alignas_, ts->m_location);
                         }
                     }
                 }
@@ -3506,12 +3507,12 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                     if (ts->m_decl_list) {
                         tid = CrAnalyseUnionDeclList(
                             namescope, name, ts->m_decl_list.get(), ts->m_pack,
-                            alignas_, ts->location());
+                            alignas_, ts->m_location);
                     } else {
                         tid = namescope.TypeIDFromName(name);
                         if (tid == cr_invalid_id) {
                             CR_LogStruct ls(false);
-                            tid = namescope.AddUnionType(name, ls, alignas_, ts->location());
+                            tid = namescope.AddUnionType(name, ls, alignas_, ts->m_location);
                         }
                     }
                 }
@@ -3525,11 +3526,11 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 if (ds->m_type_spec->m_enumor_list) {
                     tid = CrAnalyseEnumorList(
                         namescope, name, ds->m_type_spec->m_enumor_list.get(),
-                        ds->m_type_spec->location());
+                        ds->m_type_spec->m_location);
                 } else {
                     CR_LogEnum le;
                     tid = namescope.AddEnumType(
-                        name, le, ds->m_type_spec->location());
+                        name, le, ds->m_type_spec->m_location);
                 }
                 if (flags & TF_CONST) {
                     tid = namescope.AddConstType(tid);
@@ -3790,7 +3791,7 @@ bool CrLoadMacros(
             macro.m_contents = contents;
             macro.m_location = location;
 
-            macro_set[name] = macro;
+            macro_set.emplace(name, macro);
         }
         return true;
     }
@@ -3801,6 +3802,7 @@ bool CrLoadMacros(
 
 std::string
 CrExpandMacro(const CR_MacroSet& macros, std::string str) {
+    // TODO:
     return str;
 }
 
@@ -3810,12 +3812,15 @@ bool CrParseMacros(
     bool is_64bit = false)
 {
     CR_MacroSet macro_set;
+    CR_MacroSet checked;
 
+    // load macros
     if (!CrLoadMacros(namescope, macro_set, prefix, suffix, is_64bit)) {
         return false;
     }
 
-    auto type_names = make_shared<std::unordered_set<std::string>>();
+    // get type names
+    auto type_names = make_shared<cparser::TypeNames>();
     for (auto it : namescope.MapNameToTypeID()) {
         type_names->emplace(it.first);
     }
@@ -3824,9 +3829,11 @@ bool CrParseMacros(
     }
     type_names->erase("");
 
+    // save error info
     auto error_info_saved = namescope.ErrorInfo();
     namescope.ErrorInfo() = make_shared<CR_ErrorInfo>();
 
+    // for all macros
     auto end = macro_set.end();
     for (auto it = macro_set.begin(); it != end; ++it) {
         auto& name = it->first;
@@ -3839,29 +3846,96 @@ bool CrParseMacros(
 
         // expand macro
         auto expanded = CrExpandMacro(macro_set, macro.m_contents);
+        CrTrimString(expanded);
+        if (expanded.empty()) {
+            continue;
+        }
 
         // parse as expression
         shared_ptr<Expr> expr;
+        shared_ptr<TypeName> type_name;
         if (parse_expression(namescope.ErrorInfo(), expr, 
-                             expanded.begin(), expanded.end(),
-                             type_names, namescope.Is64Bit()))
+                             expanded, type_names, namescope.Is64Bit()))
         {
             CR_LogVar var;
             CR_TypedValue typed_value = CrValueOnExpr(namescope, expr.get());
             var.m_location = macro.m_location;
-            var.m_typed_value = typed_value;
+            if (namescope.HasValue(typed_value)) {
+                var.m_typed_value = typed_value;
 
-            // add macro as variable
-            auto vid = namescope.LogVars().insert(var);
-            namescope.MapVarIDToName().emplace(vid, name);
-            if (name.size()) {
-                namescope.MapNameToVarID().emplace(name, vid);
+                // add macro as variable
+                auto vid = namescope.LogVars().insert(var);
+                namescope.MapVarIDToName().emplace(vid, name);
+                if (name.size()) {
+                    namescope.MapNameToVarID().emplace(name, vid);
+                }
+            } else {
+                // check the macro
+                checked.emplace(name, macro);
             }
+        } else if (parse_type(namescope.ErrorInfo(), type_name,
+                              expanded, type_names, namescope.Is64Bit()))
+        {
+            // add type
+            CR_TypeID tid;
+            tid = CrGetTypeIDOfTypeName(namescope, type_name.get());
+            if (tid != cr_invalid_id) {
+                namescope.AddAliasType(name, tid, macro.m_location);
+            }
+            type_names->emplace(name);
         } else {
-            #if 0
-                std::cerr << name << ": " << macro.m_contents << std::endl;
-            #endif
+            // check the macro
+            checked.emplace(name, macro);
         }
+    }
+
+    // retry checked macros
+    auto end2 = checked.end();
+    for (auto it2 = checked.begin(); it2 != end2; ++it2) {
+        auto& name = it2->first;
+        auto& macro = it2->second;
+
+        // expand macro
+        auto expanded = CrExpandMacro(macro_set, macro.m_contents);
+        CrTrimString(expanded);
+        if (expanded.empty()) {
+            continue;
+        }
+
+        shared_ptr<TypeName> type_name;
+        if (parse_type(namescope.ErrorInfo(), type_name,
+                       expanded, type_names, namescope.Is64Bit()))
+        {
+            // add type
+            CR_TypeID tid;
+            tid = CrGetTypeIDOfTypeName(namescope, type_name.get());
+            if (tid != cr_invalid_id) {
+                namescope.AddAliasType(name, tid, macro.m_location);
+            }
+            type_names->emplace(name);
+            continue;
+        } else {
+            // add variable mapping
+            auto it3 = namescope.MapNameToVarID().find(expanded);
+            if (it3 != namescope.MapNameToVarID().end()) {
+                CR_Name2Name name2name;
+                name2name.m_name1 = name;
+                name2name.m_name2 = expanded;
+                name2name.m_location = macro.m_location;
+                namescope.MapNameToName().emplace(name, name2name);
+                #if 0
+                    std::cerr << name << "::: " << macro.m_contents << std::endl;
+                #endif
+                continue;
+            } else {
+                #if 0
+                    std::cerr << name << ":: " << macro.m_contents << std::endl;
+                #endif
+            }
+        }
+        #if 0
+            std::cerr << name << ": " << macro.m_contents << std::endl;
+        #endif
     }
 
     namescope.ErrorInfo() = error_info_saved;
@@ -3897,12 +3971,12 @@ int CrSemanticAnalysis(CR_NameScope& namescope, shared_ptr<TransUnit>& tu) {
                             int vector_size = std::stoul(decl->m_constant, NULL, 0);
                             CrAnalyseTypedefDeclorListVector(namescope, tid,
                                 decl->m_declor_list.get(), decl->m_align_spec.get(),
-                                vector_size, decl->location());
+                                vector_size, decl->m_location);
                         } else {
                             CrAnalyseTypedefDeclorList(
                                 namescope, tid, dl.get(),
                                 decl->m_align_spec.get(),
-                                decl->location());
+                                decl->m_location);
                         }
                     }
                 } else {
