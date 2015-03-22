@@ -20,14 +20,16 @@ OBJS = \
 
 LIBS = -lcomdlg32 -limagehlp
 
+HEADERS = TypeSystem.h TextToText.hpp TextToText_inl.hpp splitjoin.h
+
 all: won32_sanitizer64$(DOTEXE)
 
 won32_sanitizer64$(DOTEXE): $(OBJS)
 	$(CXX) -o won32_sanitizer64$(DOTEXE) $(CXXFLAGS) $(OPTIONS) $(OBJS) $(LIBS)
 
-won32_sanitizer64$(DOTOBJ): TypeSystem.h won32_sanitizer.cpp
+won32_sanitizer64$(DOTOBJ): $(HEADERS) won32_sanitizer.cpp
 	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o won32_sanitizer64$(DOTOBJ) won32_sanitizer.cpp
-TypeSystem64$(DOTOBJ): TypeSystem.h TypeSystem.cpp
+TypeSystem64$(DOTOBJ): $(HEADERS) TypeSystem.cpp
 	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o TypeSystem64$(DOTOBJ) TypeSystem.cpp
 
 clean:
