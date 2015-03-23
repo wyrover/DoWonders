@@ -241,7 +241,17 @@ cparser::Lexer::guts_string(const char *& it) const {
             break;
 
         default:
-            ret += *it;
+            // trigraph "??/"
+            if (it[0] == '?' && it[1] == '?' && it[2] == '/') {
+                it += 3;
+                auto text = guts_escape_sequence(it);
+                ret += text;
+                if (*it == 0) {
+                    return ret;
+                }
+            } else {
+                ret += *it;
+            }
         }
     }
     return ret;
@@ -741,7 +751,9 @@ void cparser::Lexer::do_line(
             } else if (lexeme(it, "<=")) {
                 infos.emplace_back(T_LE, "<=");
             } else if (lexeme(it, "<:")) {
-                infos.emplace_back(T_L_BRACKET, "<:");
+                infos.emplace_back(T_L_BRACKET, "[");
+            } else if (lexeme(it, "<%")) {
+                infos.emplace_back(T_L_BRACE, "{");
             } else {
                 infos.emplace_back(T_LT, "<");
                 ++it;
@@ -811,7 +823,9 @@ void cparser::Lexer::do_line(
             if (lexeme(it, "%=")) {
                 infos.emplace_back(T_MOD_ASSIGN, "%=");
             } else if (lexeme(it, "%>")) {
-                infos.emplace_back(T_R_BRACE, "%>");
+                infos.emplace_back(T_R_BRACE, "}");
+            } else if (lexeme(it, "%:")) {
+                infos.emplace_back(T_SHARP, "#");
             } else {
                 infos.emplace_back(T_PERCENT, "%");
                 ++it;
@@ -874,7 +888,7 @@ void cparser::Lexer::do_line(
 
         case ':':
             if (lexeme(it, ":>")) {
-                infos.emplace_back(T_R_BRACKET, ":>");
+                infos.emplace_back(T_R_BRACKET, "]");
             } else {
                 infos.emplace_back(T_COLON, ":");
                 ++it;
@@ -889,7 +903,30 @@ void cparser::Lexer::do_line(
         case '[': infos.emplace_back(T_L_BRACKET, "["); ++it; break;
         case ']': infos.emplace_back(T_R_BRACKET, "]"); ++it; break;
         case '~': infos.emplace_back(T_TILDA, "~"); ++it; break;
-        case '?': infos.emplace_back(T_QUESTION, "?"); ++it; break;
+        case '?':
+            // trigraphs
+            if (lexeme(it, "??<")) {
+                infos.emplace_back(T_L_BRACE, "{");
+            } else if (lexeme(it, "??>")) {
+                infos.emplace_back(T_R_BRACE, "}");
+            } else if (lexeme(it, "??(")) {
+                infos.emplace_back(T_L_BRACKET, "[");
+            } else if (lexeme(it, "??)")) {
+                infos.emplace_back(T_R_BRACKET, "]");
+            } else if (lexeme(it, "??=")) {
+                infos.emplace_back(T_SHARP, "#");
+            } else if (lexeme(it, "??'")) {
+                infos.emplace_back(T_XOR, "^");
+            } else if (lexeme(it, "??!")) {
+                infos.emplace_back(T_OR, "|");
+            } else if (lexeme(it, "??-")) {
+                infos.emplace_back(T_TILDA, "~");
+            } else {
+                infos.emplace_back(T_QUESTION, "?");
+                ++it;
+            }
+            // NOTE: ??/ out of string is preprocessed by preprocessor
+            break;
 
         case -1: // EOF
             ++it;
