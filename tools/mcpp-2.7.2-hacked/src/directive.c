@@ -673,8 +673,7 @@ static int do_macro_params(
 }
 
 /* hacked by katahiromz */
-static void free_macro_params(int nargs, char *params[64])
-{
+static void free_macro_params(int nargs, char *params[64]) {
     int i;
     for (i = 0; i < nargs; ++i) {
         free(params[i]);
@@ -737,13 +736,11 @@ static char *do_macro_repl(
     char *ret, *result;
     char buf1[3] = "\x7F\x00\x00";
     result = _strdup(src);
-    if (nargs > 0) {
-        for (i = 1; i <= nargs; ++i) {
-            buf1[1] = (char)i;
-            ret = str_replace(result, buf1, params[i - 1]);
-            free(result);
-            result = ret;
-        }
+    for (i = 1; i <= nargs; ++i) {
+        buf1[1] = (char)i;
+        ret = str_replace(result, buf1, params[i - 1]);
+        free(result);
+        result = ret;
     }
     ret = str_replace(result, "\x1E", "##");
     free(result);
@@ -751,10 +748,13 @@ static char *do_macro_repl(
     ret = str_replace(result, "\x1D", "#");
     free(result);
     result = ret;
-    ret = str_replace(result, "\x19", "");
-    free(result);
-    result = ret;
-    return result;
+	ret = str_replace(result, "\x19", "");
+	free(result);
+	result = ret;
+	ret = str_replace(result, "...", " __VA_ARGS__ ");
+	free(result);
+	result = ret;
+	return result;
 }
 
 DEFBUF *    do_define(
@@ -1567,8 +1567,14 @@ DEFBUF *    install_macro(
         char *params[64];
         int i, nargs = dp->nargs;
 
-        if (nargs < 0) nargs = 0;
-        for (i = 0; i < 64; ++i) params[i] = NULL;
+		if (nargs == -770) {
+			nargs = -1;
+		} else if (nargs < 0) {
+			nargs = 0;
+		} else {
+			nargs &= 0x7F;
+		}
+		for (i = 0; i < 64; ++i) params[i] = NULL;
 
         do_macro_params(params, dp->parmnames);
         #if 0
