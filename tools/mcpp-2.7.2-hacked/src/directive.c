@@ -748,13 +748,13 @@ static char *do_macro_repl(
     ret = str_replace(result, "\x1D", "#");
     free(result);
     result = ret;
-	ret = str_replace(result, "\x19", "");
-	free(result);
-	result = ret;
-	ret = str_replace(result, "...", " __VA_ARGS__ ");
-	free(result);
-	result = ret;
-	return result;
+    ret = str_replace(result, "\x19", "");
+    free(result);
+    result = ret;
+    ret = str_replace(result, "...", " __VA_ARGS__ ");
+    free(result);
+    result = ret;
+    return result;
 }
 
 DEFBUF *    do_define(
@@ -1567,14 +1567,14 @@ DEFBUF *    install_macro(
         char *params[64];
         int i, nargs = dp->nargs;
 
-		if (nargs == -770) {
-			nargs = -1;
-		} else if (nargs < 0) {
-			nargs = 0;
-		} else {
-			nargs &= 0x7F;
-		}
-		for (i = 0; i < 64; ++i) params[i] = NULL;
+        if (nargs == -770) {
+            nargs = -1;
+        } else if (nargs < 0) {
+            nargs = 0;
+        } else {
+            nargs &= 0x7F;
+        }
+        for (i = 0; i < 64; ++i) params[i] = NULL;
 
         do_macro_params(params, dp->parmnames);
         #if 0

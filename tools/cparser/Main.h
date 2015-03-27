@@ -204,9 +204,41 @@ struct CR_Macro {
     std::vector<std::string>    m_params;
     std::string                 m_contents;
     CR_Location                 m_location;
+    bool                        m_ellipsis;
+    CR_Macro() : m_num_params(0), m_ellipsis(false) { }
 };
 
 typedef std::unordered_map<std::string,CR_Macro> CR_MacroSet;
+
+////////////////////////////////////////////////////////////////////////////
+// cmacro::Token, cmacro::Node
+
+namespace cmacro {
+    enum Token {
+        MT_IDENTIFIER,
+        MT_CHARACTER,
+        MT_STRING,
+        MT_L_PAREN,
+        MT_R_PAREN,
+        MT_COMMA,
+        MT_SHARP,
+        MT_SPACE,
+        MT_DOUBLESHARP,
+        MT_PLACEMARKER,
+        MT_OTHER
+    };
+
+    struct Node {
+        Token           m_token;
+        std::string     m_text;
+        bool            m_expanded;
+
+        Node() : m_expanded(false) { }
+        Node(Token token) : m_token(token), m_expanded(false) { }
+        Node(Token token, const std::string text) :
+            m_token(token), m_text(text), m_expanded(false) { }
+    };
+}
 
 ////////////////////////////////////////////////////////////////////////////
 

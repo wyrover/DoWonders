@@ -183,6 +183,110 @@ bool CrUnscapeString(std::string& ret, const std::string& str) {
     return is_valid;
 }
 
+std::string CrEscapeChar(char ch) {
+    std::string ret;
+    ret += '\'';
+    switch (ch) {
+    case '\'': case '\"': case '\?': case '\\':
+        ret += '\\';
+        ret += ch;
+        break;
+    case '\a':
+        ret += '\\';
+        ret += 'a';
+        break;
+    case '\b':
+        ret += '\\';
+        ret += 'b';
+        break;
+    case '\f':
+        ret += '\\';
+        ret += 'f';
+        break;
+    case '\r':
+        ret += '\\';
+        ret += 'r';
+        break;
+    case '\t':
+        ret += '\\';
+        ret += 't';
+        break;
+    case '\v':
+        ret += '\\';
+        ret += 'v';
+        break;
+    default:
+        if (ch < 0x20) {
+            int n = static_cast<int>(ch);
+            std::stringstream ss;
+            ss << "\\x" << std::hex <<
+                std::setfill('0') << std::setw(2) << n;
+            ret += ss.str();
+        } else {
+            ret += ch;
+        }
+    }
+    ret += '\'';
+    return ret;
+}
+
+std::string CrUnescapeChar(const std::string& str) {
+    std::string ret;
+	size_t i = 1;
+    char ch = str[1];
+    switch (ch) {
+    case '\'': case '\"': case '\?': case '\\':
+        ret += ch;
+        break;
+    case 'a': ret += '\a'; break;
+    case 'b': ret += '\b'; break;
+    case 'f': ret += '\f'; break;
+    case 'n': ret += '\n'; break;
+    case 'r': ret += '\r'; break;
+    case 't': ret += '\t'; break;
+    case 'v': ret += '\v'; break;
+    case 'x':
+        {
+            std::string hex;
+			++i;
+			if (str[i] && isxdigit(str[i])) {
+                hex += str[i];
+				++i;
+                if (str[i] && isxdigit(str[i])) {
+                    hex += str[i];
+                } else {
+                    --i;
+                }
+            } else {
+                --i;
+            }
+            auto n = std::stoul(hex, NULL, 16);
+            ret += static_cast<char>(n);
+        }
+        break;
+    default:
+        if ('0' <= ch && ch <= '7') {
+            std::string oct;
+            oct += ch;
+			++i;
+			if (str[i] && '0' <= str[i] && str[i] <= '7') {
+                oct += str[i];
+				++i;
+				if (str[i] && '0' <= str[i] && str[i] <= '7') {
+                    oct += str[i];
+                } else {
+                    --i;
+                }
+            } else {
+                --i;
+            }
+            auto n = std::stoul(oct, NULL, 8);
+            ret += static_cast<char>(n);
+        }
+    }
+    return ret;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypedValue
 
@@ -2804,6 +2908,8 @@ bool CR_NameScope::LoadFromFiles(
             m_types.emplace_back(type);
         }
     } else {
+        std::cerr << "ERROR: cannot load file '" <<
+            (prefix + "types" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -2850,6 +2956,8 @@ bool CR_NameScope::LoadFromFiles(
             m_structs.emplace_back(ls);
         }
     } else {
+        std::cerr << "ERROR: cannot load file '" <<
+            (prefix + "structures" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -2876,6 +2984,8 @@ bool CR_NameScope::LoadFromFiles(
             m_enums.emplace_back(le);
         }
     } else {
+        std::cerr << "ERROR: cannot load file '" <<
+            (prefix + "enums" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -2913,6 +3023,8 @@ bool CR_NameScope::LoadFromFiles(
             m_funcs.emplace_back(func);
         }
     } else {
+        std::cerr << "ERROR: cannot load file '" <<
+            (prefix + "func_types" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -3028,6 +3140,8 @@ bool CR_NameScope::LoadFromFiles(
             }
         }
     } else {
+        std::cerr << "ERROR: cannot load file '" <<
+            (prefix + "vars" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -3046,13 +3160,15 @@ bool CR_NameScope::LoadFromFiles(
             int line = std::stol(fields[3], NULL, 0);
 
             CR_Name2Name name2name;
-            name2name.m_name1 = name1;
-            name2name.m_name2 = name2;
+            name2name.m_from = name1;
+            name2name.m_to = name2;
             name2name.m_location = CR_Location(file, line);
 
             m_mNameToName.emplace(name1, name2name);
         }
     } else {
+        std::cerr << "ERROR: cannot load file '" <<
+            (prefix + "name2name" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -3102,6 +3218,8 @@ bool CR_NameScope::SaveToFiles(
                 lineno << std::endl;
         }
     } else {
+        std::cerr << "ERROR: cannot write file '" <<
+            (prefix + "types" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -3153,6 +3271,8 @@ bool CR_NameScope::SaveToFiles(
             out2 << std::endl;
         }
     } else {
+        std::cerr << "ERROR: cannot write file '" <<
+            (prefix + "structures" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -3175,6 +3295,8 @@ bool CR_NameScope::SaveToFiles(
             out3 << std::endl;
         }
     } else {
+        std::cerr << "ERROR: cannot write file '" <<
+            (prefix + "enums" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -3200,6 +3322,8 @@ bool CR_NameScope::SaveToFiles(
             out4 << std::endl;
         }
     } else {
+        std::cerr << "ERROR: cannot write file '" <<
+            (prefix + "func_types" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -3254,6 +3378,8 @@ bool CR_NameScope::SaveToFiles(
                 location.m_line << std::endl;
         }
     } else {
+        std::cerr << "ERROR: cannot write file '" <<
+            (prefix + "vars" + suffix) << "'" << std::endl;
         return false;
     }
 
@@ -3262,12 +3388,14 @@ bool CR_NameScope::SaveToFiles(
         out6 << "(name1)\t(name2)\t(file)\t(line)" << std::endl;
         for (auto& it : m_mNameToName) {
             out6 <<
-                it.second.m_name1 << "\t" <<
-                it.second.m_name2 << "\t" <<
+                it.second.m_from << "\t" <<
+                it.second.m_to << "\t" <<
                 it.second.m_location.m_file << "\t" <<
                 it.second.m_location.m_line << std::endl;
         }
     } else {
+        std::cerr << "ERROR: cannot write file '" <<
+            (prefix + "name2name" + suffix) << "'" << std::endl;
         return false;
     }
 

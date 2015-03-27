@@ -14,21 +14,21 @@ const char * const cr_logo =
     "///////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser 0.3.2 (64-bit) for gcc        //\n"
+    "// CParser 0.3.3 (64-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.3.2 (64-bit) for clang      //\n"
+    "// CParser 0.3.3 (64-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.3.2 (64-bit) for cl (MSVC)  //\n"
+    "// CParser 0.3.3 (64-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser 0.3.2 (32-bit) for gcc        //\n"
+    "// CParser 0.3.3 (32-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.3.2 (32-bit) for clang      //\n"
+    "// CParser 0.3.3 (32-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.3.2 (32-bit) for cl (MSVC)  //\n"
+    "// CParser 0.3.3 (32-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
@@ -54,7 +54,313 @@ void CrDeleteTempFileAtExit(void) {
 
 ////////////////////////////////////////////////////////////////////////////
 
-using namespace cparser;
+std::string CrGutsHex(const char *& it) {
+    std::string ret;
+    for (; *it; ++it) {
+        if (isxdigit(*it)) {
+            ret += *it;
+        } else {
+            break;
+        }
+    }
+    return ret;
+} // CrGutsHex
+
+std::string CrGutsHex2(const char *& it) {
+    std::string ret;
+    for (; *it && ret.size() < 2; ++it) {
+        if (isxdigit(*it)) {
+            ret += *it;
+        } else {
+            break;
+        }
+    }
+    return ret;
+} // CrGutsHex2
+
+std::string CrGutsOctal(const char *& it) {
+    std::string ret;
+    for (; *it && ret.size() < 3; ++it) {
+        if ('0' <= *it && *it <= '7') {
+            ret += *it;
+        } else {
+            break;
+        }
+    }
+    return ret;
+} // CrGutsOctal
+
+std::string CrGutsEscapeSequence(const char *& it) {
+    std::string ret;
+    if (*it == 0) {
+        return ret;
+    }
+    switch (*it) {
+    case '\'': case '\"': case '?': case '\\':
+        ret += *it;
+        break;
+
+    case '0': ret += '\0'; break;
+    case 'a': ret += '\a'; break;
+    case 'b': ret += '\b'; break;
+    case 'f': ret += '\f'; break;
+    case 'n': ret += '\n'; break;
+    case 'r': ret += '\r'; break;
+    case 't': ret += '\t'; break;
+    case 'v': ret += '\v'; break;
+
+    case 'x':
+        {
+            ++it;
+            if (*it) {
+                auto hex = CrGutsHex2(it);
+                if (hex.size()) {
+                    unsigned long value = std::stoul(hex, NULL, 16);
+                    ret += static_cast<char>(value);
+                }
+            }
+        }
+        break;
+
+    case 'u':
+    case 'U':
+        {
+            ++it;
+            auto hex = CrGutsHex(it);
+            ret += '?';  // FIXME & TODO
+        }
+        break;
+
+    default:
+        if ('0' <= *it && *it <= '7') {
+            auto octal = CrGutsOctal(it);
+            long value = std::stol(octal, NULL, 8);
+            ret += static_cast<char>(value);
+        } else {
+            ret += *it;
+        }
+    }
+    return ret;
+} // CrGutsEscapeSequence
+
+std::string CrGutsString(const char *& it) {
+    std::string ret;
+    assert(*it && *it == '\"');
+    for (++it; *it; ++it) {
+        switch (*it) {
+        case '\"':
+            ++it;
+            if (*it) {
+                if (*it == '\"') {
+                    ret += '\"';
+                } else {
+                    return ret;
+                }
+            } else {
+                return ret;
+            }
+            break;
+
+        case '\\':
+            {
+                ++it;
+                auto text = CrGutsEscapeSequence(it);
+                ret += text;
+                if (*it == 0) {
+                    return ret;
+                }
+            }
+            break;
+
+        default:
+            // trigraph "??/"
+            if (it[0] == '?' && it[1] == '?' && it[2] == '/') {
+                it += 3;
+                auto text = CrGutsEscapeSequence(it);
+                ret += text;
+                if (*it == 0) {
+                    return ret;
+                }
+            } else {
+                ret += *it;
+            }
+        }
+    }
+    return ret;
+} // CrGutsString
+
+std::string CrGutsChar(const char *& it) {
+    std::string ret;
+    assert(*it && *it == '\'');
+    for (++it; *it; ++it) {
+        switch (*it) {
+        case '\'':
+            ++it;
+            return ret;
+
+        case '\\':
+            {
+                ++it;
+                auto text = CrGutsEscapeSequence(it);
+                ret += text;
+                if (*it == 0) {
+                    break;
+                }
+                --it;
+            }
+            break;
+
+        default:
+            ret += *it;
+        }
+    }
+    return ret;
+} // CrGutsChar
+
+std::string CrGutsDigits(const char *& it) {
+    std::string ret;
+    for (; *it; ++it) {
+        if (isdigit(*it)) {
+            ret += *it;
+        } else {
+            break;
+        }
+    }
+    return ret;
+} // CrGutsDigits
+
+std::string CrGutsFloating(const char *& it) {
+    std::string ret;
+    if (*it == '.') {
+        ++it;
+        std::string digits = CrGutsDigits(it);
+    }
+    return ret;
+}
+
+std::string CrGutsIdentifier(const char *& it) {
+    std::string ret;
+    if (isalpha(*it) || *it == '_') {
+        ret += *it;
+        for (++it; *it; ++it) {
+            if (isalnum(*it) || *it == '_') {
+                ret += *it;
+            } else {
+                break;
+            }
+        }
+    }
+    //std::puts(ret.data());
+    return ret;
+} // CrGutsIdentifier
+
+std::string CrGutsIntegerSuffix(const char *& it, CR_TypeFlags& flags) {
+    std::string ret;
+    for (; *it; ++it) {
+        if (*it == 'u' || *it == 'U') {
+            ret += *it;
+            flags |= TF_UNSIGNED;
+        } else if (*it == 'l' || *it == 'L') {
+            ret += *it;
+            if (flags & TF_LONG) {
+                flags &= ~TF_LONG;
+                flags |= TF_LONGLONG;
+            } else {
+                flags |= TF_LONG;
+            }
+        } else if (*it == 'i') {
+            ++it;
+            if (*it && *it == '6') {
+                ++it;
+                if (*it && *it == '4') {
+                    ++it;
+                    ret = "i64";
+                    flags |= TF_LONGLONG;
+                }
+            }
+            if (*it && *it == '3') {
+                ++it;
+                if (*it && *it == '2') {
+                    ++it;
+                    ret = "i32";
+                    flags |= TF_LONG;
+                }
+            }
+            if (*it && *it == '1') {
+                ++it;
+                if (*it && *it == '6') {
+                    ++it;
+                    ret = "i16";
+                    flags |= TF_SHORT;
+                }
+            }
+            if (*it && *it == '8') {
+                ++it;
+                ret = "i8";
+                flags |= TF_CHAR;
+            }
+            break;
+        } else {
+            break;
+        }
+    }
+    return ret;
+} // CrGutsIntegerSuffix
+
+std::string CrGutsFloatingSuffix(const char *& it, CR_TypeFlags& flags) {
+    std::string ret;
+    for (; *it; ++it) {
+        if (*it == 'f' || *it == 'F') {
+            flags &= ~TF_DOUBLE;
+            flags |= TF_FLOAT;
+        } else if (*it == 'l' || *it == 'L') {
+            flags |= TF_LONG | TF_DOUBLE;
+        } else {
+            break;
+        }
+    }
+    return ret;
+}
+
+std::string CrGutsExponent(const char *& it) {
+    std::string ret;
+    if (*it) {
+        if (*it == 'e' || *it == 'E') {
+            ret += *it;
+            ++it;
+            if (*it) {
+                if (*it == '+') {
+                    ret += *it;
+                    ++it;
+                } else if (*it == '-') {
+                    ret += *it;
+                    ++it;
+                }
+                if (*it) {
+                    auto exponent = CrGutsDigits(it);
+                    ret += exponent;
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+bool CrLexeme(const char *& it, const std::string& str) {
+    const char *saved = it;
+    std::size_t i = 0, siz = str.size();
+    for (; i < siz && *it; ++it, ++i) {
+        if (*it != str[i]) {
+            it = saved;
+            return false;
+        }
+    }
+    if (i != siz) {
+        it = saved;
+        return false;
+    }
+    return true;
+}
 
 ////////////////////////////////////////////////////////////////////////////
 // cparser::Lexer
@@ -155,333 +461,6 @@ bool cparser::Lexer::token_pattern_match(
     it = saved;
     return true;
 }
-
-std::string
-cparser::Lexer::guts_escape_sequence(const char *& it) const {
-    std::string ret;
-    if (*it == 0) {
-        return ret;
-    }
-    switch (*it) {
-    case '\'': case '\"': case '?': case '\\':
-        ret += *it;
-        break;
-
-    case '0': ret += '\0'; break;
-    case 'a': ret += '\a'; break;
-    case 'b': ret += '\b'; break;
-    case 'f': ret += '\f'; break;
-    case 'n': ret += '\n'; break;
-    case 'r': ret += '\r'; break;
-    case 't': ret += '\t'; break;
-    case 'v': ret += '\v'; break;
-
-    case 'x':
-        {
-            ++it;
-            if (*it) {
-                auto hex = guts_hex2(it);
-                if (hex.size()) {
-                    unsigned long value = std::stoul(hex, NULL, 16);
-                    ret += static_cast<char>(value);
-                }
-            }
-        }
-        break;
-
-    case 'u':
-    case 'U':
-        {
-            ++it;
-            auto hex = guts_hex(it);
-            ret += '?';  // FIXME & TODO
-        }
-        break;
-
-    default:
-        if ('0' <= *it && *it <= '7') {
-            auto octal = guts_octal(it);
-            long value = std::stol(octal, NULL, 8);
-            ret += static_cast<char>(value);
-        } else {
-            ret += *it;
-        }
-    }
-    return ret;
-} // guts_escape_sequence
-
-std::string
-cparser::Lexer::guts_string(const char *& it) const {
-    std::string ret;
-    assert(*it && *it == '\"');
-    for (++it; *it; ++it) {
-        switch (*it) {
-        case '\"':
-            ++it;
-            if (*it) {
-                if (*it == '\"') {
-                    ret += '\"';
-                } else {
-                    return ret;
-                }
-            } else {
-                return ret;
-            }
-            break;
-
-        case '\\':
-            {
-                ++it;
-                auto text = guts_escape_sequence(it);
-                ret += text;
-                if (*it == 0) {
-                    return ret;
-                }
-            }
-            break;
-
-        default:
-            // trigraph "??/"
-            if (it[0] == '?' && it[1] == '?' && it[2] == '/') {
-                it += 3;
-                auto text = guts_escape_sequence(it);
-                ret += text;
-                if (*it == 0) {
-                    return ret;
-                }
-            } else {
-                ret += *it;
-            }
-        }
-    }
-    return ret;
-} // guts_string
-
-std::string
-cparser::Lexer::guts_char(const char *& it) const {
-    std::string ret;
-    assert(*it && *it == '\'');
-    for (++it; *it; ++it) {
-        switch (*it) {
-        case '\'':
-            ++it;
-            return ret;
-
-        case '\\':
-            {
-                ++it;
-                auto text = guts_escape_sequence(it);
-                ret += text;
-                if (*it == 0) {
-                    break;
-                }
-                --it;
-            }
-            break;
-
-        default:
-            ret += *it;
-        }
-    }
-    return ret;
-} // guts_char
-
-std::string
-cparser::Lexer::guts_hex(const char *& it) const {
-    std::string ret;
-    for (; *it; ++it) {
-        if (isxdigit(*it)) {
-            ret += *it;
-        } else {
-            break;
-        }
-    }
-    return ret;
-} // guts_hex
-
-std::string
-cparser::Lexer::guts_hex2(const char *& it) const {
-    std::string ret;
-    for (; *it && ret.size() < 2; ++it) {
-        if (isxdigit(*it)) {
-            ret += *it;
-        } else {
-            break;
-        }
-    }
-    return ret;
-} // guts_hex
-
-std::string
-cparser::Lexer::guts_digits(const char *& it) const {
-    std::string ret;
-    for (; *it; ++it) {
-        if (isdigit(*it)) {
-            ret += *it;
-        } else {
-            break;
-        }
-    }
-    return ret;
-} // guts_digits
-
-std::string
-cparser::Lexer::guts_octal(const char *& it) const {
-    std::string ret;
-    for (; *it && ret.size() < 3; ++it) {
-        if ('0' <= *it && *it <= '7') {
-            ret += *it;
-        } else {
-            break;
-        }
-    }
-    return ret;
-} // guts_octal
-
-std::string
-cparser::Lexer::guts_floating(const char *& it) const {
-    std::string ret;
-    if (*it == '.') {
-        ++it;
-        std::string digits = guts_digits(it);
-    }
-    return ret;
-} // guts_floating
-
-std::string
-cparser::Lexer::guts_indentifier(const char *& it) const {
-    std::string ret;
-    if (isalpha(*it) || *it == '_') {
-        ret += *it;
-        for (++it; *it; ++it) {
-            if (isalnum(*it) || *it == '_') {
-                ret += *it;
-            } else {
-                break;
-            }
-        }
-    }
-    //std::puts(ret.data());
-    return ret;
-} // guts_indentifier
-
-std::string
-cparser::Lexer::guts_integer_suffix(
-    const char *& it, CR_TypeFlags& flags) const
-{
-    std::string ret;
-    for (; *it; ++it) {
-        if (*it == 'u' || *it == 'U') {
-            ret += *it;
-            flags |= TF_UNSIGNED;
-        } else if (*it == 'l' || *it == 'L') {
-            ret += *it;
-            if (flags & TF_LONG) {
-                flags &= ~TF_LONG;
-                flags |= TF_LONGLONG;
-            } else {
-                flags |= TF_LONG;
-            }
-        } else if (*it == 'i') {
-            ++it;
-            if (*it && *it == '6') {
-                ++it;
-                if (*it && *it == '4') {
-                    ++it;
-                    ret = "i64";
-                    flags |= TF_LONGLONG;
-                }
-            }
-            if (*it && *it == '3') {
-                ++it;
-                if (*it && *it == '2') {
-                    ++it;
-                    ret = "i32";
-                    flags |= TF_LONG;
-                }
-            }
-            if (*it && *it == '1') {
-                ++it;
-                if (*it && *it == '6') {
-                    ++it;
-                    ret = "i16";
-                    flags |= TF_SHORT;
-                }
-            }
-            if (*it && *it == '8') {
-                ++it;
-                ret = "i8";
-                flags |= TF_CHAR;
-            }
-            break;
-        } else {
-            break;
-        }
-    }
-    return ret;
-} // guts_integer_suffix
-
-std::string
-cparser::Lexer::guts_floating_suffix(
-    const char *& it, CR_TypeFlags& flags) const
-{
-    std::string ret;
-    for (; *it; ++it) {
-        if (*it == 'f' || *it == 'F') {
-            flags &= ~TF_DOUBLE;
-            flags |= TF_FLOAT;
-        } else if (*it == 'l' || *it == 'L') {
-            flags |= TF_LONG | TF_DOUBLE;
-        } else {
-            break;
-        }
-    }
-    return ret;
-} // guts_floating_suffix
-
-std::string
-cparser::Lexer::guts_exponent(const char *& it) const
-{
-    std::string ret;
-    if (*it) {
-        if (*it == 'e' || *it == 'E') {
-            ret += *it;
-            ++it;
-            if (*it) {
-                if (*it == '+') {
-                    ret += *it;
-                    ++it;
-                } else if (*it == '-') {
-                    ret += *it;
-                    ++it;
-                }
-                if (*it) {
-                    auto exponent = guts_digits(it);
-                    ret += exponent;
-                }
-            }
-        }
-    }
-    return ret;
-} // guts_exponent
-
-bool cparser::Lexer::lexeme(
-    const char *& it, const std::string& str)
-{
-    const char *saved = it;
-    std::size_t i = 0, siz = str.size();
-    for (; i < siz && *it; ++it, ++i) {
-        if (*it != str[i]) {
-            it = saved;
-            return false;
-        }
-    }
-    if (i != siz) {
-        it = saved;
-        return false;
-    }
-    return true;
-} // lexeme
 
 void cparser::Lexer::just_do_it(
     node_container& infos,
@@ -648,10 +627,10 @@ void cparser::Lexer::do_line(
                 extra = "u";
             }
             if (*it == '"') {
-                auto text = guts_string(it);
+                auto text = CrGutsString(it);
                 infos.emplace_back(T_STRING, text, extra);
             } else if (*it == '\'') {
-                auto text = guts_char(it);
+                auto text = CrGutsChar(it);
                 auto n = static_cast<int>(text[0]);
                 text = std::to_string(n);
                 infos.emplace_back(T_CONSTANT, text, extra);
@@ -665,10 +644,10 @@ void cparser::Lexer::do_line(
             extra += *it;
             ++it;
             if (*it == '"') {
-                auto text = guts_string(it);
+                auto text = CrGutsString(it);
                 infos.emplace_back(T_STRING, text, extra);
             } else if (*it == '\'') {
-                auto text = guts_char(it);
+                auto text = CrGutsChar(it);
                 auto n = static_cast<int>(text[0]);
                 text = std::to_string(n);
                 infos.emplace_back(T_CONSTANT, text, extra);
@@ -680,14 +659,14 @@ void cparser::Lexer::do_line(
 
         case '"':
             {
-                auto text = guts_string(it);
+                auto text = CrGutsString(it);
                 infos.emplace_back(T_STRING, text);
             }
             break;
 
         case '\'':
             {
-                auto text = guts_char(it);
+                auto text = CrGutsChar(it);
                 auto n = static_cast<int>(text[0]);
                 text = std::to_string(n);
                 infos.emplace_back(T_CONSTANT, text);
@@ -699,42 +678,42 @@ void cparser::Lexer::do_line(
             if (*it == 'x' || *it == 'X') {
                 // 0x or 0X
                 ++it;
-                auto text = guts_hex(it);
+                auto text = CrGutsHex(it);
                 CR_TypeFlags flags = 0;
                 if (*it) {
-                    extra = guts_integer_suffix(it, flags);
+                    extra = CrGutsIntegerSuffix(it, flags);
                 }
                 infos.emplace_back(T_CONSTANT, "0x" + text, extra, flags);
             } else if (*it == '.') {
                 // 0.
-                auto text = guts_floating(it);
+                auto text = CrGutsFloating(it);
                 CR_TypeFlags flags = TF_DOUBLE;
                 if (*it) {
-                    extra = guts_floating_suffix(it, flags);
+                    extra = CrGutsFloatingSuffix(it, flags);
                 }
                 infos.emplace_back(T_CONSTANT, "0." + text, extra, flags);
             } else {
                 // octal
                 --it;
-                auto text = guts_octal(it);
+                auto text = CrGutsOctal(it);
                 CR_TypeFlags flags = 0;
                 if (*it) {
-                    extra = guts_integer_suffix(it, flags);
+                    extra = CrGutsIntegerSuffix(it, flags);
                 }
                 infos.emplace_back(T_CONSTANT, text, extra, flags);
             }
             break;
 
         case '.':
-            if (lexeme(it, "...")) {
+            if (CrLexeme(it, "...")) {
                 infos.emplace_back(T_ELLIPSIS, "...");
             } else {
                 // .
-                auto text = guts_floating(it);
+                auto text = CrGutsFloating(it);
                 if (text.size() > 1) {
                     CR_TypeFlags flags = TF_DOUBLE;
                     if (*it) {
-                        extra = guts_floating_suffix(it, flags);
+                        extra = CrGutsFloatingSuffix(it, flags);
                     }
                     infos.emplace_back(T_CONSTANT, "0." + text, extra, flags);
                 } else {
@@ -744,15 +723,15 @@ void cparser::Lexer::do_line(
             break;
 
         case '<':
-            if (lexeme(it, "<<=")) {
+            if (CrLexeme(it, "<<=")) {
                 infos.emplace_back(T_L_SHIFT_ASSIGN, "<<=");
-            } else if (lexeme(it, "<<")) {
+            } else if (CrLexeme(it, "<<")) {
                 infos.emplace_back(T_L_SHIFT, "<<");
-            } else if (lexeme(it, "<=")) {
+            } else if (CrLexeme(it, "<=")) {
                 infos.emplace_back(T_LE, "<=");
-            } else if (lexeme(it, "<:")) {
+            } else if (CrLexeme(it, "<:")) {
                 infos.emplace_back(T_L_BRACKET, "[");
-            } else if (lexeme(it, "<%")) {
+            } else if (CrLexeme(it, "<%")) {
                 infos.emplace_back(T_L_BRACE, "{");
             } else {
                 infos.emplace_back(T_LT, "<");
@@ -761,11 +740,11 @@ void cparser::Lexer::do_line(
             break;
 
         case '>':
-            if (lexeme(it, ">>=")) {
+            if (CrLexeme(it, ">>=")) {
                 infos.emplace_back(T_R_SHIFT_ASSIGN, ">>=");
-            } else if (lexeme(it, ">>")) {
+            } else if (CrLexeme(it, ">>")) {
                 infos.emplace_back(T_R_SHIFT, ">>");
-            } else if (lexeme(it, ">=")) {
+            } else if (CrLexeme(it, ">=")) {
                 infos.emplace_back(T_GE, ">=");
             } else {
                 infos.emplace_back(T_GT, ">");
@@ -774,9 +753,9 @@ void cparser::Lexer::do_line(
             break;
 
         case '+':
-            if (lexeme(it, "+=")) {
+            if (CrLexeme(it, "+=")) {
                 infos.emplace_back(T_ADD_ASSIGN, "+=");
-            } else if (lexeme(it, "++")) {
+            } else if (CrLexeme(it, "++")) {
                 infos.emplace_back(T_INC, "++");
             } else {
                 infos.emplace_back(T_PLUS, "+");
@@ -785,11 +764,11 @@ void cparser::Lexer::do_line(
             break;
 
         case '-':
-            if (lexeme(it, "-=")) {
+            if (CrLexeme(it, "-=")) {
                 infos.emplace_back(T_SUB_ASSIGN, "-=");
-            } else if (lexeme(it, "--")) {
+            } else if (CrLexeme(it, "--")) {
                 infos.emplace_back(T_DEC, "--");
-            } else if (lexeme(it, "->")) {
+            } else if (CrLexeme(it, "->")) {
                 infos.emplace_back(T_ARROW, "->");
             } else {
                 infos.emplace_back(T_MINUS, "-");
@@ -798,7 +777,7 @@ void cparser::Lexer::do_line(
             break;
 
         case '*':
-            if (lexeme(it, "*=")) {
+            if (CrLexeme(it, "*=")) {
                 infos.emplace_back(T_MUL_ASSIGN, "*=");
             } else {
                 infos.emplace_back(T_ASTERISK, "*");
@@ -807,11 +786,11 @@ void cparser::Lexer::do_line(
             break;
 
         case '/':
-            if (lexeme(it, "/*")) {    // */
+            if (CrLexeme(it, "/*")) {    // */
                 assert(0);
-            } else if (lexeme(it, "//")) {
+            } else if (CrLexeme(it, "//")) {
                 assert(0);
-            } else if (lexeme(it, "/=")) {
+            } else if (CrLexeme(it, "/=")) {
                 infos.emplace_back(T_DIV_ASSIGN, "/=");
             } else {
                 infos.emplace_back(T_SLASH, "/");
@@ -820,11 +799,11 @@ void cparser::Lexer::do_line(
             break;
 
         case '%':
-            if (lexeme(it, "%=")) {
+            if (CrLexeme(it, "%=")) {
                 infos.emplace_back(T_MOD_ASSIGN, "%=");
-            } else if (lexeme(it, "%>")) {
+            } else if (CrLexeme(it, "%>")) {
                 infos.emplace_back(T_R_BRACE, "}");
-            } else if (lexeme(it, "%:")) {
+            } else if (CrLexeme(it, "%:")) {
                 infos.emplace_back(T_SHARP, "#");
             } else {
                 infos.emplace_back(T_PERCENT, "%");
@@ -833,9 +812,9 @@ void cparser::Lexer::do_line(
             break;
 
         case '&':
-            if (lexeme(it, "&=")) {
+            if (CrLexeme(it, "&=")) {
                 infos.emplace_back(T_AND_ASSIGN, "&=");
-            } else if (lexeme(it, "&&")) {
+            } else if (CrLexeme(it, "&&")) {
                 infos.emplace_back(T_L_AND, "&&");
             } else {
                 infos.emplace_back(T_AND, "&");
@@ -844,7 +823,7 @@ void cparser::Lexer::do_line(
             break;
             
         case '^':
-            if (lexeme(it, "^=")) {
+            if (CrLexeme(it, "^=")) {
                 infos.emplace_back(T_XOR_ASSIGN, "^=");
             } else {
                 infos.emplace_back(T_XOR, "^");
@@ -853,9 +832,9 @@ void cparser::Lexer::do_line(
             break;
 
         case '|':
-            if (lexeme(it, "|=")) {
+            if (CrLexeme(it, "|=")) {
                 infos.emplace_back(T_OR_ASSIGN, "|=");
-            } else if (lexeme(it, "||")) {
+            } else if (CrLexeme(it, "||")) {
                 infos.emplace_back(T_L_OR, "||");
             } else {
                 infos.emplace_back(T_OR, "|");
@@ -864,7 +843,7 @@ void cparser::Lexer::do_line(
             break;
 
         case '=':
-            if (lexeme(it, "==")) {
+            if (CrLexeme(it, "==")) {
                 infos.emplace_back(T_EQUAL, "==");
             } else {
                 infos.emplace_back(T_ASSIGN, "=");
@@ -873,7 +852,7 @@ void cparser::Lexer::do_line(
             break;
 
         case '!':
-            if (lexeme(it, "!=")) {
+            if (CrLexeme(it, "!=")) {
                 infos.emplace_back(T_NE, "!=");
             } else {
                 infos.emplace_back(T_BANG, "!");
@@ -887,7 +866,7 @@ void cparser::Lexer::do_line(
             break;
 
         case ':':
-            if (lexeme(it, ":>")) {
+            if (CrLexeme(it, ":>")) {
                 infos.emplace_back(T_R_BRACKET, "]");
             } else {
                 infos.emplace_back(T_COLON, ":");
@@ -905,21 +884,21 @@ void cparser::Lexer::do_line(
         case '~': infos.emplace_back(T_TILDA, "~"); ++it; break;
         case '?':
             // trigraphs
-            if (lexeme(it, "??<")) {
+            if (CrLexeme(it, "??<")) {
                 infos.emplace_back(T_L_BRACE, "{");
-            } else if (lexeme(it, "??>")) {
+            } else if (CrLexeme(it, "??>")) {
                 infos.emplace_back(T_R_BRACE, "}");
-            } else if (lexeme(it, "??(")) {
+            } else if (CrLexeme(it, "??(")) {
                 infos.emplace_back(T_L_BRACKET, "[");
-            } else if (lexeme(it, "??)")) {
+            } else if (CrLexeme(it, "??)")) {
                 infos.emplace_back(T_R_BRACKET, "]");
-            } else if (lexeme(it, "??=")) {
+            } else if (CrLexeme(it, "??=")) {
                 infos.emplace_back(T_SHARP, "#");
-            } else if (lexeme(it, "??'")) {
+            } else if (CrLexeme(it, "??'")) {
                 infos.emplace_back(T_XOR, "^");
-            } else if (lexeme(it, "??!")) {
+            } else if (CrLexeme(it, "??!")) {
                 infos.emplace_back(T_OR, "|");
-            } else if (lexeme(it, "??-")) {
+            } else if (CrLexeme(it, "??-")) {
                 infos.emplace_back(T_TILDA, "~");
             } else {
                 infos.emplace_back(T_QUESTION, "?");
@@ -940,27 +919,27 @@ label_default:
                 continue;
             }
             if (isdigit(*it)) {
-                auto digits = guts_digits(it);
+                auto digits = CrGutsDigits(it);
                 if (*it == '.') {
                     ++it;
                     // 123.1232
-                    auto decimals = guts_digits(it);
+                    auto decimals = CrGutsDigits(it);
                     auto text = digits + '.' + decimals;
                     CR_TypeFlags flags = TF_DOUBLE;
                     if (*it) {
-                        extra = guts_floating_suffix(it, flags);
+                        extra = CrGutsFloatingSuffix(it, flags);
                     }
                     infos.emplace_back(T_CONSTANT, text, extra, flags);
                 } else {
                     std::string exponent;
                     if (*it) {
-                        exponent = guts_exponent(it);
+                        exponent = CrGutsExponent(it);
                     }
                     if (exponent.size()) {
                         // exponent was found. it's a floating
                         CR_TypeFlags flags = TF_DOUBLE;
                         if (*it) {
-                            extra = guts_floating_suffix(it, flags);
+                            extra = CrGutsFloatingSuffix(it, flags);
                         }
                         auto text = digits + exponent + extra;
                         infos.emplace_back(T_CONSTANT, text, extra, flags);
@@ -968,14 +947,14 @@ label_default:
                         // exponent not found. it's a integer
                         CR_TypeFlags flags = 0;
                         if (*it) {
-                            extra = guts_integer_suffix(it, flags);
+                            extra = CrGutsIntegerSuffix(it, flags);
                         }
                         infos.emplace_back(T_CONSTANT, digits, extra, flags);
                     }
                 }
             } else if (isalpha(*it) || *it == '_') {
                 // identifier or keyword
-                auto text = guts_indentifier(it);
+                auto text = CrGutsIdentifier(it);
                 #ifdef __GNUC__
                     if (text.find("__builtin_") == 0 && text.size() > 10) {
                         if (text != "__builtin_va_list") {
@@ -1857,6 +1836,8 @@ cparser::Lexer::parse_pragma(
 
 ////////////////////////////////////////////////////////////////////////////
 // CrValueOn...Expr functions
+
+using namespace cparser;
 
 CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe);
 CR_TypedValue CrValueOnPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe);
@@ -3796,6 +3777,42 @@ void CrTrimString(std::string& str) {
     }
 }
 
+void CrTrimNodes(std::vector<cmacro::Node>& nodes) {
+    size_t m = 0, n = 0;
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        if (nodes[i].m_token == cmacro::MT_SPACE) {
+            ++m;
+        } else {
+            break;
+        }
+    }
+    if (m == nodes.size()) {
+        return;
+    }
+
+    for (size_t i = nodes.size() - 1; i < nodes.size(); ++i) {
+        if (nodes[i].m_token == cmacro::MT_SPACE) {
+            ++n;
+        } else {
+            break;
+        }
+    }
+
+    size_t k = nodes.size() - n;
+    std::vector<cmacro::Node>
+        new_nodes(nodes.begin() + m, nodes.begin() + k);
+    std::swap(nodes, new_nodes);
+}
+
+std::string CrStringifyNodes(std::vector<cmacro::Node>& nodes) {
+    std::string ret;
+    auto end = nodes.end();
+    for (auto it = nodes.begin(); it != end; ++it) {
+        ret += it->m_text;
+    }
+    return ret;
+}
+
 bool CrLoadMacros(
     CR_NameScope& namescope, CR_MacroSet& macro_set,
     const std::string& prefix, const std::string& suffix,
@@ -3815,14 +3832,16 @@ bool CrLoadMacros(
             int num_params = std::stoi(fields[1], NULL, 0);
             std::string params = fields[2];
             std::string contents = fields[3];
+            CrTrimString(contents);
             std::string file = fields[4];
             int lineno = std::stol(fields[5], NULL, 0);
-
-            CrTrimString(contents);
-
             CR_Location location(file, lineno);
 
             CR_Macro macro;
+            if (params.find("...") != std::string::npos) {
+                --num_params;
+                macro.m_ellipsis = true;
+            }
             macro.m_num_params = num_params;
             katahiromz::split(macro.m_params, params, ",");
             macro.m_contents = contents;
@@ -3837,10 +3856,429 @@ bool CrLoadMacros(
     return false;
 }
 
+void CrLexMacro(
+    std::vector<cmacro::Node>& nodes, const std::string& contents)
+{
+    const char *it = contents.c_str();
+    for (; *it; ) {
+        switch (*it) {
+        case '(':
+            nodes.emplace_back(cmacro::MT_L_PAREN, "(");
+            ++it;
+            break;
+        case ')':
+            nodes.emplace_back(cmacro::MT_R_PAREN, ")");
+            ++it;
+            break;
+        case ',':
+            nodes.emplace_back(cmacro::MT_COMMA, ",");
+            ++it;
+            break;
+        case '"':
+            {
+                auto text = CrGutsString(it);
+                text = CrEscapeString(text);
+                nodes.emplace_back(cmacro::MT_STRING, text);
+            }
+            break;
+        case '\'':
+            {
+                auto text = CrGutsChar(it);
+                text = CrEscapeChar(text[0]);
+                nodes.emplace_back(cmacro::MT_CHARACTER, text);
+            }
+            break;
+        case 'L':
+            ++it;
+            if (*it == '"') {
+                auto text = CrGutsString(it);
+                text = "L" + CrEscapeString(text);
+                nodes.emplace_back(cmacro::MT_STRING, text);
+            } else if (*it == '\'') {
+                auto text = CrGutsChar(it);
+                text = "L" + CrEscapeChar(text[0]);
+                nodes.emplace_back(cmacro::MT_CHARACTER, text);
+            } else {
+                --it;
+                goto label_default;
+            }
+            break;
+        case '#':
+            ++it;
+            if (*it == '#') {
+                ++it;
+                nodes.emplace_back(cmacro::MT_DOUBLESHARP, "##");
+            } else {
+                nodes.emplace_back(cmacro::MT_SHARP, "#");
+            }
+            break;
+
+        default:
+label_default:
+            if (isspace(*it)) {
+                // space
+                do {
+                    ++it;
+                } while (isspace(*it));
+                nodes.emplace_back(cmacro::MT_SPACE, " ");
+            } else if (isalpha(*it) || *it == '_') {
+                // identifier
+                auto text = CrGutsIdentifier(it);
+                nodes.emplace_back(cmacro::MT_IDENTIFIER, text);
+            } else {
+                // the other
+                std::string text;
+                text += *it;
+                nodes.emplace_back(cmacro::MT_OTHER, text);
+                ++it;
+            }
+        }
+    }
+}
+
+void CrRemoveExtraSpaceFromMacro(
+    std::vector<cmacro::Node>& nodes)
+{
+    std::vector<cmacro::Node> new_nodes;
+    auto end = nodes.end();
+    for (auto it = nodes.begin(); it != end; ) {
+        switch (it->m_token) {
+        case cmacro::MT_SPACE:
+            {
+                auto it0 = it;
+                ++it;
+                if (it != end && it->m_token == cmacro::MT_SHARP) {
+                    new_nodes.emplace_back(*it);
+                    ++it;
+                    while (it != end && it->m_token == cmacro::MT_SPACE) {
+                        ++it;
+                    }
+                } else if (it != end && it->m_token == cmacro::MT_DOUBLESHARP) {
+                    new_nodes.emplace_back(*it);
+                    ++it;
+                    while (it != end && it->m_token == cmacro::MT_SPACE) {
+                        ++it;
+                    }
+                } else {
+                    new_nodes.emplace_back(*it0);
+                }
+            }
+            break;
+
+        case cmacro::MT_SHARP:
+        case cmacro::MT_DOUBLESHARP:
+            new_nodes.emplace_back(*it);
+            ++it;
+            while (it != end && it->m_token == cmacro::MT_SPACE) {
+                ++it;
+            }
+            break;
+        default:
+            new_nodes.emplace_back(*it);
+            ++it;
+        }
+    }
+    std::swap(nodes, new_nodes);
+}
+
+std::vector<cmacro::Node>
+CrSubstituteMacro(
+    const CR_MacroSet& macros,
+    const std::string& macro_name,
+    std::vector<std::vector<cmacro::Node>> params)
+{
+    std::vector<cmacro::Node> nodes;
+
+    // does a macro of the macro_name exist?
+    auto macro_it = macros.find(macro_name);
+    if (macro_it == macros.end()) {
+        return nodes;
+    }
+    const CR_Macro& macro = macro_it->second;
+
+    // check count
+    if (macro.m_ellipsis) {
+        if (static_cast<int>(params.size()) < macro.m_num_params) {
+            return nodes;
+        }
+    } else if (macro.m_num_params == -1) {
+        if (params.size()) {
+            return nodes;
+        }
+    } else {
+        if (macro.m_num_params != params.size() ||
+            macro.m_params.size() != params.size())
+        {
+            return nodes;
+        }
+    }
+
+    // lexical analysis of the macro
+    CrLexMacro(nodes, macro.m_contents);
+    CrTrimNodes(nodes);
+
+    if (nodes.empty()) {
+        return nodes;
+    }
+    if (nodes.front().m_token == cmacro::MT_DOUBLESHARP ||
+        nodes.back().m_token == cmacro::MT_DOUBLESHARP ||
+        nodes.back().m_token == cmacro::MT_SHARP)
+    {
+        // invalid
+        nodes.empty();
+        return nodes;
+    }
+
+    // remove space before and after # / ##
+    CrRemoveExtraSpaceFromMacro(nodes);
+
+    int i;
+    auto end = nodes.end();
+    std::vector<cmacro::Node> new_nodes;
+    for (auto it = nodes.begin(); it != end; ++it) {
+        // __VA_ARGS__ ?
+        if (it->m_text == "__VA_ARGS__" && macro.m_ellipsis) {
+            // arg, arg, arg
+            std::vector<cmacro::Node> to_add;
+            size_t i = macro.m_num_params;
+            if (i < params.size()) {
+                to_add.insert(to_add.end(), params[i].begin(), params[i].end());
+                for (++i; i < params.size(); ++i) {
+                    to_add.emplace_back(cmacro::MT_COMMA);
+                    to_add.insert(to_add.end(), params[i].begin(), params[i].end());
+                }
+            }
+            new_nodes.insert(new_nodes.end(), to_add.begin(), to_add.end());
+            continue;
+        }
+        // "#" ?
+        if (it->m_token == cmacro::MT_SHARP) {
+            ++it;
+            for (i = 0; i < macro.m_num_params; ++i) {
+                if (it->m_text == macro.m_params[i]) {
+                    // stringify param
+                    auto text = CrStringifyNodes(params[i]);
+                    text = CrEscapeString(text);
+                    cmacro::Node node(cmacro::MT_STRING, text);
+                    new_nodes.emplace_back(node);
+                    break;
+                }
+            }
+            if (i == macro.m_num_params) {
+                new_nodes.clear();
+                break;  // invalid
+            }
+            continue;
+        }
+        // "##" ?
+        if (it + 1 != end && (it + 1)->m_token == cmacro::MT_DOUBLESHARP) {
+            auto back = it, next = it + 2;
+            // match param name?
+            bool b1 = false;
+            std::vector<cmacro::Node> nodes1;
+            for (int i = 0; i < macro.m_num_params; ++i) {
+                if (back->m_text == macro.m_params[i]) {
+                    nodes1 = params[i];
+                    b1 = true;
+                    break;
+                }
+            }
+            if (b1 && nodes1.empty()) {
+                nodes1.emplace_back(cmacro::MT_PLACEMARKER, "");
+            }
+            if (!b1) {
+                nodes1.emplace_back(*back);
+            }
+            // match param name?
+            bool b2 = false;
+            std::vector<cmacro::Node> nodes2;
+            for (int i = 0; i < macro.m_num_params; ++i) {
+                if (next->m_text == macro.m_params[i]) {
+                    nodes2 = params[i];
+                    b2 = true;
+                    break;
+                }
+            }
+            if (b2 && nodes2.empty()) {
+                nodes2.emplace_back(cmacro::MT_PLACEMARKER, "");
+            }
+            if (!b2) {
+                nodes2.emplace_back(*next);
+            }
+            // store
+            for (size_t i = 0; i < nodes1.size() - 1; ++i) {
+                new_nodes.emplace_back(nodes1[i]);
+            }
+            cmacro::Node node;
+            node.m_text = 
+                nodes1[nodes1.size() - 1].m_text + nodes2[0].m_text;
+            if (node.m_text.empty()) {
+                node.m_token = cmacro::MT_PLACEMARKER;
+            } else {
+                node.m_token = cmacro::MT_IDENTIFIER;
+            }
+            new_nodes.emplace_back(node);
+            for (size_t i = 1; i < nodes2.size(); ++i) {
+                new_nodes.emplace_back(nodes2[i]);
+            }
+            ++it;
+            ++it;
+            continue;
+        }
+        if (it->m_text == macro_name) {
+            // self macro name. don't expand
+            it->m_expanded = true;
+            new_nodes.emplace_back(*it);
+        } else {
+            // find param name from nodes
+            if (macro.m_num_params >= 0) {
+                for (i = 0; i < macro.m_num_params; ++i) {
+                    if (it->m_text == macro.m_params[i]) {
+                        new_nodes.insert(new_nodes.end(),
+                            params[i].begin(), params[i].end());
+                        break;
+                    }
+                }
+                if (i == macro.m_num_params) {
+                    // it is not any param name
+                    new_nodes.emplace_back(*it);
+                }
+            } else {
+                new_nodes.emplace_back(*it);
+            }
+        }
+    }
+
+    return new_nodes;
+}
+
 std::string
-CrExpandMacro(const CR_MacroSet& macros, std::string str) {
-    // TODO:
-    return str;
+CrExpandMacro(
+    const CR_MacroSet& macros,
+    const std::string& name, const std::string& contents)
+{
+    std::vector<cmacro::Node> nodes;
+    CrLexMacro(nodes, contents);
+    CrTrimNodes(nodes);
+
+    int nesting = 0;
+    std::string target_name;
+    std::vector<cmacro::Node> new_nodes, param;
+    std::vector<std::vector<cmacro::Node>> params;
+
+    bool replaced;
+    do {
+        replaced = false;
+        // substitute candidate
+        auto end = nodes.end();
+        for (auto it = nodes.begin(); it != end; ++it) {
+            switch (it->m_token) {
+            case cmacro::MT_IDENTIFIER:
+                if (target_name.size()) {
+                    param.emplace_back(*it);
+                } else {
+                    if (nesting == 0) {
+                        if (it->m_expanded) {
+                            new_nodes.emplace_back(*it);
+                        } else {
+                            std::string macro_name = it->m_text;
+                            auto macro_it = macros.find(it->m_text);
+                            if (macro_it != macros.end() && name != it->m_text) {
+                                if (macro_it->second.m_num_params >= 0) {
+                                    do {
+                                        ++it;
+                                    } while (it != end && it->m_token == cmacro::MT_SPACE);
+                                    if (it == end) {
+                                        goto label_break2;
+                                    }
+                                    if (it->m_token == cmacro::MT_L_PAREN) {
+                                        params.clear();
+                                        param.clear();
+                                        target_name = macro_name;
+                                        ++nesting;
+                                    }
+                                } else {
+                                    auto to_add =
+                                        CrSubstituteMacro(macros, it->m_text, {});
+                                    new_nodes.insert(new_nodes.end(),
+                                        to_add.begin(), to_add.end());
+                                    replaced = true;
+                                }
+                            } else {
+                                new_nodes.emplace_back(*it);
+                            }
+                        }
+                    } else {
+                        new_nodes.emplace_back(*it);
+                    }
+                }
+                break;
+            case cmacro::MT_L_PAREN:
+                ++nesting;
+                if (target_name.size()) {
+                    param.emplace_back(*it);
+                } else {
+                    new_nodes.emplace_back(*it);
+                }
+                break;
+            case cmacro::MT_R_PAREN:
+                --nesting;
+                assert(nesting >= 0);
+                if (target_name.size()) {
+                    if (nesting == 0) {
+                        CrTrimNodes(param);
+                        if (params.size() || param.size()) {
+                            params.emplace_back(param);
+                        }
+                        auto ret = CrSubstituteMacro(macros, target_name, params);
+                        new_nodes.insert(new_nodes.end(), ret.begin(), ret.end());
+                        target_name.clear();
+                        params.clear();
+                        param.clear();
+                        replaced = true;
+                    } else {
+                        param.emplace_back(*it);
+                    }
+                } else {
+                    new_nodes.emplace_back(*it);
+                }
+                break;
+            case cmacro::MT_COMMA:
+                if (target_name.size()) {
+                    CrTrimNodes(param);
+                    params.emplace_back(param);
+                    param.clear();
+                } else {
+                    new_nodes.emplace_back(*it);
+                }
+                break;
+            default:
+                if (target_name.size()) {
+                    param.emplace_back(*it);
+                } else {
+                    new_nodes.emplace_back(*it);
+                }
+            }
+        }
+label_break2:
+        std::swap(nodes, new_nodes);
+        new_nodes.clear();
+    } while (replaced);
+
+    // delete place markers
+    auto end = nodes.end();
+    for (auto it = nodes.begin(); it != end; ++it) {
+        switch (it->m_token) {
+        case cmacro::MT_PLACEMARKER:
+            break;
+        default:
+            new_nodes.emplace_back(*it);
+        }
+    }
+    std::swap(nodes, new_nodes);
+    new_nodes.clear();
+
+    return CrStringifyNodes(nodes);
 }
 
 bool CrParseMacros(
@@ -3870,19 +4308,18 @@ bool CrParseMacros(
     auto error_info_saved = namescope.ErrorInfo();
     namescope.ErrorInfo() = make_shared<CR_ErrorInfo>();
 
-    // for all macros
     auto end = macro_set.end();
     for (auto it = macro_set.begin(); it != end; ++it) {
         auto& name = it->first;
         auto& macro = it->second;
 
-        // ignore macro functions
-        if (macro.m_num_params > 0) {
+        // skip function-like macros
+        if (macro.m_num_params != -1) {
             continue;
         }
 
         // expand macro
-        auto expanded = CrExpandMacro(macro_set, macro.m_contents);
+        auto expanded = CrExpandMacro(macro_set, name, macro.m_contents);
         CrTrimString(expanded);
         if (expanded.empty()) {
             continue;
@@ -3933,7 +4370,7 @@ bool CrParseMacros(
         auto& macro = it2->second;
 
         // expand macro
-        auto expanded = CrExpandMacro(macro_set, macro.m_contents);
+        auto expanded = CrExpandMacro(macro_set, name, macro.m_contents);
         CrTrimString(expanded);
         if (expanded.empty()) {
             continue;
@@ -3956,8 +4393,8 @@ bool CrParseMacros(
             auto it3 = namescope.MapNameToVarID().find(expanded);
             if (it3 != namescope.MapNameToVarID().end()) {
                 CR_Name2Name name2name;
-                name2name.m_name1 = name;
-                name2name.m_name2 = expanded;
+                name2name.m_from = name;
+                name2name.m_to = expanded;
                 name2name.m_location = macro.m_location;
                 namescope.MapNameToName().emplace(name, name2name);
                 #if 0

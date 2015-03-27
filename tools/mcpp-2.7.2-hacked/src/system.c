@@ -832,6 +832,7 @@ plus:
             mcpp_debug |= MACRO_DEF;
             option_flags.z = TRUE;  /* No output of included file   */
             option_flags.p = TRUE;  /* No output of #line           */
+            no_output = 1;
             break;
 
         case 'K':

@@ -185,22 +185,6 @@ namespace cparser
         void skip_line_comment(LexerBase& base, node_container& infos);
         void skip_line_comment2(LexerBase2& base, node_container& infos);
 
-        std::string guts_escape_sequence(const char *& it) const;
-        std::string guts_string(const char *& it) const;
-        std::string guts_char(const char *& it) const;
-        std::string guts_hex(const char *& it) const;
-        std::string guts_hex2(const char *& it) const;
-        std::string guts_digits(const char *& it) const;
-        std::string guts_octal(const char *& it) const;
-        std::string guts_floating(const char *& it) const;
-        std::string guts_indentifier(const char *& it) const;
-
-        std::string guts_integer_suffix(const char *& it, CR_TypeFlags& flags) const;
-        std::string guts_floating_suffix(const char *& it, CR_TypeFlags& flags) const;
-        std::string guts_exponent(const char *& it) const;
-
-        bool lexeme(const char *& it, const std::string& str);
-
         std::string get_line(LexerBase& base);
         std::string get_line2(LexerBase2& base);
         bool get_tokens(LexerBase& base, node_container& infos);

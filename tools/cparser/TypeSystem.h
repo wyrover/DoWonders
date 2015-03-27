@@ -59,6 +59,9 @@ void CrChop(std::string& str);
 std::string CrEscapeString(const std::string& str);
 std::string CrUnescapeString(const std::string& str);
 
+std::string CrEscapeChar(char ch);
+std::string CrUnescapeChar(const std::string& str);
+
 ////////////////////////////////////////////////////////////////////////////
 // IDs
 
@@ -318,8 +321,8 @@ struct CR_LogVar {
 // CR_Name2Name --- name mapping
 
 struct CR_Name2Name {
-    std::string     m_name1;
-    std::string     m_name2;
+    std::string     m_from;
+    std::string     m_to;
     CR_Location     m_location;         // the location
 };
 

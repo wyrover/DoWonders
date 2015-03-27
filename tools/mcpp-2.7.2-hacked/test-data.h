@@ -4,3 +4,8 @@
 #define D test
 #define f(aaa,...)  __VA_ARGS__
 #define g(...)  __VA_ARGS__
+
+
+AAAAAAAA
+BBBBBBBB
+CCCCCCCC
