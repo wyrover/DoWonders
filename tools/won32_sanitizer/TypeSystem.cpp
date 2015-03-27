@@ -232,7 +232,7 @@ std::string CrEscapeChar(char ch) {
 
 std::string CrUnescapeChar(const std::string& str) {
     std::string ret;
-	size_t i = 1;
+    size_t i = 1;
     char ch = str[1];
     switch (ch) {
     case '\'': case '\"': case '\?': case '\\':
@@ -248,10 +248,10 @@ std::string CrUnescapeChar(const std::string& str) {
     case 'x':
         {
             std::string hex;
-			++i;
-			if (str[i] && isxdigit(str[i])) {
+            ++i;
+            if (str[i] && isxdigit(str[i])) {
                 hex += str[i];
-				++i;
+                ++i;
                 if (str[i] && isxdigit(str[i])) {
                     hex += str[i];
                 } else {
@@ -268,11 +268,11 @@ std::string CrUnescapeChar(const std::string& str) {
         if ('0' <= ch && ch <= '7') {
             std::string oct;
             oct += ch;
-			++i;
-			if (str[i] && '0' <= str[i] && str[i] <= '7') {
+            ++i;
+            if (str[i] && '0' <= str[i] && str[i] <= '7') {
                 oct += str[i];
-				++i;
-				if (str[i] && '0' <= str[i] && str[i] <= '7') {
+                ++i;
+                if (str[i] && '0' <= str[i] && str[i] <= '7') {
                     oct += str[i];
                 } else {
                     --i;
@@ -2019,26 +2019,29 @@ CR_TypedValue CR_NameScope::Dot(
         ret.m_type_id = cr_invalid_id;
         return ret;
     }
-    auto& struct_type = LogType(struct_value.m_type_id);
+    auto tid = ResolveAlias(struct_value.m_type_id);
+    auto& struct_type = LogType(tid);
     std::vector<CR_StructMember> children;
     GetStructMemberList(struct_type.m_sub_id, children);
-    for (auto& child : children) {
-        if (child.m_name == name) {
-            if (child.m_bit_offset % bits_of_one_byte) {
-                // bitfield not supported yet
+    if (children.size()) {
+        for (auto& child : children) {
+            if (child.m_name == name) {
+                if (child.m_bit_offset % bits_of_one_byte) {
+                    // bitfield not supported yet
+                    break;
+                }
+                ret.m_type_id = child.m_type_id;
+                ret.m_addr = struct_value.m_addr +
+                    child.m_bit_offset / bits_of_one_byte;
+                ret.m_size = SizeOfType(child.m_type_id);
+                const char *ptr =
+                    struct_value.get_at<char>(
+                    child.m_bit_offset / bits_of_one_byte, ret.m_size);
+                if (ptr) {
+                    SetValue(ret, child.m_type_id, ptr, ret.m_size);
+                }
                 break;
             }
-            ret.m_type_id = child.m_type_id;
-            ret.m_addr = struct_value.m_addr +
-                            child.m_bit_offset / bits_of_one_byte;
-            ret.m_size = SizeOfType(child.m_type_id);
-            const char *ptr =
-                struct_value.get_at<char>(
-                    child.m_bit_offset / bits_of_one_byte, ret.m_size);
-            if (ptr) {
-                SetValue(ret, child.m_type_id, ptr, ret.m_size);
-            }
-            break;
         }
     }
     return ret;

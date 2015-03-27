@@ -17,3 +17,7 @@ int lstrlenA(const char *str);
 int lstrlenW(const unsigned short *str);
 
 #define lstrlen __MINGW_NAME_AW(lstrlen)
+
+#define CCSIZEOF_STRUCT(structname, member)  (((int)((char *)(&((structname*)0)->member) - ((char *)((structname*)0)))) + sizeof(((structname*)0)->member))
+
+#define I CCSIZEOF_STRUCT(LANA_ENUM,lana)

@@ -2323,21 +2323,75 @@ int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
 
 CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
 
+CR_TypeID CrAnalysePointers(CR_NameScope& namescope, Pointers *pointers,
+    CR_TypeID tid, const CR_Location& location);
+
+CR_TypeID
+CrAnalyseTypeNameDeclor(CR_NameScope& namescope, CR_TypeID tid, Declor *d) {
+    int int_value;
+    while (d) {
+        switch (d->m_declor_type) {
+        case Declor::POINTERS:
+            if (namescope.IsFuncType(tid)) {
+                Pointers *pointers = d->m_pointers.get();
+                auto ac = (*pointers)[0];
+                namescope.AddTypeFlags(tid, ac->m_flags);
+            }
+            {
+                auto& type = namescope.LogType(tid);
+                tid = CrAnalysePointers(namescope, d->m_pointers.get(), tid,
+                                        type.m_location);
+            }
+            d = d->m_declor.get();
+            break;
+
+        case Declor::ARRAY:
+            if (d->m_const_expr) {
+                CR_TypedValue value;
+                value = CrValueOnCondExpr(namescope, d->m_const_expr.get());
+                int_value = namescope.GetIntValue(value);
+            } else {
+                int_value = 0;
+            }
+            {
+                auto& type = namescope.LogType(tid);
+                tid = namescope.AddArrayType(tid, int_value, type.m_location);
+            }
+            d = d->m_declor.get();
+            continue;
+
+        default:
+            assert(0);
+            break;
+        }
+    }
+    return tid;
+}
+
 size_t CrGetTypeIDOfTypeName(CR_NameScope& namescope, TypeName *tn) {
     assert(tn);
     CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
+    if (tn->m_declor) {
+        tid = CrAnalyseTypeNameDeclor(namescope, tid, tn->m_declor.get());
+    }
     return tid;
 }
 
 int CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
     assert(tn);
     CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
+    if (tn->m_declor) {
+        tid = CrAnalyseTypeNameDeclor(namescope, tid, tn->m_declor.get());
+    }
     return namescope.SizeOfType(tid);
 }
 
 int CrCalcAlignOfTypeName(CR_NameScope& namescope, TypeName *tn) {
     assert(tn);
     CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
+    if (tn->m_declor) {
+        tid = CrAnalyseTypeNameDeclor(namescope, tid, tn->m_declor.get());
+    }
     return namescope.LogType(tid).m_align;
 }
 
