@@ -62,7 +62,7 @@ Visual C++ 2013 と TDM-GCC-64 + MSYS でテストしています。
 
 
 /////////////////////////////////////////////////////
-// 片山博文MZ (katahiromz) [蟻]
+// 片山博文MZ (katahiromz) [軍隊蟻]
 // ホームページ http://katahiromz.web.fc2.com/
 // 掲示板       http://katahiromz.bbs.fc2.com/
 // メール       katayama.hirofumi.mz@gmail.com

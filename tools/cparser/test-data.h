@@ -23,5 +23,6 @@ int lstrlenW(const unsigned short *str);
 #define _HUGE_ENUF  1e+300	/* _HUGE_ENUF*_HUGE_ENUF must overflow */
 #define INFINITY   ((float)(_HUGE_ENUF * _HUGE_ENUF))  /* causes warning C4756: overflow in constant arithmetic (by design) */
 #define HUGE_VALD  ((double)INFINITY)
+#define HUGE_VALL  ((long double)INFINITY)
 
 #define GPT_BASIC_DATA_ATTRIBUTE_HIDDEN             (0x4000000000000000)

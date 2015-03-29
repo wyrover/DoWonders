@@ -3400,16 +3400,24 @@ CR_NameScope::IConstant(const std::string& text, const std::string& extra) {
         } else {
             if (minus) {
                 if (ll & 0xFFFFFFFF00000000) {
-                    ret.m_type_id = m_ulong_long_type;
+                    ret.m_type_id = m_long_long_type;
                     ret.assign<long long>(ull);
                     ret.m_extra = "LL";
                 } else {
                     ret.m_type_id = m_uint_type;
                     ret.assign<int>(static_cast<unsigned int>(ull));
-                }
+					ret.m_extra = "U";
+				}
             } else {
-                ret.m_type_id = m_int_type;
-                ret.assign<int>(static_cast<int>(ull));
+				if (ull & 0xFFFFFFFF00000000) {
+					ret.m_type_id = m_long_long_type;
+					ret.assign<long long>(ull);
+					ret.m_extra = "LL";
+				} else {
+					ret.m_type_id = m_int_type;
+					ret.assign<int>(static_cast<int>(ull));
+					ret.m_extra = "";
+				}
             }
         }
     }
