@@ -66,37 +66,43 @@ bool WsJustDoIt(
         "#undef PROCESSENTRY32\n" << 
         "#undef MODULEENTRY32\n" << 
         "\n" << 
+        "static const char fcs[] = \"%s: size mismatched, real size is %d\\n\"\n" << 
+        "static const char fcv[] = \"%s: value mismatched, real value is %lld\\n\"\n" << 
+        "static const char fca[] = \"%s: alignment mismatched, real value is %d\\n\"\n" << 
+        "static const char fcs[] = \"%s: value mismatched, real value is %s\\n\"\n" <<
+        "static const char fcw[] = \"%ls: value mismatched, real value is %ls\\n\"\n" <<
+        "\n" << 
         "#define check_size(name,size) do { \\\n" << 
         "\tif (sizeof(name) != (size)) { \\\n" << 
-        "\t\tprintf(\"%s: size mismatched, real size is %d\\n\", #name, (int)sizeof(name)); \\\n" << 
+        "\t\tprintf(fcs, #name, (int)sizeof(name)); \\\n" << 
         "\t\treturn 1; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" << 
         "#define check_value(name,value) do { \\\n" << 
         "\tif ((name) != (value)) { \\\n" << 
-        "\t\tprintf(\"%s: value mismatched, real value is %lld\\n\", #name, (long long)name); \\\n" << 
+        "\t\tprintf(fcv, #name, (long long)name); \\\n" << 
         "\t\treturn 2; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" <<
         "#define check_align(name,align) do { \\\n" << 
         "\tif (__alignof(name) != (align)) { \\\n" << 
-        "\t\tprintf(\"%s: alignment mismatched, real value is %d\\n\", #name, (int)__alignof(name)); \\\n" << 
+        "\t\tprintf(fca, #name, (int)__alignof(name)); \\\n" << 
         "\t\treturn 3; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" <<
         "#define check_string(name,string) do { \\\n" << 
         "\tif (lstrcmpA(name, string) != 0) { \\\n" << 
-        "\t\tprintf(\"%s: value mismatched, real value is %s\\n\", #name, name); \\\n" << 
+        "\t\tprintf(fcs, #name, name); \\\n" << 
         "\t\treturn 4; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" <<
         "#define check_wstring(name,wstring) do { \\\n" << 
         "\tif (lstrcmpW(name, wstring) != 0) { \\\n" << 
-        "\t\tprintf(\"%ls: value mismatched, real value is %ls\\n\", #name, name); \\\n" << 
+        "\t\tprintf(fcw, #name, name); \\\n" << 
         "\t\treturn 5; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
