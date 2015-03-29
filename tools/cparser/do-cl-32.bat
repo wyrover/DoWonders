@@ -11,10 +11,8 @@ if not exist %CPARSER% goto label_no_cparser
 
 SET PREDEF_COMMON=-D_M_IX86=1 -D_M_IX86_FP=2 -D_MT=1 -D_WIN32=1 -D_X86_=1 -D_MSC_VER=1700
 
-%REDIRECTOR% nul macros-cl-32-a.dat macros-cl-32-a.log %MCPP% %PREDEF_COMMON% -DMBCS -D_MBCS -! test-data.h
-%REDIRECTOR% nul macros-cl-32-w.dat macros-cl-32-w.log %MCPP% %PREDEF_COMMON% -DUNICODE -D_UNICODE -! test-data.h
-%REDIRECTOR% nul cparser-cl-32-a.log cparser-cl-32-a.log %CPARSER% --nologo -32 --suffix -cl-32-a.dat test-data.h %PREDEF_COMMON% -DMBCS -D_MBCS
-%REDIRECTOR% nul cparser-cl-32-w.log cparser-cl-32-w.log %CPARSER% --nologo -32 --suffix -cl-32-w.dat test-data.h %PREDEF_COMMON% -DUNICODE -D_UNICODE
+%REDIRECTOR% nul macros.dat macros.log %MCPP% %PREDEF_COMMON% -DUNICODE -D_UNICODE -! test-data.h
+%REDIRECTOR% nul cparser.log cparser.log %CPARSER% --nologo -32 --suffix .dat test-data.h %PREDEF_COMMON% -DUNICODE -D_UNICODE
 
 :label_end
 exit /b 0
