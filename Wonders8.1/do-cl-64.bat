@@ -1,12 +1,12 @@
 @echo off
 
-SET REDIRECTOR=..\redirector\x64\Release\redirector64.exe
+SET REDIRECTOR=..\tools\redirector\x64\Release\redirector64.exe
 if not exist %REDIRECTOR% goto label_no_redirector64
 
-SET MCPP=..\mcpp-2.7.2-hacked\Release\mcpp.exe
+SET MCPP=..\tools\mcpp-2.7.2-hacked\Release\mcpp.exe
 if not exist %MCPP% goto label_no_mcpp
 
-SET CPARSER=..\cparser\x64\Debug\cparser64.exe
+SET CPARSER=..\tools\cparser\x64\Release\cparser64.exe
 if not exist %CPARSER% goto label_no_cparser64
 
 SET PREDEF_COMMON=-D_M_X64=1 -D_M_AMD64=1 -D_MT=1 -D_WIN32=1 -D_MSC_VER=1700 -D__x86_64=1 -D__x86_64__=1 -D_WIN64=1

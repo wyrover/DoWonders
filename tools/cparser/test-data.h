@@ -20,4 +20,8 @@ int lstrlenW(const unsigned short *str);
 
 #define CCSIZEOF_STRUCT(structname, member)  (((int)((char *)(&((structname*)0)->member) - ((char *)((structname*)0)))) + sizeof(((structname*)0)->member))
 
-#define I CCSIZEOF_STRUCT(LANA_ENUM,lana)
+#define _HUGE_ENUF  1e+300	/* _HUGE_ENUF*_HUGE_ENUF must overflow */
+#define INFINITY   ((float)(_HUGE_ENUF * _HUGE_ENUF))  /* causes warning C4756: overflow in constant arithmetic (by design) */
+#define HUGE_VALD  ((double)INFINITY)
+
+#define GPT_BASIC_DATA_ATTRIBUTE_HIDDEN             (0x4000000000000000)

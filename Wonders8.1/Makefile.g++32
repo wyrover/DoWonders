@@ -1,0 +1,60 @@
+# Makefile.g++32 --- Makefile for 32-bit GNU C++
+# Usage: make -f Makefile.g++32
+
+DOTEXE = .exe
+
+CC = gcc
+MAKE = make
+MCPP = ../tools/mcpp-2.7.2-hacked/src/mcpp$(DOTEXE)
+CPARSER = ../tools/cparser/cparser$(DOTEXE)
+WON32_SANITIZER = ../tools/won32_sanitizer/won32_sanitizer$(DOTEXE)
+
+DO_WONDERS_MINGW = /mingw/*-*-mingw*/
+DO_WONDERS_MINGW2 = /mingw/lib/gcc/*-*-mingw*/*.*.*/
+
+DO_WONDERS_INCLUDES = -I /mingw/include/ -I $(DO_WONDERS_MINGW)include/ -I $(DO_WONDERS_MINGW2)include
+
+PREDEF_COMMON = -D_M_IX86=1 -D_MT=1 -D_WIN32=1 -D_X86_=1 -D__i386__=1 -DSORTPP_PASS=1
+
+all: macros types
+macros: ansi_macros wide_macros
+types: ansi_types wide_types
+sanitize: ansi_sanitize wide_sanitize
+
+ansi_macros: $(MCPP)
+	($(MCPP) $(DO_WONDERS_INCLUDES) $(PREDEF_COMMON) -DMBCS -D_MBCS -! win32.h >macros-gcc-32-a.dat 2>macros-gcc-32-a.log) || true
+wide_macros: $(MCPP)
+	($(MCPP) $(DO_WONDERS_INCLUDES) $(PREDEF_COMMON) -DUNICODE -D_UNICODE -! win32.h >macros-gcc-32-w.dat 2>macros-gcc-32-w.log) || true
+
+ansi_types: $(CPARSER)
+	$(CPARSER) --nologo -32 --suffix -gcc-32-a.dat win32.h $(PREDEF_COMMON) -m32 -DMBCS -D_MBCS >cparser-gcc-32-a.log 2>&1
+wide_types: $(CPARSER)
+	$(CPARSER) --nologo -32 --suffix -gcc-32-w.dat win32.h $(PREDEF_COMMON) -m32 -DUNICODE -D_UNICODE >cparser-gcc-32-w.log 2>&1
+
+ansi_sanitize: $(WON32_SANITIZER)
+	$(WON32_SANITIZER) --suffix -gcc-32-a.dat
+	$(CC) -m32 -DMBCS -D_MBCS -o sanitize-gcc-32-a$(DOTEXE) sanitize-gcc-32-a.c -lole32 >sanitize-gcc-32-a.log 2>&1
+	sanitize-gcc-32-a$(DOTEXE)
+
+wide_sanitize: $(WON32_SANITIZER)
+	$(WON32_SANITIZER) --suffix -gcc-32-w.dat
+	$(CC) -m32 -DUNICODE -D_UNICODE -o sanitize-gcc-32-w$(DOTEXE) sanitize-gcc-32-w.c -lole32 >sanitize-gcc-32-w.log 2>&1
+	sanitize-gcc-32-w$(DOTEXE)
+
+$(MCPP):
+	cd ../tools/mcpp-2.7.2-hacked && $(MAKE)
+$(CPARSER):
+	cd ../tools/cparser && $(MAKE) -f Makefile.g++32
+
+delete_dat:
+	rm -f *.dat
+
+delete_log:
+	rm -f *.log
+
+clean:
+	rm -f *.log *.tmp
+	rm -f sanitize-gcc-32-a.c
+	rm -f sanitize-gcc-32-w.c
+	rm -f sanitize-gcc-32-a$(DOTEXE)
+	rm -f sanitize-gcc-32-w$(DOTEXE)

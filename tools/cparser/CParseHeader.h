@@ -125,6 +125,12 @@ namespace cparser
             }
         }
 
+        #ifdef DEEPDEBUG
+            std::printf("#1\n");
+            lexer.show_tokens(infos.begin(), infos.end());
+            std::printf("\n--------------\n");
+        #endif
+
         shared_ptr<Node> node;
         if (parser.accept(node)) {
             shared_ptr<TransUnit> tu;

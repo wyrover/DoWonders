@@ -1,6 +1,6 @@
                       ------------------------------
                                 DoWonders
-                           （ドゥーワンダーズ）
+                           （ドゥーヲンダーズ）
                                      
                         Win32 API Database Project
                               by 片山博文MZ

@@ -6,10 +6,10 @@ if not exist %REDIRECTOR% goto label_no_redirector
 SET MCPP=..\mcpp-2.7.2-hacked\Release\mcpp.exe
 if not exist %MCPP% goto label_no_mcpp
 
-SET CPARSER=..\cparser\Release\cparser.exe
+SET CPARSER=..\cparser\Debug\cparser.exe
 if not exist %CPARSER% goto label_no_cparser
 
-SET PREDEF_COMMON=-D_M_IX86=1 -D_MT=1 -D_WIN32=1 -D_X86_=1 -D_MSC_VER=1700
+SET PREDEF_COMMON=-D_M_IX86=1 -D_M_IX86_FP=2 -D_MT=1 -D_WIN32=1 -D_X86_=1 -D_MSC_VER=1700
 
 %REDIRECTOR% nul macros-cl-32-a.dat macros-cl-32-a.log %MCPP% %PREDEF_COMMON% -DMBCS -D_MBCS -! test-data.h
 %REDIRECTOR% nul macros-cl-32-w.dat macros-cl-32-w.log %MCPP% %PREDEF_COMMON% -DUNICODE -D_UNICODE -! test-data.h

@@ -149,6 +149,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="TextToText.cpp" />
     <ClCompile Include="TypeSystem.cpp" />
     <ClCompile Include="won32_sanitizer.cpp" />
   </ItemGroup>
@@ -157,6 +158,8 @@
     <ClInclude Include="Main.h" />
     <ClInclude Include="splitjoin.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="TextToText.hpp" />
+    <ClInclude Include="TextToText_inl.hpp" />
     <ClInclude Include="TypeSystem.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

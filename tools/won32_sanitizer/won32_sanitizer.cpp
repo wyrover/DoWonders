@@ -39,7 +39,7 @@ bool WsJustDoIt(
         CR_NameScope ns(error_info, false);
     #endif
 
-    #if 1
+    #if 0
         std::cerr << "Type [Enter] key" << std::endl;
         getchar();
     #endif
@@ -55,6 +55,7 @@ bool WsJustDoIt(
                      strOutput << "'" << std::endl;
         return false;
     }
+
     out <<
         "#include \"win32.h\"\n" << 
         "#include <stdio.h>\n" << 
@@ -74,7 +75,7 @@ bool WsJustDoIt(
         "\n" << 
         "#define check_value(name,value) do { \\\n" << 
         "\tif ((name) != (value)) { \\\n" << 
-        "\t\tprintf(\"%s: value mismatched, real value is %d\\n\", #name, (int)name); \\\n" << 
+        "\t\tprintf(\"%s: value mismatched, real value is %lld\\n\", #name, (long long)name); \\\n" << 
         "\t\treturn 2; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
@@ -109,6 +110,13 @@ bool WsJustDoIt(
         auto flags = type.m_flags;
         auto size = type.m_size;
         auto align = type.m_align;
+
+        if (name == "RASCTRYINFO" || name == "RASIPADDR" ||
+            name == "LPRASCTRYINFOW" || name == "RASCTRYINFO")
+        {
+            continue;
+        }
+
         if (size && name.size() && name.find("*") == std::string::npos) {
             const long excl_flags =
                 (TF_ENUM | TF_FUNCTION | TF_INCOMPLETE | TF_INACCURATE);
@@ -133,16 +141,49 @@ bool WsJustDoIt(
         if (value.m_text.empty()) {
             continue;
         }
+
+        if (name == "MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS") {
+            // This contains "defined". Not a variable. We ignore it.
+            //
+            // C:/Program Files (x86)/Windows Kits/8.1/include/um/winbase.h (8804)
+            // #define MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS (_WIN32_WINNT >= 0x0502 || !defined(_WINBASE_))
+            continue;
+        }
+
         auto type_id = value.m_type_id;
         if (ns.IsIntegralType(type_id)) {
             out << "\tcheck_value(" << name << ", " <<
-                   value.m_text << ");" << std::endl;
-        } else if (ns.IsStringType(type_id)) {
+                value.m_text << value.m_extra << ");" << std::endl;
+        } else if (ns.IsFloatingType(type_id)) {
+            auto text = value.m_text;
+            if (text == "INF" || text == "+INF") {
+                out << "\tcheck_value(" << name << ", +INFINITY);" << std::endl;
+            } else if (text == "-INF") {
+                out << "\tcheck_value(" << name << ", -INFINITY);" << std::endl;
+            } else if (text == "NAN" || text == "+NAN") {
+                out << "\tcheck_value(" << name << ", +NAN);" << std::endl;
+            } else if (text == "-NAN") {
+                out << "\tcheck_value(" << name << ", -NAN);" << std::endl;
+            } else {
+                if (text.find(".") == std::string::npos &&
+                    text.find("e") == std::string::npos &&
+                    text.find("E") == std::string::npos)
+                {
+                    text += ".";
+                }
+                out << "\tcheck_value(" << name << ", " <<
+                    text << value.m_extra << ");" << std::endl;
+            }
+        } else if (value.m_text[0] == '"' && ns.IsStringType(type_id)) {
             out << "\tcheck_string(" << name << ", " <<
-                CrEscapeString(value.m_text) << ");" << std::endl;
-        } else if (ns.IsWStringType(type_id)) {
+                value.m_text << ");" << std::endl;
+        } else if (value.m_text[0] == '"' && ns.IsWStringType(type_id)) {
             out << "\tcheck_wstring(" << name << ", L" <<
-                CrEscapeString(value.m_text) << ");" << std::endl;
+                value.m_text << ");" << std::endl;
+        } else if (ns.IsPointerType(type_id)) {
+            out << "\tcheck_value(" << name << ", (" <<
+                ns.StringOfType(type_id, "") << ")" << 
+                value.m_text << ");" << std::endl;
         }
     }
 
@@ -159,6 +200,11 @@ int main(int argc, char **argv) {
     bool show_version = false;
     const char *prefix = "";
     const char *suffix = ".dat";
+
+#if 0
+    printf("Hit [Enter] key!");
+    getchar();
+#endif
 
     for (int i = 1; i < argc; ++i) {
         if (_stricmp(argv[i], "/?") == 0 ||

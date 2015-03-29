@@ -14,21 +14,21 @@ const char * const cr_logo =
     "///////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser 0.3.3 (64-bit) for gcc        //\n"
+    "// CParser 0.3.4 (64-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.3.3 (64-bit) for clang      //\n"
+    "// CParser 0.3.4 (64-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.3.3 (64-bit) for cl (MSVC)  //\n"
+    "// CParser 0.3.4 (64-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser 0.3.3 (32-bit) for gcc        //\n"
+    "// CParser 0.3.4 (32-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.3.3 (32-bit) for clang      //\n"
+    "// CParser 0.3.4 (32-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.3.3 (32-bit) for cl (MSVC)  //\n"
+    "// CParser 0.3.4 (32-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
@@ -217,6 +217,15 @@ std::string CrGutsChar(const char *& it) {
     return ret;
 } // CrGutsChar
 
+int CrCharToInt(const std::string& str) {
+    int n = 0;
+    for (char ch : str) {
+        n *= 0x100;
+        n += ch;
+    }
+    return n;
+}
+
 std::string CrGutsDigits(const char *& it) {
     std::string ret;
     for (; *it; ++it) {
@@ -274,7 +283,7 @@ std::string CrGutsIntegerSuffix(const char *& it, CR_TypeFlags& flags) {
                 ++it;
                 if (*it && *it == '4') {
                     ++it;
-                    ret = "i64";
+                    ret += "i64";
                     flags |= TF_LONGLONG;
                 }
             }
@@ -282,7 +291,7 @@ std::string CrGutsIntegerSuffix(const char *& it, CR_TypeFlags& flags) {
                 ++it;
                 if (*it && *it == '2') {
                     ++it;
-                    ret = "i32";
+                    ret += "i32";
                     flags |= TF_LONG;
                 }
             }
@@ -290,13 +299,13 @@ std::string CrGutsIntegerSuffix(const char *& it, CR_TypeFlags& flags) {
                 ++it;
                 if (*it && *it == '6') {
                     ++it;
-                    ret = "i16";
+                    ret += "i16";
                     flags |= TF_SHORT;
                 }
             }
             if (*it && *it == '8') {
                 ++it;
-                ret = "i8";
+                ret += "i8";
                 flags |= TF_CHAR;
             }
             break;
@@ -322,7 +331,7 @@ std::string CrGutsFloatingSuffix(const char *& it, CR_TypeFlags& flags) {
     return ret;
 }
 
-std::string CrGutsExponent(const char *& it) {
+std::string CrGutsExponent(const char *& it, int& ex) {
     std::string ret;
     if (*it) {
         if (*it == 'e' || *it == 'E') {
@@ -631,11 +640,15 @@ void cparser::Lexer::do_line(
                 infos.emplace_back(T_STRING, text, extra);
             } else if (*it == '\'') {
                 auto text = CrGutsChar(it);
-                auto n = static_cast<int>(text[0]);
+                auto n = CrCharToInt(text);
                 text = std::to_string(n);
                 infos.emplace_back(T_CONSTANT, text, extra);
             } else {
-                --it;
+                if (extra == "u8") {
+                    it -= 2;
+                } else {
+                    --it;
+                }
                 goto label_default;
             }
             break;
@@ -648,7 +661,7 @@ void cparser::Lexer::do_line(
                 infos.emplace_back(T_STRING, text, extra);
             } else if (*it == '\'') {
                 auto text = CrGutsChar(it);
-                auto n = static_cast<int>(text[0]);
+                auto n = CrCharToInt(text);
                 text = std::to_string(n);
                 infos.emplace_back(T_CONSTANT, text, extra);
             } else {
@@ -667,7 +680,7 @@ void cparser::Lexer::do_line(
         case '\'':
             {
                 auto text = CrGutsChar(it);
-                auto n = static_cast<int>(text[0]);
+                auto n = CrCharToInt(text);
                 text = std::to_string(n);
                 infos.emplace_back(T_CONSTANT, text);
             }
@@ -932,14 +945,20 @@ label_default:
                     infos.emplace_back(T_CONSTANT, text, extra, flags);
                 } else {
                     std::string exponent;
+                    int ex = 0;
                     if (*it) {
-                        exponent = CrGutsExponent(it);
+                        exponent = CrGutsExponent(it, ex);
                     }
                     if (exponent.size()) {
                         // exponent was found. it's a floating
                         CR_TypeFlags flags = TF_DOUBLE;
                         if (*it) {
                             extra = CrGutsFloatingSuffix(it, flags);
+                        }
+                        if (extra == "") {
+                            if (ex > 308) {
+                                extra = "L";
+                            }
                         }
                         auto text = digits + exponent + extra;
                         infos.emplace_back(T_CONSTANT, text, extra, flags);
@@ -1857,11 +1876,27 @@ CR_TypedValue CrValueOnAssignExpr(CR_NameScope& namescope, AssignExpr *ae);
 CR_TypedValue CrValueOnExpr(CR_NameScope& namescope, Expr *e);
 CR_TypedValue CrValueOnCondExpr(CR_NameScope& namescope, CondExpr *ce);
 
-int CrCalcSizeOfTypedValue(CR_NameScope& namescope, const CR_TypedValue& ret) {
-    return namescope.SizeOfType(ret.m_type_id);
+CR_TypedValue CrSize_tValue(CR_NameScope& namescope, unsigned long long n = 0) {
+    CR_TypedValue ret;
+    if (namescope.Is64Bit()) {
+        ret.m_type_id = namescope.m_ulong_long_type;
+        ret.assign<unsigned long long>(n);
+    } else {
+        ret.m_type_id = namescope.m_uint_type;
+        ret.assign<unsigned int>(static_cast<unsigned int>(n));
+    }
+    return ret;
+}
+
+CR_TypedValue CrCalcSizeOfTypedValue(CR_NameScope& namescope, const CR_TypedValue& ret) {
+    size_t n = namescope.SizeOfType(ret.m_type_id);
+    return CrSize_tValue(namescope, n);
 }
 
 CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnPrimExpr: %d\n", pe->m_prim_type);
+    #endif
     CR_TypedValue ret;
     switch (pe->m_prim_type) {
     case PrimExpr::IDENTIFIER:
@@ -1875,99 +1910,15 @@ CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
         break;
 
     case PrimExpr::F_CONSTANT:
-        ret.m_text = pe->m_text;
-        ret.m_extra = pe->m_extra;
-        if (pe->m_extra.find('f') != std::string::npos ||
-            pe->m_extra.find('F') != std::string::npos)
-        {
-            ret.m_type_id = namescope.m_float_type;
-            ret.assign<float>(std::stof(pe->m_text, NULL));
-        } else if (pe->m_extra.find('l') != std::string::npos ||
-                   pe->m_extra.find('L') != std::string::npos)
-        {
-            ret.m_type_id = namescope.m_long_double_type;
-            ret.assign<long double>(std::stold(pe->m_text, NULL));
-        } else {
-            ret.m_type_id = namescope.m_double_type;
-            ret.assign<double>(std::stod(pe->m_text, NULL));
-        }
+        ret = namescope.FConstant(pe->m_text, pe->m_extra);
         break;
 
     case PrimExpr::I_CONSTANT:
-        ret.m_text = pe->m_text;
-        ret.m_extra = pe->m_extra;
-        {
-            auto ull = std::stoull(pe->m_text, NULL, 0);
-            bool is_unsigned = false;
-            if (ret.m_extra.find("U") != std::string::npos ||
-                ret.m_extra.find("u") != std::string::npos)
-            {
-                is_unsigned = true;
-            }
-
-            if (ret.m_extra.find("LL") != std::string::npos ||
-                ret.m_extra.find("ll") != std::string::npos ||
-                ret.m_extra.find("i64") != std::string::npos)
-            {
-                if (is_unsigned) {
-                    ret.m_type_id = namescope.m_ulong_long_type;
-                    ret.assign<unsigned long long>(ull);
-                } else {
-                    ret.m_type_id = namescope.m_long_long_type;
-                    ret.assign<long long>(ull);
-                }
-            } else if (ret.m_extra.find('L') != std::string::npos ||
-                       ret.m_extra.find('l') != std::string::npos ||
-                       ret.m_extra.find("i32") != std::string::npos)
-            {
-                if (is_unsigned) {
-                    ret.m_type_id = namescope.m_ulong_type;
-                    ret.assign<unsigned long>(static_cast<unsigned long>(ull));
-                } else {
-                    ret.m_type_id = namescope.m_long_type;
-                    ret.assign<long>(static_cast<long>(ull));
-                }
-            } else if (ret.m_extra.find("i16") != std::string::npos) {
-                if (is_unsigned) {
-                    ret.m_type_id = namescope.m_ushort_type;
-                    ret.assign<unsigned short>(static_cast<unsigned short>(ull));
-                } else {
-                    ret.m_type_id = namescope.m_short_type;
-                    ret.assign<short>(static_cast<short>(ull));
-                }
-            } else if (ret.m_extra.find("i8") != std::string::npos) {
-                if (is_unsigned) {
-                    ret.m_type_id = namescope.m_uchar_type;
-                    ret.assign<unsigned char>(static_cast<unsigned char>(ull));
-                } else {
-                    ret.m_type_id = namescope.m_char_type;
-                    ret.assign<short>(static_cast<char>(ull));
-                }
-            } else {
-                if (is_unsigned) {
-                    ret.m_type_id = namescope.m_uint_type;
-                    ret.assign<unsigned int>(static_cast<unsigned int>(ull));
-                } else {
-                    ret.m_type_id = namescope.m_int_type;
-                    ret.assign<int>(static_cast<int>(ull));
-                }
-            }
-        }
+        ret = namescope.IConstant(pe->m_text, pe->m_extra);
         break;
 
     case PrimExpr::STRING:
-        ret.m_text = CrEscapeString(pe->m_text);
-        ret.m_extra = pe->m_extra;
-        if (ret.m_extra.find("L") != std::string::npos ||
-            ret.m_extra.find("l") != std::string::npos)
-        {
-            ret.m_type_id = namescope.AddConstWStringType();
-            std::wstring wstr = MAnsiToWide(pe->m_text.data()).data();
-            ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
-        } else {
-            ret.m_type_id = namescope.AddConstStringType();
-            ret.assign(pe->m_text.data(), pe->m_text.size() + 1);
-        }
+        ret = namescope.SConstant(pe->m_text, pe->m_extra);
         break;
 
     case PrimExpr::PAREN:
@@ -1982,10 +1933,16 @@ CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     default:
         assert(0);
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnPrimExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnPostfixExpr: %d\n", pe->m_postfix_type);
+    #endif
     CR_TypedValue ret;
     switch (pe->m_postfix_type) {
     case PostfixExpr::SINGLE:
@@ -2026,105 +1983,108 @@ CR_TypedValue CrValueOnPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
     default:
         assert(0);
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnPostfixExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
-int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue);
+CR_TypedValue CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue);
 
-int CrCalcSizeOfCastExpr(CR_NameScope& namescope, CastExpr *ce) {
+CR_TypedValue CrCalcSizeOfCastExpr(CR_NameScope& namescope, CastExpr *ce) {
     assert(ce);
     switch (ce->m_cast_type) {
     case CastExpr::UNARY:
         return CrCalcSizeOfUnaryExpr(namescope, ce->m_unary_expr.get());
 
     default:
-        return 4;
+        return CrSize_tValue(namescope, sizeof(int));
     }
 }
 
-int CrCalcSizeOfMulExpr(CR_NameScope& namescope, MulExpr *me) {
+CR_TypedValue CrCalcSizeOfMulExpr(CR_NameScope& namescope, MulExpr *me) {
     assert(me);
     switch (me->m_mul_type) {
     case MulExpr::SINGLE:
         return CrCalcSizeOfCastExpr(namescope, me->m_cast_expr.get());
 
     default:
-        return 4;
+        return CrSize_tValue(namescope, sizeof(int));
     }
 }
 
-int CrCalcSizeOfAddExpr(CR_NameScope& namescope, AddExpr *ae) {
+CR_TypedValue CrCalcSizeOfAddExpr(CR_NameScope& namescope, AddExpr *ae) {
     assert(ae);
     switch (ae->m_add_type) {
     case AddExpr::SINGLE:
         return CrCalcSizeOfMulExpr(namescope, ae->m_mul_expr.get());
 
     default:
-        return 4;
+        return CrSize_tValue(namescope, sizeof(int));
     }
 }
 
-int CrCalcSizeOfShiftExpr(CR_NameScope& namescope, ShiftExpr *se) {
+CR_TypedValue CrCalcSizeOfShiftExpr(CR_NameScope& namescope, ShiftExpr *se) {
     assert(se);
     switch (se->m_shift_type) {
     case ShiftExpr::SINGLE:
         return CrCalcSizeOfAddExpr(namescope, se->m_add_expr.get());
 
     default:
-        return 4;
+        return CrSize_tValue(namescope, sizeof(int));
     }
 }
 
-int CrCalcSizeOfRelExpr(CR_NameScope& namescope, RelExpr *re) {
+CR_TypedValue CrCalcSizeOfRelExpr(CR_NameScope& namescope, RelExpr *re) {
     assert(re);
     switch (re->m_rel_type) {
     case RelExpr::SINGLE:
         return CrCalcSizeOfShiftExpr(namescope, re->m_shift_expr.get());
 
     default:
-        return 4;
+        return CrSize_tValue(namescope, sizeof(int));
     }
 }
 
-int CrCalcSizeOfEqualExpr(CR_NameScope& namescope, EqualExpr *ee) {
+CR_TypedValue CrCalcSizeOfEqualExpr(CR_NameScope& namescope, EqualExpr *ee) {
     assert(ee);
     switch (ee->m_equal_type) {
     case EqualExpr::SINGLE:
         return CrCalcSizeOfRelExpr(namescope, ee->m_rel_expr.get());
 
     default:
-        return 4;
+        return CrSize_tValue(namescope, sizeof(int));
     }
 }
 
-int CrCalcSizeOfAndExpr(CR_NameScope& namescope, AndExpr *ae) {
+CR_TypedValue CrCalcSizeOfAndExpr(CR_NameScope& namescope, AndExpr *ae) {
     assert(ae);
     return CrCalcSizeOfEqualExpr(namescope, (*ae)[0].get());
 }
 
-int CrCalcSizeOfExclOrExpr(CR_NameScope& namescope, ExclOrExpr *eoe) {
+CR_TypedValue CrCalcSizeOfExclOrExpr(CR_NameScope& namescope, ExclOrExpr *eoe) {
     assert(eoe);
     return CrCalcSizeOfAndExpr(namescope, (*eoe)[0].get());
 }
 
-int CrCalcSizeOfInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
+CR_TypedValue CrCalcSizeOfInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
     assert(ioe);
     return CrCalcSizeOfExclOrExpr(namescope, (*ioe)[0].get());
 }
 
-int CrCalcSizeOfLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae) {
+CR_TypedValue CrCalcSizeOfLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae) {
     assert(lae);
     return CrCalcSizeOfInclOrExpr(namescope, (*lae)[0].get());
 }
 
-int CrCalcSizeOfLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe) {
+CR_TypedValue CrCalcSizeOfLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe) {
     assert(loe);
     return CrCalcSizeOfLogAndExpr(namescope, (*loe)[0].get());
 }
 
-int CrCalcSizeOfExpr(CR_NameScope& namescope, Expr *e);
+CR_TypedValue CrCalcSizeOfExpr(CR_NameScope& namescope, Expr *e);
 
-int CrCalcSizeOfCondExpr(CR_NameScope& namescope, CondExpr *ce) {
+CR_TypedValue CrCalcSizeOfCondExpr(CR_NameScope& namescope, CondExpr *ce) {
     assert(ce);
     switch (ce->m_cond_type) {
     case CondExpr::SINGLE:
@@ -2137,31 +2097,30 @@ int CrCalcSizeOfCondExpr(CR_NameScope& namescope, CondExpr *ce) {
                 CrCalcSizeOfCondExpr(namescope, ce->m_cond_expr.get());
 
     default:
-        return 0;
+        return CR_TypedValue();
     }
 }
 
-
-int CrCalcSizeOfAssignExpr(CR_NameScope& namescope, AssignExpr *ae) {
+CR_TypedValue CrCalcSizeOfAssignExpr(CR_NameScope& namescope, AssignExpr *ae) {
     assert(ae);
     switch (ae->m_assign_type) {
     case AssignExpr::COND:
         return CrCalcSizeOfCondExpr(namescope, ae->m_cond_expr.get());
 
-    case AssignExpr::SINGLE:
+    case AssignExpr::ASSIGN:
         return CrCalcSizeOfUnaryExpr(namescope, ae->m_unary_expr.get());
 
     default:
-        return 4;
+        return CrSize_tValue(namescope, 4);
     }
 }
 
-int CrCalcSizeOfExpr(CR_NameScope& namescope, Expr *e) {
+CR_TypedValue CrCalcSizeOfExpr(CR_NameScope& namescope, Expr *e) {
     assert(e);
     return CrCalcSizeOfAssignExpr(namescope, (*e)[0].get());
 }
 
-int CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
+CR_TypedValue CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
     assert(pe);
 
     switch (pe->m_prim_type) {
@@ -2170,57 +2129,61 @@ int CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
             auto it = namescope.MapNameToVarID().find(pe->m_text);
             if (it != namescope.MapNameToVarID().end()) {
                 auto& var = namescope.LogVar(it->second);
-                return namescope.SizeOfType(var.m_typed_value.m_type_id);
+                size_t n = namescope.SizeOfType(var.m_typed_value.m_type_id);
+                return CrSize_tValue(namescope, n);
             }
         }
-        return 0;
+        return CR_TypedValue();
 
     case PrimExpr::I_CONSTANT:
         if (pe->m_extra.empty()) {
             auto n = std::stoull(pe->m_text, NULL, 0);
             if (n & 0xFFFFFFFF00000000) {
-                return sizeof(long long);
+                return CrSize_tValue(namescope, sizeof(long long));
             } else {
-                return sizeof(int);
+                return CrSize_tValue(namescope, sizeof(int));
             }
         } else if (pe->m_extra.find("LL") != std::string::npos ||
                    pe->m_extra.find("ll") != std::string::npos ||
                    pe->m_extra.find("i64") != std::string::npos)
         {
-            return sizeof(long long);
+            return CrSize_tValue(namescope, sizeof(long long));
         }
-        return sizeof(int);
+        return CrSize_tValue(namescope, sizeof(int));
 
     case PrimExpr::F_CONSTANT:
         if (pe->m_extra.find('f') != std::string::npos ||
             pe->m_extra.find('F') != std::string::npos)
         {
-            return sizeof(float);
+            return CrSize_tValue(namescope, sizeof(float));
         }
         if (pe->m_extra.find('l') != std::string::npos ||
             pe->m_extra.find('L') != std::string::npos)
         {
-            return sizeof(long double);
+            return CrSize_tValue(namescope, sizeof(long double));
         }
-        return sizeof(double);
+        return CrSize_tValue(namescope, sizeof(double));
 
     case PrimExpr::STRING:
         if (pe->m_extra.find('L') != std::string::npos) {
-            return static_cast<int>((pe->m_text.size() + 1) * sizeof(wchar_t));
+            return CrSize_tValue(namescope, 
+                (pe->m_text.size() + 1) * sizeof(wchar_t));
         } else {
-            return static_cast<int>((pe->m_text.size() + 1) * sizeof(char));
+            return CrSize_tValue(namescope, 
+                (pe->m_text.size() + 1) * sizeof(char));
         }
 
     case PrimExpr::PAREN:
         return CrCalcSizeOfExpr(namescope, pe->m_expr.get());
 
     default:
-        return 0;
+		return CR_TypedValue();
     }
 }
 
-int CrCalcSizeOfPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
+CR_TypedValue CrCalcSizeOfPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
     assert(pe);
+
     switch (pe->m_postfix_type) {
     case PostfixExpr::SINGLE:
         return CrCalcSizeOfPrimExpr(namescope, pe->m_prim_expr.get());
@@ -2265,11 +2228,14 @@ int CrCalcSizeOfPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe) {
     default:
         assert(0);
     }
-    return 0;
+
+    return CR_TypedValue();
 }
 
-int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
+CR_TypedValue CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
     assert(ue);
+
+    CR_TypedValue ret;
     switch (ue->m_unary_type) {
     case UnaryExpr::SINGLE:
         return CrCalcSizeOfPostfixExpr(namescope, ue->m_postfix_expr.get());
@@ -2280,16 +2246,14 @@ int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
 
     case UnaryExpr::ADDRESS:
         {
-            CR_TypedValue ret =
-                CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+            auto ret = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
             ret = namescope.Address(ret);
             return CrCalcSizeOfTypedValue(namescope, ret);
         }
 
     case UnaryExpr::ASTERISK:
         {
-            CR_TypedValue ret =
-                CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+            auto ret = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
             ret = namescope.Asterisk(ret);
             return CrCalcSizeOfTypedValue(namescope, ret);
         }
@@ -2298,27 +2262,31 @@ int CrCalcSizeOfUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
     case UnaryExpr::MINUS:
     case UnaryExpr::BITWISE_NOT:
         {
-            CR_TypedValue ret =
-                CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+            auto ret = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
             return CrCalcSizeOfTypedValue(namescope, ret);
         }
 
     case UnaryExpr::NOT:
         {
-            CR_TypedValue ret =
-                CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
+            auto ret = CrValueOnCastExpr(namescope, ue->m_cast_expr.get());
             ret = namescope.Not(ret);
             return CrCalcSizeOfTypedValue(namescope, ret);
         }
 
     case UnaryExpr::SIZEOF1:
     case UnaryExpr::SIZEOF2:
-        return (namescope.Is64Bit() ? 8 : 4);
+        if (namescope.Is64Bit()) {
+            ret.assign<unsigned long long>(8);
+        } else {
+            ret.assign<unsigned int>(4);
+        }
+        break;
 
     default:
         assert(0);
-        return 0;
     }
+
+    return ret;
 }
 
 CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds);
@@ -2377,13 +2345,13 @@ size_t CrGetTypeIDOfTypeName(CR_NameScope& namescope, TypeName *tn) {
     return tid;
 }
 
-int CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
+CR_TypedValue CrCalcSizeOfTypeName(CR_NameScope& namescope, TypeName *tn) {
     assert(tn);
     CR_TypeID tid = CrAnalyseDeclSpecs(namescope, tn->m_decl_specs.get());
     if (tn->m_declor) {
         tid = CrAnalyseTypeNameDeclor(namescope, tid, tn->m_declor.get());
     }
-    return namescope.SizeOfType(tid);
+    return CrSize_tValue(namescope, namescope.SizeOfType(tid));
 }
 
 int CrCalcAlignOfTypeName(CR_NameScope& namescope, TypeName *tn) {
@@ -2396,6 +2364,9 @@ int CrCalcAlignOfTypeName(CR_NameScope& namescope, TypeName *tn) {
 }
 
 CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnUnaryExpr\n", ue->m_unary_type);
+    #endif
     CR_TypedValue ret;
     switch (ue->m_unary_type) {
     case UnaryExpr::SINGLE:
@@ -2438,38 +2409,26 @@ CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue) {
         break;
 
     case UnaryExpr::SIZEOF1:
-        {
-            size_t size = CrCalcSizeOfUnaryExpr(namescope, ue->m_unary_expr.get());
-            if (namescope.Is64Bit()) {
-                ret.m_type_id = namescope.m_ulong_long_type;
-                ret.assign<unsigned long long>(size);
-            } else {
-                ret.m_type_id = namescope.m_uint_type;
-                ret.assign<unsigned int>(static_cast<unsigned int>(size));
-            }
-        }
+        ret = CrCalcSizeOfUnaryExpr(namescope, ue->m_unary_expr.get());
         break;
 
     case UnaryExpr::SIZEOF2:
-        {
-            size_t size = CrCalcSizeOfTypeName(namescope, ue->m_type_name.get());
-            if (namescope.Is64Bit()) {
-                ret.m_type_id = namescope.m_ulong_long_type;
-                ret.assign<unsigned long long>(size);
-            } else {
-                ret.m_type_id = namescope.m_uint_type;
-                ret.assign<unsigned int>(static_cast<unsigned int>(size));
-            }
-        }
+        ret = CrCalcSizeOfTypeName(namescope, ue->m_type_name.get());
         break;
 
     default:
         assert(0);
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnUnaryExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnCastExpr(CR_NameScope& namescope, CastExpr *ce) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnCastExpr: %d\n", ce->m_cast_type);
+    #endif
     CR_TypedValue ret;
     switch (ce->m_cast_type) {
     case CastExpr::UNARY:
@@ -2494,10 +2453,16 @@ CR_TypedValue CrValueOnCastExpr(CR_NameScope& namescope, CastExpr *ce) {
     default:
         assert(0);
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnCastExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnMulExpr(CR_NameScope& namescope, MulExpr *me) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnMulExpr: %d\n", me->m_mul_type);
+    #endif
     CR_TypedValue n1, n2, ret;
     switch (me->m_mul_type) {
     case MulExpr::SINGLE:
@@ -2525,10 +2490,16 @@ CR_TypedValue CrValueOnMulExpr(CR_NameScope& namescope, MulExpr *me) {
     default:
         assert(0);
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnMulExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnAddExpr(CR_NameScope& namescope, AddExpr *ae) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnAddExpr: %d\n", ae->m_add_type);
+    #endif
     CR_TypedValue n1, n2, ret;
     switch (ae->m_add_type) {
     case AddExpr::SINGLE:
@@ -2550,10 +2521,16 @@ CR_TypedValue CrValueOnAddExpr(CR_NameScope& namescope, AddExpr *ae) {
     default:
         assert(0);
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnAddExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnShiftExpr(CR_NameScope& namescope, ShiftExpr *se) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnShiftExpr: %d\n", se->m_shift_type);
+    #endif
     CR_TypedValue n1, n2, ret;
     switch (se->m_shift_type) {
     case ShiftExpr::SINGLE:
@@ -2575,10 +2552,16 @@ CR_TypedValue CrValueOnShiftExpr(CR_NameScope& namescope, ShiftExpr *se) {
     default:
         assert(0);
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnShiftExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnRelExpr(CR_NameScope& namescope, RelExpr *re) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnRelExpr: %d\n", re->m_rel_type);
+    #endif
     CR_TypedValue n1, n2, ret;
     switch (re->m_rel_type) {
     case RelExpr::SINGLE:
@@ -2612,10 +2595,16 @@ CR_TypedValue CrValueOnRelExpr(CR_NameScope& namescope, RelExpr *re) {
     default:
         assert(0);
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnRelExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnEqualExpr(CR_NameScope& namescope, EqualExpr *ee) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnEqualExpr: %d\n", ee->m_equal_type);
+    #endif
     CR_TypedValue n1, n2, ret;
     switch (ee->m_equal_type) {
     case EqualExpr::SINGLE:
@@ -2637,10 +2626,16 @@ CR_TypedValue CrValueOnEqualExpr(CR_NameScope& namescope, EqualExpr *ee) {
     default:
         assert(0);
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnEqualExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnAndExpr(CR_NameScope& namescope, AndExpr *ae) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnAndExpr: %d\n", (int)ae->size());
+    #endif
     CR_TypedValue ret;
     if (ae->size() == 1) {
         ret = CrValueOnEqualExpr(namescope, (*ae)[0].get());
@@ -2651,25 +2646,36 @@ CR_TypedValue CrValueOnAndExpr(CR_NameScope& namescope, AndExpr *ae) {
                 ret, CrValueOnEqualExpr(namescope, (*ae)[i].get()));
         }
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnAndExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnExclOrExpr(CR_NameScope& namescope, ExclOrExpr *eoe) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnExclOrExpr: %d\n", (int)eoe->size());
+    #endif
     CR_TypedValue ret;
     if (eoe->size() == 1) {
         ret = CrValueOnAndExpr(namescope, (*eoe)[0].get());
     } else {
         namescope.IntZero(ret);
         for (auto& ae : *eoe) {
-            ret =
-                namescope.Xor(
-                    ret, CrValueOnAndExpr(namescope, ae.get()));
+            ret = namescope.Xor(
+                ret, CrValueOnAndExpr(namescope, ae.get()));
         }
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnExclOrExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnInclOrExpr: %d\n", (int)ioe->size());
+    #endif
     CR_TypedValue ret;
     if (ioe->size() == 1) {
         ret = CrValueOnExclOrExpr(namescope, (*ioe)[0].get());
@@ -2680,10 +2686,16 @@ CR_TypedValue CrValueOnInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
                 ret, CrValueOnExclOrExpr(namescope, eoe.get()));
         }
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnInclOrExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnLogAndExpr: %d\n", (int)lae->size());
+    #endif
     CR_TypedValue ret;
     if (lae->size() == 1) {
         ret = CrValueOnInclOrExpr(namescope, (*lae)[0].get());
@@ -2697,10 +2709,16 @@ CR_TypedValue CrValueOnLogAndExpr(CR_NameScope& namescope, LogAndExpr *lae) {
             }
         }
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnLogAndExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnLogOrExpr: %d\n", loe->size());
+    #endif
     CR_TypedValue ret;
     if (loe->size() == 1) {
         ret = CrValueOnLogAndExpr(namescope, (*loe)[0].get());
@@ -2713,96 +2731,114 @@ CR_TypedValue CrValueOnLogOrExpr(CR_NameScope& namescope, LogOrExpr *loe) {
             }
         }
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnLogOrExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnAssignExpr(CR_NameScope& namescope, AssignExpr *ae) {
-    CR_TypedValue n1, n2;
+    #ifdef DEEPDEBUG
+        printf("CrValueOnAssignExpr: %d\n", ae->m_assign_type);
+    #endif
+    CR_TypedValue ret, n1, n2;
     switch (ae->m_assign_type) {
     case AssignExpr::COND:
-        n1 = CrValueOnCondExpr(namescope, ae->m_cond_expr.get());
-        return n1;
+        ret = CrValueOnCondExpr(namescope, ae->m_cond_expr.get());
+        break;
 
-    case AssignExpr::SINGLE:
-        n1 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        return n1;
+    case AssignExpr::ASSIGN:
+        ret = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
+        break;
 
     case AssignExpr::MUL:
         n1 = CrValueOnUnaryExpr(namescope, ae->m_unary_expr.get());
         n2 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        n1 = namescope.Mul(n1, n2);
-        return n1;
+        ret = namescope.Mul(n1, n2);
+        break;
 
     case AssignExpr::DIV:
         n1 = CrValueOnUnaryExpr(namescope, ae->m_unary_expr.get());
         n2 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        n1 = namescope.Div(n1, n2);
-        return n1;
+        ret = namescope.Div(n1, n2);
+        break;
 
     case AssignExpr::MOD:
         n1 = CrValueOnUnaryExpr(namescope, ae->m_unary_expr.get());
         n2 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        n1 = namescope.Mod(n1, n2);
-        return n1;
+        ret = namescope.Mod(n1, n2);
+        break;
 
     case AssignExpr::ADD:
         n1 = CrValueOnUnaryExpr(namescope, ae->m_unary_expr.get());
         n2 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        n1 = namescope.Add(n1, n2);
-        return n1;
+        ret = namescope.Add(n1, n2);
+        break;
 
     case AssignExpr::SUB:
         n1 = CrValueOnUnaryExpr(namescope, ae->m_unary_expr.get());
         n2 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        n1 = namescope.Sub(n1, n2);
-        return n1;
+        ret = namescope.Sub(n1, n2);
+        break;
 
     case AssignExpr::L_SHIFT:
         n1 = CrValueOnUnaryExpr(namescope, ae->m_unary_expr.get());
         n2 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        n1 = namescope.Shl(n1, n2);
-        return n1;
+        ret = namescope.Shl(n1, n2);
+        break;
 
     case AssignExpr::R_SHIFT:
         n1 = CrValueOnUnaryExpr(namescope, ae->m_unary_expr.get());
         n2 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        n1 = namescope.Shr(n1, n2);
-        return n1;
+        ret = namescope.Shr(n1, n2);
+        break;
 
     case AssignExpr::AND:
         n1 = CrValueOnUnaryExpr(namescope, ae->m_unary_expr.get());
         n2 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        n1 = namescope.And(n1, n2);
-        return n1;
+        ret = namescope.And(n1, n2);
+        break;
 
     case AssignExpr::XOR:
         n1 = CrValueOnUnaryExpr(namescope, ae->m_unary_expr.get());
         n2 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        n1 = namescope.Xor(n1, n2);
-        return n1;
+        ret = namescope.Xor(n1, n2);
+        break;
 
     case AssignExpr::OR:
         n1 = CrValueOnUnaryExpr(namescope, ae->m_unary_expr.get());
         n2 = CrValueOnAssignExpr(namescope, ae->m_assign_expr.get());
-        n1 = namescope.Or(n1, n2);
-        return n1;
+        ret = namescope.Or(n1, n2);
+        break;
 
     default:
         assert(0);
     }
-    return 0;
+    #ifdef DEEPDEBUG
+        printf("CrValueOnAssignExpr: \"%s\"\n", ret.m_text.data());
+    #endif
+    return ret;
 }
 
 CR_TypedValue CrValueOnExpr(CR_NameScope& namescope, Expr *e) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnExpr: %d\n", (int)e->size());
+    #endif
     CR_TypedValue ret;
     namescope.IntZero(ret);
     for (auto& ae : *e) {
         ret = CrValueOnAssignExpr(namescope, ae.get());
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
 CR_TypedValue CrValueOnCondExpr(CR_NameScope& namescope, CondExpr *ce) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnCondExpr: %d\n", ce->m_cond_type);
+    #endif
     CR_TypedValue ret;
     switch (ce->m_cond_type) {
     case CondExpr::SINGLE:
@@ -2822,6 +2858,9 @@ CR_TypedValue CrValueOnCondExpr(CR_NameScope& namescope, CondExpr *ce) {
         assert(0);
         break;
     }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnCondExpr: \"%s\"\n", ret.m_text.data());
+    #endif
     return ret;
 }
 
@@ -3938,7 +3977,7 @@ void CrLexMacro(
         case '\'':
             {
                 auto text = CrGutsChar(it);
-                text = CrEscapeChar(text[0]);
+                text = CrEscapeChar(text);
                 nodes.emplace_back(cmacro::MT_CHARACTER, text);
             }
             break;
@@ -3950,7 +3989,7 @@ void CrLexMacro(
                 nodes.emplace_back(cmacro::MT_STRING, text);
             } else if (*it == '\'') {
                 auto text = CrGutsChar(it);
-                text = "L" + CrEscapeChar(text[0]);
+                text = "L" + CrEscapeChar(text);
                 nodes.emplace_back(cmacro::MT_CHARACTER, text);
             } else {
                 --it;
@@ -4042,6 +4081,16 @@ CrSubstituteMacro(
     std::vector<std::vector<cmacro::Node>> params)
 {
     std::vector<cmacro::Node> nodes;
+
+    if (macro_name == "defined" && params.size() == 1 && params[0].size() == 1) {
+        auto macro_it = macros.find(params[0][0].m_text);
+        if (macro_it != macros.end()) {
+            nodes.emplace_back(cmacro::MT_OTHER, "1");
+        } else {
+            nodes.emplace_back(cmacro::MT_OTHER, "0");
+        }
+        return nodes;
+    }
 
     // does a macro of the macro_name exist?
     auto macro_it = macros.find(macro_name);
@@ -4236,30 +4285,45 @@ CrExpandMacro(
                             new_nodes.emplace_back(*it);
                         } else {
                             std::string macro_name = it->m_text;
-                            auto macro_it = macros.find(it->m_text);
-                            if (macro_it != macros.end() && name != it->m_text) {
-                                if (macro_it->second.m_num_params >= 0) {
-                                    do {
-                                        ++it;
-                                    } while (it != end && it->m_token == cmacro::MT_SPACE);
-                                    if (it == end) {
-                                        goto label_break2;
-                                    }
-                                    if (it->m_token == cmacro::MT_L_PAREN) {
-                                        params.clear();
-                                        param.clear();
-                                        target_name = macro_name;
-                                        ++nesting;
-                                    }
-                                } else {
-                                    auto to_add =
-                                        CrSubstituteMacro(macros, it->m_text, {});
-                                    new_nodes.insert(new_nodes.end(),
-                                        to_add.begin(), to_add.end());
-                                    replaced = true;
+                            if (macro_name == "defined") {
+                                do {
+                                    ++it;
+                                } while (it != end && it->m_token == cmacro::MT_SPACE);
+                                if (it == end) {
+                                    goto label_break2;
+                                }
+                                if (it->m_token == cmacro::MT_L_PAREN) {
+                                    params.clear();
+                                    param.clear();
+                                    target_name = macro_name;
+                                    ++nesting;
                                 }
                             } else {
-                                new_nodes.emplace_back(*it);
+                                auto macro_it = macros.find(it->m_text);
+                                if (macro_it != macros.end() && name != it->m_text) {
+                                    if (macro_it->second.m_num_params >= 0) {
+                                        do {
+                                            ++it;
+                                        } while (it != end && it->m_token == cmacro::MT_SPACE);
+                                        if (it == end) {
+                                            goto label_break2;
+                                        }
+                                        if (it->m_token == cmacro::MT_L_PAREN) {
+                                            params.clear();
+                                            param.clear();
+                                            target_name = macro_name;
+                                            ++nesting;
+                                        }
+                                    } else {
+                                        auto to_add =
+                                            CrSubstituteMacro(macros, it->m_text, {});
+                                        new_nodes.insert(new_nodes.end(),
+                                            to_add.begin(), to_add.end());
+                                        replaced = true;
+                                    }
+                                } else {
+                                    new_nodes.emplace_back(*it);
+                                }
                             }
                         }
                     } else {
@@ -4340,11 +4404,11 @@ bool CrParseMacros(
     const std::string& prefix, const std::string& suffix,
     bool is_64bit = false)
 {
-    CR_MacroSet macro_set;
+    CR_MacroSet macros;
     CR_MacroSet checked;
 
     // load macros
-    if (!CrLoadMacros(namescope, macro_set, prefix, suffix, is_64bit)) {
+    if (!CrLoadMacros(namescope, macros, prefix, suffix, is_64bit)) {
         return false;
     }
 
@@ -4362,10 +4426,21 @@ bool CrParseMacros(
     auto error_info_saved = namescope.ErrorInfo();
     namescope.ErrorInfo() = make_shared<CR_ErrorInfo>();
 
-    auto end = macro_set.end();
-    for (auto it = macro_set.begin(); it != end; ++it) {
+    auto end = macros.end();
+    for (auto it = macros.begin(); it != end; ++it) {
         auto& name = it->first;
         auto& macro = it->second;
+
+        if (name == "_W64" ||
+            name.find("METHODIMP") != std::string::npos ||
+            name == "LPRASCTRYINFO" || name == "PDH_FUNCTION" ||
+            name == "RASCTRYINFOW" || name == "RASCTRYINFOA" ||
+            name == "LPRASCTRYINFOA" ||
+            name == "RPC_BAD_STUB_DATA_EXCEPTION_FILTER" ||
+            name == "INTERFACE")
+        {
+            continue;
+        }
 
         // skip function-like macros
         if (macro.m_num_params != -1) {
@@ -4373,9 +4448,9 @@ bool CrParseMacros(
         }
 
         // expand macro
-        auto expanded = CrExpandMacro(macro_set, name, macro.m_contents);
+        auto expanded = CrExpandMacro(macros, name, macro.m_contents);
         CrTrimString(expanded);
-        if (expanded.empty()) {
+        if (expanded.empty() || expanded == name) {
             continue;
         }
 
@@ -4390,6 +4465,8 @@ bool CrParseMacros(
             var.m_location = macro.m_location;
             if (namescope.HasValue(typed_value)) {
                 var.m_typed_value = typed_value;
+                var.m_typed_value.m_type_id = 
+                    namescope.MakeConst(typed_value.m_type_id);
 
                 // add macro as variable
                 auto vid = namescope.LogVars().insert(var);
@@ -4424,15 +4501,34 @@ bool CrParseMacros(
         auto& macro = it2->second;
 
         // expand macro
-        auto expanded = CrExpandMacro(macro_set, name, macro.m_contents);
+        auto expanded = CrExpandMacro(macros, name, macro.m_contents);
         CrTrimString(expanded);
         if (expanded.empty()) {
             continue;
         }
 
+        shared_ptr<Expr> expr;
         shared_ptr<TypeName> type_name;
-        if (parse_type(namescope.ErrorInfo(), type_name,
-                       expanded, type_names, namescope.Is64Bit()))
+        if (parse_expression(namescope.ErrorInfo(), expr, 
+                             expanded, type_names, namescope.Is64Bit()))
+        {
+            CR_LogVar var;
+            CR_TypedValue typed_value = CrValueOnExpr(namescope, expr.get());
+            var.m_location = macro.m_location;
+            if (namescope.HasValue(typed_value)) {
+                var.m_typed_value = typed_value;
+                var.m_typed_value.m_type_id =
+                    namescope.MakeConst(typed_value.m_type_id);
+
+                // add macro as variable
+                auto vid = namescope.LogVars().insert(var);
+                namescope.MapVarIDToName().emplace(vid, name);
+                if (name.size()) {
+                    namescope.MapNameToVarID().emplace(name, vid);
+                }
+            }
+        } else if (parse_type(namescope.ErrorInfo(), type_name,
+                              expanded, type_names, namescope.Is64Bit()))
         {
             // add type
             CR_TypeID tid;

@@ -512,8 +512,8 @@ logical_or_expression<LogOrExpr>
     ;
 
 logical_and_expression<LogAndExpr>
-    : [DoLogAnd1] inclusive_or_expression(0)
-    | [DoLogAnd2] logical_and_expression(0) T_L_AND inclusive_or_expression(1)
+    : [DoLogAndExpr1] inclusive_or_expression(0)
+    | [DoLogAndExpr2] logical_and_expression(0) T_L_AND inclusive_or_expression(1)
     ;
 
 inclusive_or_expression<InclOrExpr>
@@ -522,8 +522,8 @@ inclusive_or_expression<InclOrExpr>
     ;
 
 exclusive_or_expression<ExclOrExpr>
-    : [DoExclOr1] and_expression(0)
-    | [DoExclOr2] exclusive_or_expression(0) T_XOR and_expression(1)
+    : [DoExclOrExpr1] and_expression(0)
+    | [DoExclOrExpr2] exclusive_or_expression(0) T_XOR and_expression(1)
     ;
 
 and_expression<AndExpr>

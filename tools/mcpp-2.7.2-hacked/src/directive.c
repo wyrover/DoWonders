@@ -1585,17 +1585,15 @@ DEFBUF *    install_macro(
         replaced = str_replace(dp->repl, "\t", " ");
         replaced2 = str_replace(replaced, "\n", " ");
         replaced3 = str_replace(replaced2, "\r", " ");
-        replaced4 = str_replace(replaced3, "  ", " ");
-        replaced5 = do_macro_repl(nargs, params, replaced4);
+        replaced4 = do_macro_repl(nargs, params, replaced3);
         mcpp_fprintf( OUT, "%s\t%d\t%s\t%s\t%s\t%ld\n", dp->name, nargs,
-                      dp->parmnames, replaced5, dp->fname, dp->mline);
+                      dp->parmnames, replaced4, dp->fname, dp->mline);
 
         free_macro_params(nargs, params);
         free(replaced);
         free(replaced2);
         free(replaced3);
         free(replaced4);
-        free(replaced5);
     }
 
     return  dp;

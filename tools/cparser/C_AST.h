@@ -241,7 +241,7 @@ namespace cparser
 
     struct AssignExpr : Node {
         enum {
-            COND, SINGLE, MUL, DIV, MOD, ADD, SUB, 
+            COND, ASSIGN, MUL, DIV, MOD, ADD, SUB, 
             L_SHIFT, R_SHIFT, AND, XOR, OR
         } m_assign_type;
         shared_ptr<CondExpr>    m_cond_expr;

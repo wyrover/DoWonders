@@ -2250,7 +2250,7 @@ namespace cparser
                 printf("DoAssignExpr2\n");
             #endif
             AssignExpr *newae = new AssignExpr;
-            newae->m_assign_type = AssignExpr::SINGLE;
+            newae->m_assign_type = AssignExpr::ASSIGN;
             newae->m_unary_expr = ue;
             newae->m_assign_expr = ae;
             return shared_ptr<AssignExpr>(newae);
@@ -2438,20 +2438,20 @@ namespace cparser
             return loe;
         }
 
-        shared_ptr<LogAndExpr> DoLogAnd1(shared_ptr<InclOrExpr>& ioe) {
+        shared_ptr<LogAndExpr> DoLogAndExpr1(shared_ptr<InclOrExpr>& ioe) {
             #ifdef DEEPDEBUG
-                printf("DoLogAnd1\n");
+                printf("DoLogAndExpr1\n");
             #endif
             LogAndExpr *lae = new LogAndExpr;
             lae->push_back(ioe);
             return shared_ptr<LogAndExpr>(lae);
         }
 
-        shared_ptr<LogAndExpr> DoLogAnd2(
+        shared_ptr<LogAndExpr> DoLogAndExpr2(
             shared_ptr<LogAndExpr>& lae, shared_ptr<InclOrExpr>& ioe)
         {
             #ifdef DEEPDEBUG
-                printf("DoLogAnd2\n");
+                printf("DoLogAndExpr2\n");
             #endif
             lae->push_back(ioe);
             return lae;
@@ -2476,20 +2476,20 @@ namespace cparser
             return ioe;
         }
 
-        shared_ptr<ExclOrExpr> DoExclOr1(shared_ptr<AndExpr>& ae) {
+        shared_ptr<ExclOrExpr> DoExclOrExpr1(shared_ptr<AndExpr>& ae) {
             #ifdef DEEPDEBUG
-                printf("DoExclOr1\n");
+                printf("DoExclOrExpr1\n");
             #endif
             ExclOrExpr *eoe = new ExclOrExpr;
             eoe->push_back(ae);
             return shared_ptr<ExclOrExpr>(eoe);
         }
 
-        shared_ptr<ExclOrExpr> DoExclOr2(
+        shared_ptr<ExclOrExpr> DoExclOrExpr2(
             shared_ptr<ExclOrExpr>& eoe, shared_ptr<AndExpr>& ae)
         {
             #ifdef DEEPDEBUG
-                printf("DoExclOr2\n");
+                printf("DoExclOrExpr2\n");
             #endif
             eoe->push_back(ae);
             return eoe;
@@ -2535,7 +2535,7 @@ namespace cparser
             newee->m_equal_type = EqualExpr::EQUAL;
             newee->m_equal_expr = ee;
             newee->m_rel_expr = re;
-            return shared_ptr<EqualExpr>(ee);
+            return shared_ptr<EqualExpr>(newee);
         }
 
         shared_ptr<EqualExpr> DoEqualExpr3(
@@ -2548,7 +2548,7 @@ namespace cparser
             newee->m_equal_type = EqualExpr::NE;
             newee->m_equal_expr = ee;
             newee->m_rel_expr = re;
-            return shared_ptr<EqualExpr>(ee);
+            return shared_ptr<EqualExpr>(newee);
         }
 
         shared_ptr<RelExpr> DoRelExpr1(shared_ptr<ShiftExpr>& se) {

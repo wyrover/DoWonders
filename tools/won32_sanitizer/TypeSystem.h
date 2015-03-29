@@ -59,7 +59,7 @@ void CrChop(std::string& str);
 std::string CrEscapeString(const std::string& str);
 std::string CrUnescapeString(const std::string& str);
 
-std::string CrEscapeChar(char ch);
+std::string CrEscapeChar(const std::string& str);
 std::string CrUnescapeChar(const std::string& str);
 
 ////////////////////////////////////////////////////////////////////////////
@@ -92,6 +92,13 @@ typedef CR_DeqSet<CR_ID>        CR_IDSet;
 // a set of type id
 typedef CR_DeqSet<CR_TypeID>    CR_TypeSet;
 
+// invalid address
+#ifdef _WIN64
+    #define cr_invalid_address      0xDEADFACEDEADFACEULL
+#else
+    #define cr_invalid_address      0xDEADFACEUL
+#endif
+
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypedValue --- typed value
 
@@ -103,8 +110,10 @@ struct CR_TypedValue {
     std::string m_text;
     std::string m_extra;
 
-    CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(0) { }
-    CR_TypedValue(CR_TypeID tid) : m_ptr(NULL), m_size(0), m_type_id(tid), m_addr(0) { }
+    CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id),
+                      m_addr(cr_invalid_address) { }
+    CR_TypedValue(CR_TypeID tid) : m_ptr(NULL), m_size(0), m_type_id(tid),
+                                   m_addr(cr_invalid_address) { }
     CR_TypedValue(const void *ptr, size_t size);
     virtual ~CR_TypedValue();
 
@@ -460,6 +469,9 @@ public:
     CR_TypedValue Cast(CR_TypeID tid, const CR_TypedValue& value) const;
     CR_TypedValue StaticCast(CR_TypeID tid, const CR_TypedValue& value) const;
     CR_TypedValue ReinterpretCast(CR_TypeID tid, const CR_TypedValue& value) const;
+    CR_TypeID MakeSigned(CR_TypeID tid) const;
+    CR_TypeID MakeUnsigned(CR_TypeID tid) const;
+    CR_TypeID MakeConst(CR_TypeID tid) const;
 
     // array[index]
     CR_TypedValue ArrayItem(const CR_TypedValue& array, size_t index) const;
@@ -477,7 +489,17 @@ public:
 
     int GetIntValue(const CR_TypedValue& value) const;
     void SetIntValue(CR_TypedValue& value, int n) const;
-    void SetValue(CR_TypedValue& value, CR_TypeID tid, const void *ptr, size_t size) const;
+    void SetValue(CR_TypedValue& value, CR_TypeID tid, const void *ptr,
+                  size_t size) const;
+
+    CR_TypedValue FConstant(const std::string& text, const std::string& extra);
+    CR_TypedValue SConstant(const std::string& text, const std::string& extra);
+    CR_TypedValue IConstant(const std::string& text, const std::string& extra);
+
+    CR_TypedValue PConstant(CR_TypeID tid, const std::string& text, const std::string& extra);
+    CR_TypedValue FConstant(CR_TypeID tid, const std::string& text, const std::string& extra);
+    CR_TypedValue SConstant(CR_TypeID tid, const std::string& text, const std::string& extra);
+    CR_TypedValue IConstant(CR_TypeID tid, const std::string& text, const std::string& extra);
 
     CR_TypedValue BiOp(CR_TypedValue& v1, CR_TypedValue& v2) const;
     CR_TypedValue BiOpInt(CR_TypedValue& v1, CR_TypedValue& v2) const;
@@ -583,6 +605,10 @@ public:
     CR_TypeID AddConstLongDoubleType();
     CR_TypeID AddConstStringType();
     CR_TypeID AddConstWStringType();
+    CR_TypeID AddVoidPointerType();
+    CR_TypeID AddConstVoidPointerType();
+    CR_TypeID AddConstCharArray(size_t count);
+    CR_TypeID AddConstWCharArray(size_t count);
 
     bool HasValue(const CR_TypedValue& value) const;
 
@@ -775,6 +801,8 @@ public:
     CR_TypeID                           m_const_long_double_type;
     CR_TypeID                           m_const_string_type;
     CR_TypeID                           m_const_wstring_type;
+    CR_TypeID                           m_void_ptr_type;
+    CR_TypeID                           m_const_void_ptr_type;
 }; // class CR_NameScope
 
 #endif  // ndef TYPESYSTEM_H_

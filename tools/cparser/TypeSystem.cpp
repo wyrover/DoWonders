@@ -183,47 +183,50 @@ bool CrUnscapeString(std::string& ret, const std::string& str) {
     return is_valid;
 }
 
-std::string CrEscapeChar(char ch) {
+std::string CrEscapeChar(const std::string& str) {
     std::string ret;
     ret += '\'';
-    switch (ch) {
-    case '\'': case '\"': case '\?': case '\\':
-        ret += '\\';
-        ret += ch;
-        break;
-    case '\a':
-        ret += '\\';
-        ret += 'a';
-        break;
-    case '\b':
-        ret += '\\';
-        ret += 'b';
-        break;
-    case '\f':
-        ret += '\\';
-        ret += 'f';
-        break;
-    case '\r':
-        ret += '\\';
-        ret += 'r';
-        break;
-    case '\t':
-        ret += '\\';
-        ret += 't';
-        break;
-    case '\v':
-        ret += '\\';
-        ret += 'v';
-        break;
-    default:
-        if (ch < 0x20) {
-            int n = static_cast<int>(ch);
-            std::stringstream ss;
-            ss << "\\x" << std::hex <<
-                std::setfill('0') << std::setw(2) << n;
-            ret += ss.str();
-        } else {
+    for (size_t i = 0; i < str.size(); ++i) {
+        char ch = str[i];
+        switch (ch) {
+        case '\'': case '\"': case '\?': case '\\':
+            ret += '\\';
             ret += ch;
+            break;
+        case '\a':
+            ret += '\\';
+            ret += 'a';
+            break;
+        case '\b':
+            ret += '\\';
+            ret += 'b';
+            break;
+        case '\f':
+            ret += '\\';
+            ret += 'f';
+            break;
+        case '\r':
+            ret += '\\';
+            ret += 'r';
+            break;
+        case '\t':
+            ret += '\\';
+            ret += 't';
+            break;
+        case '\v':
+            ret += '\\';
+            ret += 'v';
+            break;
+        default:
+            if (ch < 0x20) {
+                int n = static_cast<int>(ch);
+                std::stringstream ss;
+                ss << "\\x" << std::hex <<
+                    std::setfill('0') << std::setw(2) << n;
+                ret += ss.str();
+            } else {
+                ret += ch;
+            }
         }
     }
     ret += '\'';
@@ -291,13 +294,13 @@ std::string CrUnescapeChar(const std::string& str) {
 // CR_TypedValue
 
 CR_TypedValue::CR_TypedValue(const void *ptr, size_t size) :
-    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(0)
+    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(cr_invalid_address)
 {
     assign(ptr, size);
 }
 
 CR_TypedValue::CR_TypedValue(const CR_TypedValue& value) :
-    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(0)
+    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(cr_invalid_address)
 {
     m_type_id = value.m_type_id;
     m_text = value.m_text;
@@ -470,7 +473,9 @@ CR_NameScope::CR_NameScope(const CR_NameScope& ns) :
     m_const_double_type(ns.m_const_double_type),
     m_const_long_double_type(ns.m_const_long_double_type),
     m_const_string_type(ns.m_const_string_type),
-    m_const_wstring_type(ns.m_const_wstring_type)
+    m_const_wstring_type(ns.m_const_wstring_type),
+    m_void_ptr_type(ns.m_void_ptr_type),
+    m_const_void_ptr_type(ns.m_const_void_ptr_type)
     { }
 
 CR_NameScope& CR_NameScope::operator=(const CR_NameScope& ns) {
@@ -515,6 +520,8 @@ CR_NameScope& CR_NameScope::operator=(const CR_NameScope& ns) {
     m_const_long_double_type = ns.m_const_long_double_type;
     m_const_string_type = ns.m_const_string_type;
     m_const_wstring_type = ns.m_const_wstring_type;
+    m_void_ptr_type = ns.m_void_ptr_type;
+    m_const_void_ptr_type = ns.m_const_void_ptr_type;
     return *this;
 }
 
@@ -571,6 +578,8 @@ void CR_NameScope::Init() {
     m_const_long_double_type = AddConstLongDoubleType();
     m_const_string_type = AddConstStringType();
     m_const_wstring_type = AddConstWStringType();
+    m_void_ptr_type = AddVoidPointerType();
+    m_const_void_ptr_type = AddConstVoidPointerType();
 }
 
 CR_TypeID CR_NameScope::AddAliasType(
@@ -647,7 +656,7 @@ CR_TypeID CR_NameScope::AddConstType(CR_TypeID tid) {
         return tid;
     }
     CR_LogType type1;
-    auto type2 = LogType(tid);
+    auto& type2 = LogType(tid);
     if (type2.m_flags & TF_INCOMPLETE) {
         type1.m_flags = TF_CONST | TF_INCOMPLETE;
     } else {
@@ -1775,6 +1784,44 @@ CR_TypeID CR_NameScope::AddConstWStringType() {
     return tid;
 }
 
+CR_TypeID CR_NameScope::AddVoidPointerType() {
+    CR_TypeID tid = 0;
+    auto& type = LogType(tid);
+    tid = AddPointerType(tid, 0, type.m_location);
+    return tid;
+}
+
+CR_TypeID CR_NameScope::AddConstVoidPointerType() {
+    CR_TypeID tid = 0;
+    auto& type = LogType(tid);
+    tid = AddConstType(tid);
+    tid = AddPointerType(tid, 0, type.m_location);
+    return tid;
+}
+
+CR_TypeID CR_NameScope::AddConstCharArray(size_t count) {
+    auto tid = m_char_type;
+    auto& type = LogType(tid);
+    tid = AddConstType(tid);
+    tid = AddArrayType(tid, static_cast<int>(count), type.m_location);
+    return tid;
+}
+
+CR_TypeID CR_NameScope::AddConstWCharArray(size_t count) {
+    CR_TypeID tid;
+    auto it = MapNameToTypeID().find("wchar_t");
+    if (it != MapNameToTypeID().end()) {
+        tid = it->second;
+    } else {
+        tid = AddAliasType("wchar_t", m_ushort_type,
+                           CR_Location("(predefined)", 0));
+    }
+    auto& type = LogType(tid);
+    tid = AddConstType(tid);
+    tid = AddArrayType(tid, static_cast<int>(count), type.m_location);
+    return tid;
+}
+
 CR_TypeID CR_NameScope::IsStringType(CR_TypeID tid) const {
     tid = ResolveAliasAndCV(tid);
     if (tid == cr_invalid_id) {
@@ -1898,10 +1945,18 @@ CR_TypedValue CR_NameScope::StaticCast(
         if (IsIntegralType(tid2)) {
             if (IsUnsignedType(tid2)) {
                 auto u2 = GetULongLongValue(value);
-                SetULongLongValue(ret, u2);
+                if (IsUnsignedType(tid)) {
+                    SetULongLongValue(ret, u2);
+                } else {
+                    SetLongLongValue(ret, u2);
+                }
             } else {
                 auto n2 = GetLongLongValue(value);
-                SetLongLongValue(ret, n2);
+                if (IsUnsignedType(tid)) {
+                    SetULongLongValue(ret, n2);
+                } else {
+                    SetLongLongValue(ret, n2);
+                }
             }
         } else if (IsFloatingType(tid2)) {
             auto ld2 = GetLongDoubleValue(value);
@@ -1953,19 +2008,31 @@ CR_TypedValue CR_NameScope::Cast(
         if (type1.m_size == type2.m_size) {
             ret = value;
             ret.m_type_id = tid;
+            if (!IsUnsignedType(tid) && ret.m_extra.size() &&
+                (ret.m_extra[0] == 'u' || ret.m_extra[0] == 'U'))
+            {
+                ret.m_extra = ret.m_extra.substr(1);
+            }
         } else if (IsPointerType(value.m_type_id)) {
             if (type1.m_size == sizeof(int)) {
                 ret = StaticCast(m_int_type, value);
+                ret.m_extra = "";
             } else if (type1.m_size == sizeof(char)) {
                 ret = StaticCast(m_char_type, value);
+                ret.m_extra = "i8";
             } else if (type1.m_size == sizeof(short)) {
                 ret = StaticCast(m_short_type, value);
+                ret.m_extra = "i16";
             } else if (type1.m_size == sizeof(long)) {
                 ret = StaticCast(m_long_type, value);
+                ret.m_extra = "L";
             } else if (type1.m_size == sizeof(long long)) {
                 ret = StaticCast(m_long_long_type, value);
+                ret.m_extra = "LL";
             }
             ret.m_type_id = tid;
+        } else {
+            return StaticCast(tid, value);
         }
     }
     return ret;
@@ -2001,7 +2068,11 @@ CR_NameScope::ArrayItem(const CR_TypedValue& array, size_t index) const {
         return ret;
     }
 
-    ret.m_addr = array.m_addr + index * item_type.m_size;
+    if (array.m_addr == cr_invalid_address) {
+        ret.m_addr = cr_invalid_address;
+    } else {
+        ret.m_addr = array.m_addr + index * item_type.m_size;
+    }
     const char *ptr = array.get_at<char>(
         index * item_type.m_size, item_type.m_size);
     if (ptr) {
@@ -2023,26 +2094,33 @@ CR_TypedValue CR_NameScope::Dot(
     auto& struct_type = LogType(tid);
     std::vector<CR_StructMember> children;
     GetStructMemberList(struct_type.m_sub_id, children);
-    if (children.size()) {
-        for (auto& child : children) {
-            if (child.m_name == name) {
-                if (child.m_bit_offset % bits_of_one_byte) {
-                    // bitfield not supported yet
-                    break;
-                }
-                ret.m_type_id = child.m_type_id;
-                ret.m_addr = struct_value.m_addr +
-                    child.m_bit_offset / bits_of_one_byte;
-                ret.m_size = SizeOfType(child.m_type_id);
-                const char *ptr =
-                    struct_value.get_at<char>(
-                    child.m_bit_offset / bits_of_one_byte, ret.m_size);
-                if (ptr) {
-                    SetValue(ret, child.m_type_id, ptr, ret.m_size);
-                }
+    bool is_set = false;
+    for (auto& child : children) {
+        if (child.m_name == name) {
+            if (child.m_bit_offset % bits_of_one_byte) {
+                // TODO: bitfield not supported yet
                 break;
             }
+            ret.m_type_id = child.m_type_id;
+            if (struct_value.m_addr == cr_invalid_address) {
+                ret.m_addr = cr_invalid_address;
+            } else {
+                ret.m_addr = struct_value.m_addr +
+                    child.m_bit_offset / bits_of_one_byte;
+            }
+            ret.m_size = SizeOfType(child.m_type_id);
+            const char *ptr =
+                struct_value.get_at<char>(
+                child.m_bit_offset / bits_of_one_byte, ret.m_size);
+            if (ptr) {
+                SetValue(ret, child.m_type_id, ptr, ret.m_size);
+            }
+            is_set = true;
+            break;
         }
+    }
+    if (!is_set) {
+        ret.m_type_id = cr_invalid_id;
     }
     return ret;
 }
@@ -2058,6 +2136,7 @@ CR_NameScope::Asterisk(const CR_TypedValue& pointer_value) const {
         if (HasValue(pointer_value)) {
             auto addr = GetULongLongValue(pointer_value);
             const void *ptr = GetAddressPointer(addr, type2.m_size);
+            ret.m_addr = addr;
             SetValue(ret, tid2, ptr, type2.m_size);
         } else {
             ret.m_type_id = tid2;
@@ -2070,13 +2149,17 @@ CR_NameScope::Asterisk(const CR_TypedValue& pointer_value) const {
 CR_TypedValue
 CR_NameScope::Address(const CR_TypedValue& value) const {
     CR_TypedValue ret;
-    if (Is64Bit()) {
-        ret.m_type_id = m_ulong_long_type;
-        ret.assign<unsigned long long>(value.m_addr);
-    } else {
-        ret.m_type_id = m_uint_type;
-        ret.assign<unsigned int>(
-            static_cast<unsigned int>(value.m_addr));
+    if (value.m_type_id != cr_invalid_id) {
+        ret.m_type_id = m_void_ptr_type;
+        if (value.m_addr != cr_invalid_address) {
+            if (Is64Bit()) {
+                ret.assign<unsigned long long>(value.m_addr);
+                ret.m_extra = "LL";
+            } else {
+                ret.assign<unsigned int>(
+                    static_cast<unsigned int>(value.m_addr));
+            }
+        }
     }
     return ret;
 }
@@ -2096,22 +2179,51 @@ void CR_NameScope::SetLongLongValue(CR_TypedValue& value, long long n) const {
     if (IsIntegralType(value.m_type_id) || IsPointerType(value.m_type_id)) {
         if (value.m_size == sizeof(int)) {
             value.assign<int>(static_cast<int>(n));
+            value.m_extra = "";
         } else if (value.m_size == sizeof(char)) {
             value.assign<char>(static_cast<char>(n));
+            value.m_extra = "i8";
         } else if (value.m_size == sizeof(short)) {
             value.assign<short>(static_cast<short>(n));
+            value.m_extra = "i16";
         } else if (value.m_size == sizeof(long)) {
             value.assign<long>(static_cast<long>(n));
+            value.m_extra = "L";
         } else if (value.m_size == sizeof(long long)) {
             value.assign<long long>(n);
+            value.m_extra = "LL";
         }
     } else if (IsFloatingType(value.m_type_id)) {
+        long double ld;
         if (value.m_size == sizeof(float)) {
+            ld = static_cast<float>(n);
             value.assign<float>(static_cast<float>(n));
+            value.m_extra = "F";
         } else if (value.m_size == sizeof(double)) {
+            ld = static_cast<double>(n);
             value.assign<double>(static_cast<double>(n));
+            value.m_extra = "";
         } else if (value.m_size == sizeof(long double)) {
+            ld = static_cast<long double>(n);
             value.assign<long double>(static_cast<long double>(n));
+            value.m_extra = "L";
+        }
+        if (std::isinf(ld)) {
+            if (ld > 0) {
+                value.m_text = "+INF";
+            } else {
+                value.m_text = "-INF";
+            }
+        } else if (std::isnan(ld)) {
+            if (ld > 0) {
+                value.m_text = "+NAN";
+            } else {
+                value.m_text = "-NAN";
+            }
+        } else {
+            char buf[512];
+            std::sprintf(buf, "%Lg", ld);
+            value.m_text = buf;
         }
     }
 }
@@ -2123,22 +2235,51 @@ void CR_NameScope::SetULongLongValue(CR_TypedValue& value, unsigned long long u)
     if (IsIntegralType(value.m_type_id) || IsPointerType(value.m_type_id)) {
         if (value.m_size == sizeof(int)) {
             value.assign<unsigned int>(static_cast<unsigned int>(u));
+            value.m_extra = "u";
         } else if (value.m_size == sizeof(char)) {
             value.assign<unsigned char>(static_cast<unsigned char>(u));
+            value.m_extra = "ui8";
         } else if (value.m_size == sizeof(short)) {
             value.assign<unsigned short>(static_cast<unsigned short>(u));
+            value.m_extra = "ui16";
         } else if (value.m_size == sizeof(long)) {
             value.assign<unsigned long>(static_cast<unsigned long>(u));
+            value.m_extra = "UL";
         } else if (value.m_size == sizeof(long long)) {
             value.assign<unsigned long long>(u);
+            value.m_extra = "ULL";
         }
     } else if (IsFloatingType(value.m_type_id)) {
+        long double ld;
         if (value.m_size == sizeof(float)) {
+            ld = static_cast<float>(u);
             value.assign<float>(static_cast<float>(u));
+            value.m_extra = "F";
         } else if (value.m_size == sizeof(double)) {
+            ld = static_cast<double>(u);
             value.assign<double>(static_cast<double>(u));
+            value.m_extra = "";
         } else if (value.m_size == sizeof(long double)) {
+            ld = static_cast<long double>(u);
             value.assign<long double>(static_cast<long double>(u));
+            value.m_extra = "L";
+        }
+        if (std::isinf(ld)) {
+            if (ld > 0) {
+                value.m_text = "+INF";
+            } else {
+                value.m_text = "-INF";
+            }
+        } else if (std::isnan(ld)) {
+            if (ld > 0) {
+                value.m_text = "+NAN";
+            } else {
+                value.m_text = "-NAN";
+            }
+        } else {
+            char buf[512];
+            std::sprintf(buf, "%Lg", ld);
+            value.m_text = buf;
         }
     }
 }
@@ -2149,23 +2290,48 @@ void CR_NameScope::SetLongDoubleValue(CR_TypedValue& value, long double ld) cons
     }
     if (IsIntegralType(value.m_type_id)) {
         if (value.m_size == sizeof(int)) {
-            value.assign<int>(static_cast<char>(ld));
+            value.assign<int>(static_cast<int>(ld));
+            value.m_extra = "";
         } else if (value.m_size == sizeof(char)) {
             value.assign<char>(static_cast<char>(ld));
+            value.m_extra = "i8";
         } else if (value.m_size == sizeof(short)) {
             value.assign<short>(static_cast<short>(ld));
+            value.m_extra = "i16";
         } else if (value.m_size == sizeof(long)) {
             value.assign<long>(static_cast<long>(ld));
+            value.m_extra = "i32";
         } else if (value.m_size == sizeof(long long)) {
             value.assign<long long>(static_cast<long long>(ld));
+            value.m_extra = "i64";
         }
     } else if (IsFloatingType(value.m_type_id)) {
         if (value.m_size == sizeof(float)) {
             value.assign<float>(static_cast<float>(ld));
+            value.m_extra = "F";
         } else if (value.m_size == sizeof(double)) {
             value.assign<double>(static_cast<double>(ld));
+            value.m_extra = "";
         } else if (value.m_size == sizeof(long double)) {
             value.assign<long double>(ld);
+            value.m_extra = "L";
+        }
+        if (std::isinf(ld)) {
+            if (ld > 0) {
+                value.m_text = "+INF";
+            } else {
+                value.m_text = "-INF";
+            }
+        } else if (std::isnan(ld)) {
+            if (ld > 0) {
+                value.m_text = "+NAN";
+            } else {
+                value.m_text = "-NAN";
+            }
+        } else {
+            char buf[512];
+            std::sprintf(buf, "%Lg", ld);
+            value.m_text = buf;
         }
     }
 }
@@ -2177,25 +2343,31 @@ void CR_NameScope::IntZero(CR_TypedValue& value1) const {
     value1.m_type_id = m_int_type;
     int n = 0;
     value1.assign<int>(n);
+    value1.m_extra = "";
 }
 
 void CR_NameScope::IntOne(CR_TypedValue& value1) const {
     value1.m_type_id = m_int_type;
     int n = 1;
     value1.assign<int>(n);
+    value1.m_extra = "";
 }
 
 bool CR_NameScope::IsZero(const CR_TypedValue& value1) const {
     if (!HasValue(value1)) {
         return false;
     }
-    const char *p = reinterpret_cast<const char *>(value1.m_ptr);
-    for (size_t i = 0; i < value1.m_size; ++i) {
-        if (*p) {
-            return false;
-        }
+    if (IsIntegralType(value1.m_type_id)) {
+        auto ull = GetULongLongValue(value1);
+        return ull == 0;
+    } else if (IsFloatingType(value1.m_type_id)) {
+        auto ld = GetLongDoubleValue(value1);
+        return ld == 0;
+    } else if (IsPointerType(value1.m_type_id)) {
+        auto ull = GetULongLongValue(value1);
+        return ull == 0;
     }
-    return true;
+    return false;
 }
 
 bool CR_NameScope::IsNonZero(const CR_TypedValue& value1) const {
@@ -2510,30 +2682,34 @@ CR_TypedValue
 CR_NameScope::Not(const CR_TypedValue& value1) const {
     CR_TypedValue ret = value1;
     if (IsIntegralType(ret.m_type_id) && HasValue(ret)) {
-        char *p = reinterpret_cast<char *>(ret.m_ptr);
-        for (size_t i = 0; i < ret.m_size; ++i) {
-            *p = ~*p;
+        if (IsUnsignedType(ret.m_type_id)) {
+            auto ull = GetULongLongValue(value1);
+            SetULongLongValue(ret, ~ull);
+        } else {
+            auto ll = GetLongLongValue(value1);
+            SetLongLongValue(ret, ~ll);
         }
     }
     return ret;
 }
 
 CR_TypedValue
-CR_NameScope::Minus(const CR_TypedValue& value1) const
-{
-    CR_TypedValue ret = value1;
-    if (HasValue(ret)) {
+CR_NameScope::Minus(const CR_TypedValue& value1) const {
+    CR_TypedValue ret;
+    ret.m_size = value1.m_size;
+    if (HasValue(value1)) {
         if (IsIntegralType(value1.m_type_id)) {
             if (IsUnsignedType(value1.m_type_id)) {
                 auto u = GetULongLongValue(value1);
-                SetULongLongValue(ret,
-                    static_cast<unsigned long long>(
-                        -static_cast<long long>(u)));
+                ret.m_type_id = MakeSigned(value1.m_type_id);
+                SetLongLongValue(ret, -static_cast<long long>(u));
             } else {
                 auto n = GetLongLongValue(value1);
+                ret.m_type_id = value1.m_type_id;
                 SetLongLongValue(ret, -n);
             }
         } else if (IsFloatingType(value1.m_type_id)) {
+            ret.m_type_id = value1.m_type_id;
             auto ld = GetLongDoubleValue(value1);
             SetLongDoubleValue(ret, -ld);
         }
@@ -2548,15 +2724,13 @@ CR_NameScope::And(const CR_TypedValue& value1,
     CR_TypedValue v1 = value1, v2 = value2;
     auto ret = BiOpInt(v1, v2);
     if (ret.m_type_id != cr_invalid_id) {
-        if (HasValue(ret)) {
-            if (IsIntegralType(ret.m_type_id)) {
-                auto n1 = GetLongLongValue(v1);
-                auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(ret.m_type_id)) {
-                    SetULongLongValue(ret, n1 & n2);
-                } else {
-                    SetLongLongValue(ret, n1 & n2);
-                }
+        if (IsIntegralType(ret.m_type_id)) {
+            auto n1 = GetLongLongValue(v1);
+            auto n2 = GetLongLongValue(v2);
+            if (IsUnsignedType(ret.m_type_id)) {
+                SetULongLongValue(ret, n1 & n2);
+            } else {
+                SetLongLongValue(ret, n1 & n2);
             }
         }
     }
@@ -2570,15 +2744,13 @@ CR_NameScope::Or(const CR_TypedValue& value1,
     CR_TypedValue v1 = value1, v2 = value2;
     auto ret = BiOpInt(v1, v2);
     if (ret.m_type_id != cr_invalid_id) {
-        if (HasValue(ret)) {
-            if (IsIntegralType(ret.m_type_id)) {
-                auto n1 = GetLongLongValue(v1);
-                auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(ret.m_type_id)) {
-                    SetULongLongValue(ret, n1 | n2);
-                } else {
-                    SetLongLongValue(ret, n1 | n2);
-                }
+        if (IsIntegralType(ret.m_type_id)) {
+            auto n1 = GetLongLongValue(v1);
+            auto n2 = GetLongLongValue(v2);
+            if (IsUnsignedType(ret.m_type_id)) {
+                SetULongLongValue(ret, n1 | n2);
+            } else {
+                SetLongLongValue(ret, n1 | n2);
             }
         }
     }
@@ -2592,15 +2764,13 @@ CR_NameScope::Xor(const CR_TypedValue& value1,
     CR_TypedValue v1 = value1, v2 = value2;
     auto ret = BiOpInt(v1, v2);
     if (ret.m_type_id != cr_invalid_id) {
-        if (HasValue(ret)) {
-            if (IsIntegralType(ret.m_type_id)) {
-                auto n1 = GetLongLongValue(v1);
-                auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(ret.m_type_id)) {
-                    SetULongLongValue(ret, n1 ^ n2);
-                } else {
-                    SetLongLongValue(ret, n1 ^ n2);
-                }
+        if (IsIntegralType(ret.m_type_id)) {
+            auto n1 = GetLongLongValue(v1);
+            auto n2 = GetLongLongValue(v2);
+            if (IsUnsignedType(ret.m_type_id)) {
+                SetULongLongValue(ret, n1 ^ n2);
+            } else {
+                SetLongLongValue(ret, n1 ^ n2);
             }
         }
     }
@@ -2612,6 +2782,9 @@ CR_NameScope::Eq(const CR_TypedValue& value1,
                  const CR_TypedValue& value2) const
 {
     CR_TypedValue ret;
+    if (!HasValue(value1) || !HasValue(value2)) {
+        return ret;
+    }
     int compare = CompareValue(value1, value2);
     if (compare == 0) {
         IntOne(ret);
@@ -2625,6 +2798,9 @@ CR_TypedValue
 CR_NameScope::Ne(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
     CR_TypedValue ret;
+    if (!HasValue(value1) || !HasValue(value2)) {
+        return ret;
+    }
     int compare = CompareValue(value1, value2);
     if (compare != 0) {
         IntOne(ret);
@@ -2638,6 +2814,9 @@ CR_TypedValue
 CR_NameScope::Gt(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
     CR_TypedValue ret;
+    if (!HasValue(value1) || !HasValue(value2)) {
+        return ret;
+    }
     int compare = CompareValue(value1, value2);
     if (compare > 0) {
         IntOne(ret);
@@ -2651,6 +2830,9 @@ CR_TypedValue
 CR_NameScope::Lt(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
     CR_TypedValue ret;
+    if (!HasValue(value1) || !HasValue(value2)) {
+        return ret;
+    }
     int compare = CompareValue(value1, value2);
     if (compare < 0) {
         IntOne(ret);
@@ -2664,6 +2846,9 @@ CR_TypedValue
 CR_NameScope::Ge(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
     CR_TypedValue ret;
+    if (!HasValue(value1) || !HasValue(value2)) {
+        return ret;
+    }
     int compare = CompareValue(value1, value2);
     if (compare >= 0) {
         IntOne(ret);
@@ -2677,6 +2862,9 @@ CR_TypedValue
 CR_NameScope::Le(const CR_TypedValue& value1, const CR_TypedValue& value2) const
 {
     CR_TypedValue ret;
+    if (!HasValue(value1) || !HasValue(value2)) {
+        return ret;
+    }
     int compare = CompareValue(value1, value2);
     if (compare <= 0) {
         IntOne(ret);
@@ -2692,15 +2880,17 @@ CR_NameScope::Shl(const CR_TypedValue& value1, const CR_TypedValue& value2) cons
     CR_TypedValue v1 = value1, v2 = value2;
     auto ret = BiOpInt(v1, v2);
     if (ret.m_type_id != cr_invalid_id) {
-        if (HasValue(ret)) {
-            if (IsIntegralType(ret.m_type_id)) {
+        if (IsIntegralType(ret.m_type_id)) {
+            if (IsUnsignedType(v1.m_type_id)) {
+                auto u1 = GetULongLongValue(v1);
+                auto n2 = GetLongLongValue(v2);
+                SetULongLongValue(ret, u1 << static_cast<int>(n2));
+                ret.m_type_id = MakeUnsigned(ret.m_type_id);
+            } else {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(ret.m_type_id)) {
-                    SetULongLongValue(ret, n1 << n2);
-                } else {
-                    SetLongLongValue(ret, n1 << n2);
-                }
+                SetLongLongValue(ret, n1 << static_cast<int>(n2));
+                ret.m_type_id = MakeSigned(ret.m_type_id);
             }
         }
     }
@@ -2713,15 +2903,17 @@ CR_NameScope::Shr(const CR_TypedValue& value1, const CR_TypedValue& value2) cons
     CR_TypedValue v1 = value1, v2 = value2;
     auto ret = BiOpInt(v1, v2);
     if (ret.m_type_id != cr_invalid_id) {
-        if (HasValue(ret)) {
-            if (IsIntegralType(ret.m_type_id)) {
+        if (IsIntegralType(ret.m_type_id)) {
+            if (IsUnsignedType(v1.m_type_id)) {
+                auto u1 = GetULongLongValue(v1);
+                auto n2 = GetLongLongValue(v2);
+                SetULongLongValue(ret, u1 >> static_cast<int>(n2));
+                ret.m_type_id = MakeUnsigned(ret.m_type_id);
+            } else {
                 auto n1 = GetLongLongValue(v1);
                 auto n2 = GetLongLongValue(v2);
-                if (IsUnsignedType(ret.m_type_id)) {
-                    SetULongLongValue(ret, n1 >> n2);
-                } else {
-                    SetLongLongValue(ret, n1 >> n2);
-                }
+                SetLongLongValue(ret, n1 >> static_cast<int>(n2));
+                ret.m_type_id = MakeSigned(ret.m_type_id);
             }
         }
     }
@@ -2779,7 +2971,7 @@ void CR_NameScope::SetIntValue(CR_TypedValue& value, int n) const {
 }
 
 bool CR_NameScope::HasValue(const CR_TypedValue& value) const {
-    if (value.m_ptr == NULL) {
+    if (value.m_ptr == NULL || value.m_type_id == cr_invalid_id) {
         return false;
     }
     auto& type = LogType(value.m_type_id);
@@ -2800,48 +2992,91 @@ void CR_NameScope::SetValue(
             if (size == sizeof(int)) {
                 value.assign<unsigned int>(
                     *reinterpret_cast<const unsigned int *>(ptr));
+                value.m_extra = "U";
             } else if (size == sizeof(char)) {
                 value.assign<unsigned char>(
                     *reinterpret_cast<const unsigned char *>(ptr));
+                value.m_extra = "ui8";
             } else if (size == sizeof(short)) {
                 value.assign<unsigned short>(
                     *reinterpret_cast<const unsigned short *>(ptr));
+                value.m_extra = "ui16";
             } else if (size == sizeof(long)) {
                 value.assign<unsigned long>(
                     *reinterpret_cast<const unsigned long *>(ptr));
+                value.m_extra = "UL";
             } else if (size == sizeof(long long)) {
                 value.assign<unsigned long long>(
                     *reinterpret_cast<const unsigned long long *>(ptr));
+                value.m_extra = "ULL";
             }
         } else {
             if (size == sizeof(int)) {
                 value.assign<int>(
                     *reinterpret_cast<const int *>(ptr));
+                value.m_extra = "";
             } else if (size == sizeof(char)) {
                 value.assign<char>(
                     *reinterpret_cast<const char *>(ptr));
+                value.m_extra = "i8";
             } else if (size == sizeof(short)) {
                 value.assign<short>(
                     *reinterpret_cast<const short *>(ptr));
+                value.m_extra = "i16";
             } else if (size == sizeof(long)) {
                 value.assign<long>(
                     *reinterpret_cast<const long *>(ptr));
+                value.m_extra = "L";
             } else if (size == sizeof(long long)) {
                 value.assign<long long>(
                     *reinterpret_cast<const long long *>(ptr));
+                value.m_extra = "LL";
             }
         }
     } else if (IsFloatingType(tid)){
+        long double ld;
         if (size == sizeof(float)) {
+            ld = *reinterpret_cast<const float *>(ptr);
             value.assign<float>(*reinterpret_cast<const float *>(ptr));
+            value.m_extra = "f";
         } else if (size == sizeof(double)) {
+            ld = *reinterpret_cast<const double *>(ptr);
             value.assign<double>(*reinterpret_cast<const double *>(ptr));
+            value.m_extra = "";
         } else if (size == sizeof(long double)) {
-            value.assign<long double>(*reinterpret_cast<const long double *>(ptr));
+            ld = *reinterpret_cast<const long double *>(ptr);
+            long double ld = *reinterpret_cast<const long double *>(ptr);
+            value.assign<long double>(ld);
+            value.m_extra = "L";
+        }
+        if (std::isinf(ld)) {
+            if (ld > 0) {
+                value.m_text = "+INF";
+            } else {
+                value.m_text = "-INF";
+            }
+        } else if (std::isnan(ld)) {
+            if (ld > 0) {
+                value.m_text = "+NAN";
+            } else {
+                value.m_text = "-NAN";
+            }
+        } else {
+            char buf[512];
+            std::sprintf(buf, "%Lg", ld);
+            value.m_text = buf;
         }
     } else if (IsPointerType(tid)) {
-        size_t n = reinterpret_cast<size_t>(ptr);
-        value.assign<size_t>(n);
+        auto& type = LogType(tid);
+        if (type.m_size == 8) {
+            auto n = reinterpret_cast<unsigned long long>(ptr);
+            value.assign<unsigned long long>(n);
+            value.m_extra = "LL";
+        } else if (type.m_size == 4) {
+            auto n = reinterpret_cast<unsigned int>(ptr);
+            value.assign<unsigned int>(n);
+            value.m_extra = "";
+        }
     } else {
         value.assign(ptr, size);
         value.m_text.clear();
@@ -2855,6 +3090,351 @@ void *CR_NameScope::GetAddressPointer(unsigned long long addr, size_t size) {
 const void *
 CR_NameScope::GetAddressPointer(unsigned long long addr, size_t size) const {
     return NULL;
+}
+
+CR_TypeID CR_NameScope::MakeSigned(CR_TypeID tid) const {
+    tid = ResolveAlias(tid);
+    if (IsIntegralType(tid)) {
+        auto& type = LogType(tid);
+        if (type.m_flags & TF_CONST) {
+            if (type.m_size == sizeof(int)) {
+                return m_const_int_type;
+            } else if (type.m_size == sizeof(char)) {
+                return m_const_char_type;
+            } else if (type.m_size == sizeof(short)) {
+                return m_const_short_type;
+            } else if (type.m_size == sizeof(long)) {
+                return m_const_long_type;
+            } else if (type.m_size == sizeof(long long)) {
+                return m_const_long_long_type;
+            }
+        } else {
+            if (type.m_size == sizeof(int)) {
+                return m_int_type;
+            } else if (type.m_size == sizeof(char)) {
+                return m_char_type;
+            } else if (type.m_size == sizeof(short)) {
+                return m_short_type;
+            } else if (type.m_size == sizeof(long)) {
+                return m_long_type;
+            } else if (type.m_size == sizeof(long long)) {
+                return m_long_long_type;
+            }
+        }
+    }
+    return cr_invalid_id;
+}
+
+CR_TypeID CR_NameScope::MakeConst(CR_TypeID tid) const {
+    if (tid == cr_invalid_id) {
+        return tid;
+    }
+    CR_LogType type1;
+    auto& type2 = LogType(tid);
+    if (type2.m_flags & TF_INCOMPLETE) {
+        type1.m_flags = TF_CONST | TF_INCOMPLETE;
+    } else {
+        type1.m_flags = TF_CONST;
+        type1.m_size = type2.m_size;
+        type1.m_align = type2.m_align;
+    }
+    if (type2.m_flags & TF_BITFIELD) {
+        type1.m_flags |= TF_BITFIELD;
+    }
+    type1.m_sub_id = tid;
+    size_t i = m_types.Find(type1);
+    if (i == cr_invalid_id) {
+        return tid;
+    }
+    return i;
+}
+
+CR_TypeID CR_NameScope::MakeUnsigned(CR_TypeID tid) const {
+    tid = ResolveAlias(tid);
+    if (IsIntegralType(tid)) {
+        auto& type = LogType(tid);
+        if (type.m_flags & TF_CONST) {
+            if (type.m_size == sizeof(int)) {
+                return m_const_uint_type;
+            } else if (type.m_size == sizeof(char)) {
+                return m_const_uchar_type;
+            } else if (type.m_size == sizeof(short)) {
+                return m_const_ushort_type;
+            } else if (type.m_size == sizeof(long)) {
+                return m_const_ulong_type;
+            } else if (type.m_size == sizeof(long long)) {
+                return m_const_ulong_long_type;
+            }
+        } else {
+            if (type.m_size == sizeof(int)) {
+                return m_uint_type;
+            } else if (type.m_size == sizeof(char)) {
+                return m_uchar_type;
+            } else if (type.m_size == sizeof(short)) {
+                return m_ushort_type;
+            } else if (type.m_size == sizeof(long)) {
+                return m_ulong_type;
+            } else if (type.m_size == sizeof(long long)) {
+                return m_ulong_long_type;
+            }
+        }
+    }
+    return cr_invalid_id;
+}
+
+CR_TypedValue
+CR_NameScope::PConstant(CR_TypeID tid, const std::string& text, const std::string& extra) {
+    CR_TypedValue ret;
+
+    ret.m_type_id = tid;
+    ret.m_extra = extra;
+
+    unsigned long long ull;
+    if (text[0] == '-') {
+        ull = std::strtoull(text.data() + 1, NULL, 0);
+        auto ll = -static_cast<long long>(ull);
+        ull = ll;
+    } else {
+        ull = std::stoull(text, NULL, 0);
+    }
+
+    auto& type = LogType(tid);
+    if (type.m_size == 8) {
+        ret.assign<unsigned long long>(ull);
+    } else if (type.m_size == 4) {
+        ret.assign<unsigned int>(static_cast<unsigned int>(ull));
+    }
+    return ret;
+}
+
+CR_TypedValue
+CR_NameScope::FConstant(const std::string& text, const std::string& extra) {
+    CR_TypedValue ret;
+
+    long double ld;
+
+    if (text == "INF" || text == "+INF") {
+        ld = +INFINITY;
+    } else if (text == "-INF") {
+        ld = -INFINITY;
+    } else if (text == "NAN" || text == "+NAN") {
+        ld = +NAN;
+    } else if (text == "-NAN") {
+        ld = +NAN;
+    } else {
+        try {
+            ld = std::stold(text, NULL);
+        } catch (std::out_of_range&) {
+            return ret;
+        }
+    }
+
+    ret.m_text = text;
+
+    if (extra.find('f') != std::string::npos ||
+        extra.find('F') != std::string::npos)
+    {
+        ret.m_type_id = m_float_type;
+        ret.assign<float>(static_cast<float>(ld));
+        ret.m_extra = "F";
+    } else if (extra.find('l') != std::string::npos ||
+               extra.find('L') != std::string::npos)
+    {
+        ret.m_type_id = m_long_double_type;
+        ret.assign<long double>(ld);
+        ret.m_extra = "L";
+    } else {
+        ret.m_type_id = m_double_type;
+        ret.assign<double>(static_cast<double>(ld));
+        ret.m_extra = "";
+    }
+    if (std::isinf(ld)) {
+        if (ld > 0) {
+            ret.m_text = "+INF";
+        } else {
+            ret.m_text = "-INF";
+        }
+    } else if (std::isnan(ld)) {
+        if (ld > 0) {
+            ret.m_text = "+NAN";
+        } else {
+            ret.m_text = "-NAN";
+        }
+    } else {
+        char buf[512];
+        std::sprintf(buf, "%Lg", ld);
+        ret.m_text = buf;
+    }
+    return ret;
+}
+
+CR_TypedValue
+CR_NameScope::FConstant(CR_TypeID tid, const std::string& text, const std::string& extra) {
+    CR_TypedValue ret = FConstant(text, extra);
+    ret = StaticCast(tid, ret);
+    if (ret.m_extra.empty()) {
+        if (ret.m_size == sizeof(float)) {
+            ret.m_extra += "f";
+        } else if (ret.m_size == sizeof(long double)) {
+            ret.m_extra += "L";
+        }
+    }
+    return ret;
+}
+
+CR_TypedValue
+CR_NameScope::SConstant(const std::string& text, const std::string& extra) {
+    CR_TypedValue ret;
+
+    ret.m_text = CrEscapeString(text);
+    ret.m_extra = extra;
+    if (extra.find("L") != std::string::npos ||
+        extra.find("l") != std::string::npos)
+    {
+        std::wstring wstr = MAnsiToWide(text.data()).data();
+        ret.m_type_id = AddConstWCharArray(wstr.size() + 1);
+        ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
+    } else {
+        ret.m_type_id = AddConstCharArray(text.size() + 1);
+        ret.assign(text.data(), text.size() + 1);
+    }
+    return ret;
+}
+
+CR_TypedValue
+CR_NameScope::SConstant(CR_TypeID tid, const std::string& text, const std::string& extra) {
+    CR_TypedValue ret;
+
+    ret.m_text = CrEscapeString(text);
+    ret.m_extra = extra;
+    ret.m_type_id = tid;
+    if (extra.find("L") != std::string::npos ||
+        extra.find("l") != std::string::npos)
+    {
+        std::wstring wstr = MAnsiToWide(text.data()).data();
+        ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
+    }
+    else {
+        ret.assign(text.data(), text.size() + 1);
+    }
+    return ret;
+}
+
+CR_TypedValue
+CR_NameScope::IConstant(const std::string& text, const std::string& extra) {
+    CR_TypedValue ret;
+    if (text.empty()) {
+        return ret;
+    }
+
+    ret.m_extra = extra;
+
+    bool minus = false;
+    unsigned long long ull;
+    long long ll;
+    if (text[0] == '-') {
+        ull = std::strtoull(text.data() + 1, NULL, 0);
+        ll = static_cast<long long>(ull);
+        ull = -ll;
+        minus = true;
+    } else {
+        ull = std::stoull(text, NULL, 0);
+    }
+
+    bool is_unsigned = false;
+    if (extra.find("U") != std::string::npos ||
+        extra.find("u") != std::string::npos)
+    {
+        is_unsigned = true;
+    }
+
+    if (extra.find("LL") != std::string::npos ||
+        extra.find("ll") != std::string::npos ||
+        extra.find("i64") != std::string::npos)
+    {
+        if (is_unsigned) {
+            ret.m_type_id = m_ulong_long_type;
+            ret.assign<unsigned long long>(ull);
+        } else {
+            ret.m_type_id = m_long_long_type;
+            ret.assign<long long>(ull);
+        }
+    } else if (extra.find('L') != std::string::npos ||
+               extra.find('l') != std::string::npos ||
+               extra.find("i32") != std::string::npos)
+    {
+        if (is_unsigned) {
+            ret.m_type_id = m_ulong_type;
+            ret.assign<unsigned long>(static_cast<unsigned long>(ull));
+        } else {
+            ret.m_type_id = m_long_type;
+            ret.assign<long>(static_cast<long>(ull));
+        }
+    } else if (extra.find("i16") != std::string::npos) {
+        if (is_unsigned) {
+            ret.m_type_id = m_ushort_type;
+            ret.assign<unsigned short>(static_cast<unsigned short>(ull));
+        } else {
+            ret.m_type_id = m_short_type;
+            ret.assign<short>(static_cast<short>(ull));
+        }
+    } else if (extra.find("i8") != std::string::npos) {
+        if (is_unsigned) {
+            ret.m_type_id = m_uchar_type;
+            ret.assign<unsigned char>(static_cast<unsigned char>(ull));
+        } else {
+            ret.m_type_id = m_char_type;
+            ret.assign<char>(static_cast<char>(ull));
+        }
+    } else {
+        if (is_unsigned) {
+            if (ull & 0xFFFFFFFF00000000) {
+                ret.m_type_id = m_ulong_long_type;
+                ret.assign<unsigned long long>(ull);
+                ret.m_extra = "ULL";
+            } else {
+                ret.m_type_id = m_uint_type;
+                ret.assign<unsigned int>(static_cast<unsigned int>(ull));
+                ret.m_extra = "U";
+            }
+        } else {
+            if (minus) {
+                if (ll & 0xFFFFFFFF00000000) {
+                    ret.m_type_id = m_ulong_long_type;
+                    ret.assign<long long>(ull);
+                    ret.m_extra = "LL";
+                } else {
+                    ret.m_type_id = m_uint_type;
+                    ret.assign<int>(static_cast<unsigned int>(ull));
+                }
+            } else {
+                ret.m_type_id = m_int_type;
+                ret.assign<int>(static_cast<int>(ull));
+            }
+        }
+    }
+    return ret;
+}
+
+CR_TypedValue
+CR_NameScope::IConstant(CR_TypeID tid, const std::string& text, const std::string& extra) {
+    CR_TypedValue ret = IConstant(text, extra);
+    ret = StaticCast(tid, ret);
+    if (ret.m_extra.empty()) {
+        if (IsUnsignedType(ret.m_type_id)) {
+            ret.m_extra += "u";
+        }
+        if (ret.m_size == 1) {
+            ret.m_extra += "i8";
+        } else if (ret.m_size == 2) {
+            ret.m_extra += "i16";
+        } else if (ret.m_size == 4) {
+            ret.m_extra += "i32";
+        } else if (ret.m_size == 8) {
+            ret.m_extra += "i64";
+        }
+    }
+    return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -3050,88 +3630,28 @@ bool CR_NameScope::LoadFromFiles(
             int lineno = std::stol(fields[7], NULL, 0);
 
             CR_LogVar var;
-            var.m_typed_value.m_type_id = type_id;
-            var.m_typed_value.m_text = text;
             if (text.size() && value_type == "i" && IsIntegralType(type_id)) {
-                bool is_unsigned = false;
-                if (extra.find("u") != std::string::npos ||
-                    extra.find("U") != std::string::npos)
-                {
-                    is_unsigned = true;
-                }
-                int sign = 1;
-                if (text.size() && text[0] == '-') {
-                    text = text.substr(1);
-                    sign = -1;
-                }
-                if (extra.find("ll") != std::string::npos ||
-                    extra.find("LL") != std::string::npos)
-                {
-                    if (is_unsigned) {
-                        var.m_typed_value.assign<unsigned long long>(
-                            sign * std::stoull(text, NULL, 0));
-                    } else {
-                        var.m_typed_value.assign<long long>(
-                            sign * std::stoull(text, NULL, 0));
-                    }
-                } else if (extra.find('l') != std::string::npos ||
-                           extra.find('L') != std::string::npos)
-                {
-                    if (is_unsigned) {
-                        var.m_typed_value.assign<unsigned long>(
-                            static_cast<unsigned long>(
-                                sign * std::stoull(text, NULL, 0)));
-                    } else {
-                        var.m_typed_value.assign<long>(
-                            static_cast<long>(
-                                sign * std::stoull(text, NULL, 0)));
-                    }
-                } else {
-                    if (is_unsigned) {
-                        var.m_typed_value.assign<unsigned int>(
-                            static_cast<unsigned int>(
-                                sign * std::stoull(text, NULL, 0)));
-                    } else {
-                        var.m_typed_value.assign<int>(
-                            static_cast<int>(
-                                sign * std::stoull(text, NULL, 0)));
-                    }
-                }
+                var.m_typed_value = IConstant(text, extra);
             } else if (text.size() && value_type == "f" && IsFloatingType(type_id)) {
-                if (extra.empty()) {
-                    var.m_typed_value.assign<double>(std::stod(text));
-                } else if (extra == "l" || extra == "L") {
-                    var.m_typed_value.assign<long double>(std::stold(text));
-                } else if (extra == "f" || extra == "F") {
-                    var.m_typed_value.assign<float>(std::stof(text));
-                }
+                var.m_typed_value = FConstant(text, extra);
             } else if (text.size() && value_type == "s" && IsStringType(type_id)) {
                 std::string unescaped;
                 if (CrUnscapeString(unescaped, text)) {
                     text = unescaped;
-                    var.m_typed_value.assign(text.data(), text.size() + 1);
-                    var.m_typed_value.m_text = text;
                 } else {
                     ErrorInfo()->add_error("invalid string: '" + text + "'");
                 }
+                var.m_typed_value = SConstant(type_id, text, extra);
             } else if (text.size() && value_type == "S" && IsWStringType(type_id)) {
                 std::string unescaped;
                 if (CrUnscapeString(unescaped, text)) {
-                    std::wstring wstr = MAnsiToWide(unescaped.data()).data();
-                    var.m_typed_value.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
-                    var.m_typed_value.m_text = text;
+                    text = unescaped;
                 } else {
                     ErrorInfo()->add_error("invalid string: '" + text + "'");
                 }
+                var.m_typed_value = SConstant(type_id, text, extra);
             } else if (text.size() && value_type == "p" && IsPointerType(type_id)) {
-                auto& type = LogType(type_id);
-                if (type.m_size == 8) {
-                    var.m_typed_value.assign<unsigned long long>(
-                        std::stoull(text, NULL, 0));
-                } else if (type.m_size == 4) {
-                    var.m_typed_value.assign<unsigned int>(
-                        static_cast<unsigned int >(std::stoull(text, NULL, 0)));
-                }
+                var.m_typed_value = PConstant(type_id, text, extra);
             }
             var.m_typed_value.m_extra = extra;
             var.m_location.set(file, lineno);
@@ -3359,7 +3879,12 @@ bool CR_NameScope::SaveToFiles(
                 } else if (IsWStringType(tid) && text[0] == '\"') {
                     value_type = "S";
                 } else if (IsPointerType(tid)) {
-                    value_type = "p";
+                    unsigned long long n = std::stoull(text, NULL, 0);
+                    if (n != cr_invalid_address) {
+                        value_type = "p";
+                    } else {
+                        text = "";
+                    }
                 }
             }
 
