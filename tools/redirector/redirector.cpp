@@ -31,7 +31,7 @@ int main(int argc, char **argv)
     if (argc < 4 ||
         lstrcmpiA(argv[1], "/?") == 0 || lstrcmpiA(argv[1], "--help") == 0)
     {
-        printf("Usage: redirector input_file output_file error_file program [parameters]");
+        printf("Usage: redirector input_file output_file error_file program [parameters]\n");
         return 0;
     }
 

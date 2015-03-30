@@ -12,14 +12,14 @@ if not exist %WON32_SANITIZER% goto label_no_sanitizer
 if ERRORLEVEL 1 goto error
 %REDIRECTOR% nul sanitize-cl-32-a.log sanitize-cl-32-a.log %CC% -DMBCS -D_MBCS -D_MT=1 -D_MSC_VER=1700 sanitize-cl-32-a.c
 if ERRORLEVEL 1 goto error
-sanitize-cl-32-a.exe
+sanitize-cl-32-a.exe >> sanitize-cl-32-a.log
 if ERRORLEVEL 1 goto error
 
 %WON32_SANITIZER% --suffix -cl-32-w.dat
 if ERRORLEVEL 1 goto error
 %REDIRECTOR% nul sanitize-cl-32-w.log sanitize-cl-32-w.log %CC% -DUNICODE -D_UNICODE -D_MT=1 -D_MSC_VER=1700 sanitize-cl-32-w.c
 if ERRORLEVEL 1 goto error
-sanitize-cl-32-w.exe
+sanitize-cl-32-w.exe >> sanitize-cl-32-w.log
 if ERRORLEVEL 1 goto error
 
 exit /b 0

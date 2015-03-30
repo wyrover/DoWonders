@@ -3550,7 +3550,7 @@ bool CR_NameScope::LoadFromFiles(
             std::vector<std::string> fields;
             katahiromz::splitbychar(fields, line, '\t');
 
-            if (fields.size() != 11) {
+            if (fields.size() != 12) {
                 std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
                 return false;
             }
@@ -3563,9 +3563,10 @@ bool CR_NameScope::LoadFromFiles(
             int size = std::stol(fields[5], NULL, 0);
             int align = std::stol(fields[6], NULL, 0);
             int alignas_ = std::stol(fields[7], NULL, 0);
-            bool alignas_explicit = !!std::stol(fields[8], NULL, 0);
-            std::string file = fields[9];
-            int lineno = std::stol(fields[10], NULL, 0);
+			bool alignas_explicit = !!std::stol(fields[8], NULL, 0);
+			bool is_macro = !!std::stol(fields[9], NULL, 0);
+			std::string file = fields[10];
+            int lineno = std::stol(fields[11], NULL, 0);
 
             if (name.size()) {
                 MapNameToTypeID()[name] = type_id;
@@ -3581,6 +3582,7 @@ bool CR_NameScope::LoadFromFiles(
             type.m_alignas = alignas_;
             type.m_alignas_explicit = alignas_explicit;
             type.m_location.set(file, lineno);
+			type.m_is_macro = is_macro;
             m_types.emplace_back(type);
         }
     } else {
@@ -3608,7 +3610,7 @@ bool CR_NameScope::LoadFromFiles(
             std::vector<std::string> fields;
             katahiromz::splitbychar(fields, line, '\t');
 
-            if (fields.size() < 14) {
+            if (fields.size() < 13) {
                 std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
                 return false;
             }
@@ -3624,11 +3626,10 @@ bool CR_NameScope::LoadFromFiles(
             int align = std::stol(fields[8], NULL, 0);
             int alignas_ = std::stol(fields[9], NULL, 0);
             bool alignas_explicit = !!std::stol(fields[10], NULL, 0);
-            bool is_macro = !!std::stol(fields[11], NULL, 0);
-            //std::string file = fields[12];
-            //int lineno = std::stol(fields[13], NULL, 0);
+            //std::string file = fields[11];
+            //int lineno = std::stol(fields[12], NULL, 0);
 
-            if (fields.size() != 14 + 4 * count) {
+            if (fields.size() != 13 + 4 * count) {
                 std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
                 return false;
             }
@@ -3640,7 +3641,6 @@ bool CR_NameScope::LoadFromFiles(
             ls.m_align = align;
             ls.m_alignas = alignas_;
             ls.m_alignas_explicit = alignas_explicit;
-            ls.m_is_macro = is_macro;
             ls.m_is_complete = !(flags & TF_INCOMPLETE);
 
             for (int i = 0; i < count; ++i) {
