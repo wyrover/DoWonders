@@ -110,16 +110,17 @@ std::string CrGutsEscapeSequence(const char *& it) {
     switch (*it) {
     case '\'': case '\"': case '?': case '\\':
         ret += *it;
+        ++it;
         break;
 
     //case '0': ret += '\0'; break;
-    case 'a': ret += '\a'; break;
-    case 'b': ret += '\b'; break;
-    case 'f': ret += '\f'; break;
-    case 'n': ret += '\n'; break;
-    case 'r': ret += '\r'; break;
-    case 't': ret += '\t'; break;
-    case 'v': ret += '\v'; break;
+    case 'a': ret += '\a'; ++it; break;
+    case 'b': ret += '\b'; ++it; break;
+    case 'f': ret += '\f'; ++it; break;
+    case 'n': ret += '\n'; ++it; break;
+    case 'r': ret += '\r'; ++it; break;
+    case 't': ret += '\t'; ++it; break;
+    case 'v': ret += '\v'; ++it; break;
 
     case 'x':
         {
@@ -150,6 +151,7 @@ std::string CrGutsEscapeSequence(const char *& it) {
             ret += static_cast<char>(value);
         } else {
             ret += *it;
+            ++it;
         }
     }
     return ret;
@@ -158,13 +160,14 @@ std::string CrGutsEscapeSequence(const char *& it) {
 std::string CrGutsString(const char *& it) {
     std::string ret;
     assert(*it && *it == '\"');
-    for (++it; *it; ++it) {
+    for (++it; *it; ) {
         switch (*it) {
         case '\"':
             ++it;
             if (*it) {
                 if (*it == '\"') {
                     ret += '\"';
+                    ++it;
                 } else {
                     return ret;
                 }
@@ -195,6 +198,7 @@ std::string CrGutsString(const char *& it) {
                 }
             } else {
                 ret += *it;
+                ++it;
             }
         }
     }
@@ -1900,6 +1904,30 @@ CR_TypedValue CrSize_tValue(CR_NameScope& namescope, unsigned long long n = 0) {
     return ret;
 }
 
+CR_TypedValue
+CrValueOnIniter(CR_NameScope& namescope, Initer *initer) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnIniter: %d\n", initer->m_initer_type);
+    #endif
+    CR_TypedValue ret;
+    switch (initer->m_initer_type) {
+    case Initer::SIMPLE:
+        ret = CrValueOnAssignExpr(namescope, initer->m_assign_expr.get());
+        break;
+
+    case Initer::COMPLEX:
+        // TODO: complex initer
+        break;
+
+    default:
+        assert(0);
+    }
+    #ifdef DEEPDEBUG
+        printf("CrValueOnIniter: \"%s\"\n", ret.m_text.data());
+    #endif
+    return ret;
+}
+
 CR_TypedValue CrCalcSizeOfTypedValue(CR_NameScope& namescope, const CR_TypedValue& ret) {
     size_t n = namescope.SizeOfType(ret.m_type_id);
     return CrSize_tValue(namescope, n);
@@ -3112,6 +3140,7 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                          DeclorList *dl)
 {
     assert(dl);
+	CR_TypedValue value;
     for (auto& declor : *dl) {
         CR_TypeID tid2 = tid;
 
@@ -3126,7 +3155,11 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
             case Declor::IDENTIFIER:
                 if (d->m_flags && namescope.IsFuncType(tid2))
                     namescope.AddTypeFlags(tid2, d->m_flags);
-                namescope.AddVar(d->m_name, tid2, d->m_location);
+				if (namescope.HasValue(value)) {
+					namescope.AddVar(d->m_name, tid2, d->m_location, value);
+				} else {
+					namescope.AddVar(d->m_name, tid2, d->m_location);
+				}
                 #ifdef DEEPDEBUG
                     printf("#%s\n", namescope.StringOfType(tid2, d->m_name).data());
                 #endif
@@ -3139,7 +3172,10 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     auto ac = (*pointers)[0];
                     namescope.AddTypeFlags(tid2, ac->m_flags);
                 }
-                tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, d->m_location);
+				if (d->m_initer.get()) {
+					value = CrValueOnIniter(namescope, d->m_initer.get());
+				}
+				tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, d->m_location);
                 d = d->m_declor.get();
                 break;
 
@@ -3151,6 +3187,14 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 } else {
                     int_value = 0;
                 }
+				if (d->m_initer.get()) {
+					value = CrValueOnIniter(namescope, d->m_initer.get());
+					if (value.m_extra == "L") {
+						int_value = value.m_size / 2;
+					} else {
+						int_value = value.m_size;
+					}
+				}
                 tid2 = namescope.AddArrayType(tid2, int_value, d->m_location);
                 d = d->m_declor.get();
                 continue;

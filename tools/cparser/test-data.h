@@ -30,3 +30,6 @@ int lstrlenW(const unsigned short *str);
 
 #define INFINITY   ((float)(_HUGE_ENUF * _HUGE_ENUF))  /* causes warning C4756: overflow in constant arithmetic (by design) */
 #define NAN        ((float)(INFINITY * 0.0F))
+
+static const unsigned short c_szMiracast[] = L"Miracast";
+static const unsigned short c_szzWiFiDirectServices[] = L"Miracast\0";

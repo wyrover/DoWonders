@@ -408,6 +408,9 @@ public:
                     const CR_Location& location);
     // add a variable
     CR_VarID AddVar(const std::string& name, CR_TypeID tid,
+                    const CR_Location& location, const CR_TypedValue& value);
+    // add a variable
+    CR_VarID AddVar(const std::string& name, CR_TypeID tid,
                     int value, const CR_Location& location);
 
     // add a variable

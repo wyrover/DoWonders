@@ -666,6 +666,24 @@ CR_VarID CR_NameScope::AddVar(
 }
 
 CR_VarID CR_NameScope::AddVar(
+    const std::string& name, CR_TypeID tid,
+    const CR_Location& location, const CR_TypedValue& value)
+{
+    if (tid == cr_invalid_id) {
+        return cr_invalid_id;
+    }
+    CR_LogVar var;
+    var.m_typed_value = value;
+    var.m_location = location;
+    auto vid = m_vars.insert(var);
+    m_mVarIDToName.emplace(vid, name);
+    if (name.size()) {
+        m_mNameToVarID.emplace(name, vid);
+    }
+    return vid;
+}
+
+CR_VarID CR_NameScope::AddVar(
     const std::string& name, CR_TypeID tid, int value,
     const CR_Location& location)
 {
@@ -3595,7 +3613,7 @@ bool CR_NameScope::LoadFromFiles(
     std::ifstream in2(fname);
     if (in2) {
         // version check
-        std::getline(in1, line);
+        std::getline(in2, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
             std::cerr << "ERROR: File '" << fname <<
@@ -3603,7 +3621,7 @@ bool CR_NameScope::LoadFromFiles(
             return false;
         }
         // skip header
-        std::getline(in1, line);
+        std::getline(in2, line);
         // load body
         for (; std::getline(in2, line);) {
             CrChop(line);
@@ -3663,7 +3681,7 @@ bool CR_NameScope::LoadFromFiles(
     std::ifstream in3(fname);
     if (in3) {
         // version check
-        std::getline(in1, line);
+        std::getline(in3, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
             std::cerr << "ERROR: File '" << fname <<
@@ -3671,7 +3689,7 @@ bool CR_NameScope::LoadFromFiles(
             return false;
         }
         // skip header
-        std::getline(in1, line);
+        std::getline(in3, line);
         // load body
         for (; std::getline(in3, line);) {
             CrChop(line);
@@ -3711,7 +3729,7 @@ bool CR_NameScope::LoadFromFiles(
     std::ifstream in4(fname);
     if (in4) {
         // version check
-        std::getline(in1, line);
+        std::getline(in4, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
             std::cerr << "ERROR: File '" << fname <<
@@ -3719,7 +3737,7 @@ bool CR_NameScope::LoadFromFiles(
             return false;
         }
         // skip header
-        std::getline(in1, line);
+        std::getline(in4, line);
         // load body
         for (; std::getline(in4, line);) {
             CrChop(line);
@@ -3770,7 +3788,7 @@ bool CR_NameScope::LoadFromFiles(
     std::ifstream in5(fname);
     if (in5) {
         // version check
-        std::getline(in1, line);
+        std::getline(in5, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
             std::cerr << "ERROR: File '" << fname <<
@@ -3778,7 +3796,7 @@ bool CR_NameScope::LoadFromFiles(
             return false;
         }
         // skip header
-        std::getline(in1, line);
+        std::getline(in5, line);
         // load body
         for (; std::getline(in5, line);) {
             CrChop(line);
@@ -3844,7 +3862,7 @@ bool CR_NameScope::LoadFromFiles(
     std::ifstream in6(fname);
     if (in6) {
         // version check
-        std::getline(in1, line);
+        std::getline(in6, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
             std::cerr << "ERROR: File '" << fname <<
@@ -3852,7 +3870,7 @@ bool CR_NameScope::LoadFromFiles(
             return false;
         }
         // skip header
-        std::getline(in1, line);
+        std::getline(in6, line);
         // load body
         for (; std::getline(in6, line);) {
             CrChop(line);
