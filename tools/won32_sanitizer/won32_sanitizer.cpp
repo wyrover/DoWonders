@@ -60,21 +60,15 @@ bool WsJustDoIt(
         "#include \"win32.h\"\n" << 
         "#include <stdio.h>\n" << 
         "\n" << 
-        "/* fixup */\n" <<
-        "#undef RASCTRYINFO\n" <<
-        "#undef RASIPADDR\n" <<
-        "#undef PROCESSENTRY32\n" << 
-        "#undef MODULEENTRY32\n" << 
-        "\n" << 
-        "static const char fcs[] = \"%s: size mismatched, real size is %d\\n\"\n" << 
-        "static const char fcv[] = \"%s: value mismatched, real value is %lld\\n\"\n" << 
-        "static const char fca[] = \"%s: alignment mismatched, real value is %d\\n\"\n" << 
-        "static const char fcs[] = \"%s: value mismatched, real value is %s\\n\"\n" <<
-        "static const char fcw[] = \"%ls: value mismatched, real value is %ls\\n\"\n" <<
+        "static const char fcsz[] = \"%s: size mismatched, real size is %d\\n\";\n" << 
+        "static const char fcv[] = \"%s: value mismatched, real value is %lld\\n\";\n" << 
+        "static const char fca[] = \"%s: alignment mismatched, real value is %d\\n\";\n" << 
+        "static const char fcs[] = \"%s: value mismatched, real value is %s\\n\";\n" <<
+        "static const char fcws[] = \"%ls: value mismatched, real value is %ls\\n\";\n" <<
         "\n" << 
         "#define check_size(name,size) do { \\\n" << 
         "\tif (sizeof(name) != (size)) { \\\n" << 
-        "\t\tprintf(fcs, #name, (int)sizeof(name)); \\\n" << 
+        "\t\tprintf(fcsz, #name, (int)sizeof(name)); \\\n" << 
         "\t\treturn 1; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
@@ -102,7 +96,7 @@ bool WsJustDoIt(
         "\n" <<
         "#define check_wstring(name,wstring) do { \\\n" << 
         "\tif (lstrcmpW(name, wstring) != 0) { \\\n" << 
-        "\t\tprintf(fcw, #name, name); \\\n" << 
+        "\t\tprintf(fcws, #name, name); \\\n" << 
         "\t\treturn 5; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
@@ -158,8 +152,13 @@ bool WsJustDoIt(
 
         auto type_id = value.m_type_id;
         if (ns.IsIntegralType(type_id)) {
-            out << "\tcheck_value(" << name << ", " <<
-                value.m_text << value.m_extra << ");" << std::endl;
+            if (value.m_extra == "i8" || value.m_extra == "i16") {
+                out << "\tcheck_value(" << name << ", " <<
+                    value.m_text << ");" << std::endl;
+            } else {
+                out << "\tcheck_value(" << name << ", " <<
+                    value.m_text << value.m_extra << ");" << std::endl;
+            }
         } else if (ns.IsFloatingType(type_id)) {
             auto text = value.m_text;
             if (text == "INF" || text == "+INF") {
@@ -167,9 +166,11 @@ bool WsJustDoIt(
             } else if (text == "-INF") {
                 out << "\tcheck_value(" << name << ", -INFINITY);" << std::endl;
             } else if (text == "NAN" || text == "+NAN") {
-                out << "\tcheck_value(" << name << ", +NAN);" << std::endl;
+                // NAN is incomparable
+                ;
             } else if (text == "-NAN") {
-                out << "\tcheck_value(" << name << ", -NAN);" << std::endl;
+                // NAN is incomparable
+                ;
             } else {
                 if (text.find(".") == std::string::npos &&
                     text.find("e") == std::string::npos &&

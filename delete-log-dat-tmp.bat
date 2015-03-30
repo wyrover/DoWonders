@@ -27,3 +27,7 @@ if exist WondersVista\*.tmp del WondersVista\*.tmp
 if exist Wonders7\*.dat del Wonders7\*.dat
 if exist Wonders7\*.log del Wonders7\*.log
 if exist Wonders7\*.tmp del Wonders7\*.tmp
+
+if exist Wonders8.1\*.dat del Wonders8.1\*.dat
+if exist Wonders8.1\*.log del Wonders8.1\*.log
+if exist Wonders8.1\*.tmp del Wonders8.1\*.tmp

@@ -13,6 +13,7 @@ SUBDIRS = \
 	WondersXP \
 	WondersVista \
 	Wonders7 \
+	Wonders8.1 \
 
 all: macros types dllexp
 

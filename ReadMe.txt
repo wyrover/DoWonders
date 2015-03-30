@@ -45,7 +45,7 @@ Now I have implemented "typed values" and I am sanitizing API Database.
 
 NOTE: We couldn't sanitize database on GCC, because GCC and MinGW contains 
       specific bugs and differences from Visual C++. We just trust Visual 
-      C++'s behavior. See GCC-BUGS.txt about GCC's bugs.
+      C++'s behavior. See file "GCC-BUGS.txt" about GCC's bugs.
 
 +-----+
 |TO DO|

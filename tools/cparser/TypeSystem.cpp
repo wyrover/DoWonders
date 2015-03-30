@@ -1917,14 +1917,56 @@ long double CR_NameScope::GetLongDoubleValue(const CR_TypedValue& value) const {
     if (type.m_size != static_cast<int>(value.m_size)) {
         return 0;
     }
-    if (type.m_size == sizeof(float)) {
-        ret = value.get<float>();
-    } else if (type.m_size == sizeof(double)) {
-        ret = value.get<double>();
-    } else if (type.m_size == sizeof(long double)) {
-        ret = value.get<long double>();
-    } else {
-        assert(0);
+    if (IsFloatingType(value.m_type_id)) {
+        if (type.m_size == sizeof(float)) {
+            ret = value.get<float>();
+        } else if (type.m_size == sizeof(double)) {
+            ret = value.get<double>();
+        } else if (type.m_size == sizeof(long double)) {
+            ret = value.get<long double>();
+        } else {
+            assert(0);
+        }
+    } else if (IsIntegralType(value.m_type_id)) {
+        if (IsUnsignedType(value.m_type_id)) {
+            if (type.m_size == sizeof(unsigned int)) {
+                ret = value.get<unsigned int>();
+            } else if (type.m_size == sizeof(unsigned char)) {
+                ret = value.get<unsigned char>();
+            } else if (type.m_size == sizeof(unsigned short)) {
+                ret = value.get<unsigned short>();
+            } else if (type.m_size == sizeof(unsigned long)) {
+                ret = value.get<unsigned long>();
+            } else if (type.m_size == sizeof(unsigned long long)) {
+                ret = static_cast<long double>(
+                    value.get<unsigned long long>()
+                );
+            }
+        } else {
+            if (type.m_size == sizeof(int)) {
+                ret = value.get<int>();
+            } else if (type.m_size == sizeof(char)) {
+                ret = value.get<char>();
+            } else if (type.m_size == sizeof(short)) {
+                ret = value.get<short>();
+            } else if (type.m_size == sizeof(long)) {
+                ret = value.get<long>();
+            } else if (type.m_size == sizeof(long long)) {
+                ret = static_cast<long double>(
+                    value.get<long long>()
+                );
+            }
+        }
+    } else if (IsPointerType(value.m_type_id)) {
+        if (Is64Bit()) {
+            ret = static_cast<long double>(
+                value.get<unsigned long long>()
+            );
+        } else {
+            ret = static_cast<long double>(
+                value.get<unsigned int>()
+            );
+        }
     }
     return ret;
 }
@@ -1942,26 +1984,30 @@ CR_TypedValue CR_NameScope::StaticCast(
     if (HasValue(value)) {
         auto tid2 = value.m_type_id;
         auto& type2 = LogType(tid2);
-        if (IsIntegralType(tid2)) {
-            if (IsUnsignedType(tid2)) {
-                auto u2 = GetULongLongValue(value);
-                if (IsUnsignedType(tid)) {
+        if (IsIntegralType(tid)) {
+            if (IsUnsignedType(tid)) {
+                // tid is unsigned
+                if (IsUnsignedType(tid2)) {
+                    auto u2 = GetULongLongValue(value);
                     SetULongLongValue(ret, u2);
                 } else {
-                    SetLongLongValue(ret, u2);
+                    auto n2 = GetLongLongValue(value);
+                    SetULongLongValue(ret, n2);
                 }
             } else {
-                auto n2 = GetLongLongValue(value);
-                if (IsUnsignedType(tid)) {
-                    SetULongLongValue(ret, n2);
+                // tid is signed
+                if (IsUnsignedType(tid2)) {
+                    auto u2 = GetULongLongValue(value);
+                    SetLongLongValue(ret, u2);
                 } else {
+                    auto n2 = GetLongLongValue(value);
                     SetLongLongValue(ret, n2);
                 }
             }
-        } else if (IsFloatingType(tid2)) {
+        } else if (IsFloatingType(tid)) {
             auto ld2 = GetLongDoubleValue(value);
             SetLongDoubleValue(ret, ld2);
-        } else if (IsPointerType(tid2)) {
+        } else if (IsPointerType(tid)) {
             auto u2 = GetULongLongValue(value);
             SetULongLongValue(ret, u2);
         }
@@ -2004,36 +2050,26 @@ CR_TypedValue CR_NameScope::Cast(
                 ret.m_type_id = tid;
             }
         }
-    } else {
-        if (type1.m_size == type2.m_size) {
-            ret = value;
-            ret.m_type_id = tid;
-            if (!IsUnsignedType(tid) && ret.m_extra.size() &&
-                (ret.m_extra[0] == 'u' || ret.m_extra[0] == 'U'))
-            {
-                ret.m_extra = ret.m_extra.substr(1);
-            }
-        } else if (IsPointerType(value.m_type_id)) {
-            if (type1.m_size == sizeof(int)) {
-                ret = StaticCast(m_int_type, value);
-                ret.m_extra = "";
-            } else if (type1.m_size == sizeof(char)) {
-                ret = StaticCast(m_char_type, value);
-                ret.m_extra = "i8";
-            } else if (type1.m_size == sizeof(short)) {
-                ret = StaticCast(m_short_type, value);
-                ret.m_extra = "i16";
-            } else if (type1.m_size == sizeof(long)) {
-                ret = StaticCast(m_long_type, value);
-                ret.m_extra = "L";
-            } else if (type1.m_size == sizeof(long long)) {
-                ret = StaticCast(m_long_long_type, value);
-                ret.m_extra = "LL";
-            }
-            ret.m_type_id = tid;
-        } else {
-            return StaticCast(tid, value);
+    } else if (IsPointerType(value.m_type_id)) {
+        if (type1.m_size == sizeof(int)) {
+            ret = StaticCast(m_int_type, value);
+            ret.m_extra = "";
+        } else if (type1.m_size == sizeof(char)) {
+            ret = StaticCast(m_char_type, value);
+            ret.m_extra = "i8";
+        } else if (type1.m_size == sizeof(short)) {
+            ret = StaticCast(m_short_type, value);
+            ret.m_extra = "i16";
+        } else if (type1.m_size == sizeof(long)) {
+            ret = StaticCast(m_long_type, value);
+            ret.m_extra = "L";
+        } else if (type1.m_size == sizeof(long long)) {
+            ret = StaticCast(m_long_long_type, value);
+            ret.m_extra = "LL";
         }
+        ret.m_type_id = tid;
+    } else {
+        return StaticCast(tid, value);
     }
     return ret;
 }
@@ -2209,17 +2245,13 @@ void CR_NameScope::SetLongLongValue(CR_TypedValue& value, long long n) const {
             value.m_extra = "L";
         }
         if (std::isinf(ld)) {
-            if (ld > 0) {
+            if (ld >= 0) {
                 value.m_text = "+INF";
             } else {
                 value.m_text = "-INF";
             }
         } else if (std::isnan(ld)) {
-            if (ld > 0) {
-                value.m_text = "+NAN";
-            } else {
-                value.m_text = "-NAN";
-            }
+            value.m_text = "NAN";
         } else {
             char buf[512];
             std::sprintf(buf, "%Lg", ld);
@@ -2265,17 +2297,13 @@ void CR_NameScope::SetULongLongValue(CR_TypedValue& value, unsigned long long u)
             value.m_extra = "L";
         }
         if (std::isinf(ld)) {
-            if (ld > 0) {
+            if (ld >= 0) {
                 value.m_text = "+INF";
             } else {
                 value.m_text = "-INF";
             }
         } else if (std::isnan(ld)) {
-            if (ld > 0) {
-                value.m_text = "+NAN";
-            } else {
-                value.m_text = "-NAN";
-            }
+            value.m_text = "NAN";
         } else {
             char buf[512];
             std::sprintf(buf, "%Lg", ld);
@@ -2317,17 +2345,13 @@ void CR_NameScope::SetLongDoubleValue(CR_TypedValue& value, long double ld) cons
             value.m_extra = "L";
         }
         if (std::isinf(ld)) {
-            if (ld > 0) {
+            if (ld >= 0) {
                 value.m_text = "+INF";
             } else {
                 value.m_text = "-INF";
             }
         } else if (std::isnan(ld)) {
-            if (ld > 0) {
-                value.m_text = "+NAN";
-            } else {
-                value.m_text = "-NAN";
-            }
+            value.m_text = "NAN";
         } else {
             char buf[512];
             std::sprintf(buf, "%Lg", ld);
@@ -2680,13 +2704,16 @@ CR_NameScope::Mod(const CR_TypedValue& value1,
 
 CR_TypedValue
 CR_NameScope::Not(const CR_TypedValue& value1) const {
-    CR_TypedValue ret = value1;
+    auto ret = value1;
     if (IsIntegralType(ret.m_type_id) && HasValue(ret)) {
+        if (ret.m_size < sizeof(int)) {
+            ret = StaticCast(m_int_type, ret);
+        }
         if (IsUnsignedType(ret.m_type_id)) {
-            auto ull = GetULongLongValue(value1);
+            auto ull = GetULongLongValue(ret);
             SetULongLongValue(ret, ~ull);
         } else {
-            auto ll = GetLongLongValue(value1);
+            auto ll = GetLongLongValue(ret);
             SetLongLongValue(ret, ~ll);
         }
     }
@@ -2695,22 +2722,21 @@ CR_NameScope::Not(const CR_TypedValue& value1) const {
 
 CR_TypedValue
 CR_NameScope::Minus(const CR_TypedValue& value1) const {
-    CR_TypedValue ret;
-    ret.m_size = value1.m_size;
-    if (HasValue(value1)) {
-        if (IsIntegralType(value1.m_type_id)) {
-            if (IsUnsignedType(value1.m_type_id)) {
-                auto u = GetULongLongValue(value1);
-                ret.m_type_id = MakeSigned(value1.m_type_id);
-                SetLongLongValue(ret, -static_cast<long long>(u));
+    auto ret = value1;
+    if (HasValue(ret)) {
+        if (IsIntegralType(ret.m_type_id)) {
+            if (ret.m_size < sizeof(int)) {
+                ret = StaticCast(m_int_type, ret);
+            }
+            if (IsUnsignedType(ret.m_type_id)) {
+                auto u = GetULongLongValue(ret);
+                SetULongLongValue(ret, -static_cast<long long>(u));
             } else {
-                auto n = GetLongLongValue(value1);
-                ret.m_type_id = value1.m_type_id;
+                auto n = GetLongLongValue(ret);
                 SetLongLongValue(ret, -n);
             }
-        } else if (IsFloatingType(value1.m_type_id)) {
-            ret.m_type_id = value1.m_type_id;
-            auto ld = GetLongDoubleValue(value1);
+        } else if (IsFloatingType(ret.m_type_id)) {
+            auto ld = GetLongDoubleValue(ret);
             SetLongDoubleValue(ret, -ld);
         }
     }
@@ -3050,17 +3076,13 @@ void CR_NameScope::SetValue(
             value.m_extra = "L";
         }
         if (std::isinf(ld)) {
-            if (ld > 0) {
+            if (ld >= 0) {
                 value.m_text = "+INF";
             } else {
                 value.m_text = "-INF";
             }
         } else if (std::isnan(ld)) {
-            if (ld > 0) {
-                value.m_text = "+NAN";
-            } else {
-                value.m_text = "-NAN";
-            }
+            value.m_text = "NAN";
         } else {
             char buf[512];
             std::sprintf(buf, "%Lg", ld);
@@ -3214,13 +3236,17 @@ CR_NameScope::FConstant(const std::string& text, const std::string& extra) {
     long double ld;
 
     if (text == "INF" || text == "+INF") {
-        ld = +INFINITY;
+        ld = +std::numeric_limits<long double>::infinity();
     } else if (text == "-INF") {
-        ld = -INFINITY;
+        ld = -std::numeric_limits<long double>::infinity();
     } else if (text == "NAN" || text == "+NAN") {
-        ld = +NAN;
+        static_assert(std::numeric_limits<long double>::has_quiet_NaN, "no quiet NAN");
+        ld = +std::numeric_limits<long double>::quiet_NaN();
+        // ld = +NAN;
     } else if (text == "-NAN") {
-        ld = +NAN;
+        static_assert(std::numeric_limits<long double>::has_quiet_NaN, "no quiet NAN");
+        ld = -std::numeric_limits<long double>::quiet_NaN();
+        // ld = -NAN;
     } else {
         try {
             ld = std::stold(text, NULL);
@@ -3249,17 +3275,13 @@ CR_NameScope::FConstant(const std::string& text, const std::string& extra) {
         ret.m_extra = "";
     }
     if (std::isinf(ld)) {
-        if (ld > 0) {
+        if (ld >= 0) {
             ret.m_text = "+INF";
         } else {
             ret.m_text = "-INF";
         }
     } else if (std::isnan(ld)) {
-        if (ld > 0) {
-            ret.m_text = "+NAN";
-        } else {
-            ret.m_text = "-NAN";
-        }
+        ret.m_text = "NAN";
     } else {
         char buf[512];
         std::sprintf(buf, "%Lg", ld);
@@ -3406,18 +3428,27 @@ CR_NameScope::IConstant(const std::string& text, const std::string& extra) {
                 } else {
                     ret.m_type_id = m_uint_type;
                     ret.assign<int>(static_cast<unsigned int>(ull));
-					ret.m_extra = "U";
-				}
+                    ret.m_extra = "U";
+                }
             } else {
-				if (ull & 0xFFFFFFFF00000000) {
-					ret.m_type_id = m_long_long_type;
-					ret.assign<long long>(ull);
-					ret.m_extra = "LL";
-				} else {
-					ret.m_type_id = m_int_type;
-					ret.assign<int>(static_cast<int>(ull));
-					ret.m_extra = "";
-				}
+                if (ull & 0x8000000000000000) {
+                    ret.m_type_id = m_ulong_long_type;
+                    ret.assign<unsigned long long>(ull);
+                    ret.m_extra = "ULL";
+                } else if (ull & 0x7FFFFFFF00000000) {
+                    ret.m_type_id = m_long_long_type;
+                    ret.assign<long long>(ull);
+                    ret.m_extra = "LL";
+                } else if (ull & 0x80000000) {
+                    ret.m_type_id = m_uint_type;
+                    ret.assign<unsigned int>(
+                        static_cast<unsigned int>(ull));
+                    ret.m_extra = "U";
+                } else {
+                    ret.m_type_id = m_int_type;
+                    ret.assign<int>(static_cast<int>(ull));
+                    ret.m_extra = "";
+                }
             }
         }
     }
@@ -3447,6 +3478,9 @@ CR_NameScope::IConstant(CR_TypeID tid, const std::string& text, const std::strin
 
 ////////////////////////////////////////////////////////////////////////////
 
+// Wonders data format version
+int cr_data_version = 1;
+
 bool CR_NameScope::LoadFromFiles(
     const std::string& prefix/* = ""*/,
     const std::string& suffix/* = ".dat"*/)
@@ -3461,14 +3495,32 @@ bool CR_NameScope::LoadFromFiles(
     m_mVarIDToName.clear();
     m_mNameToName.clear();
 
-    std::ifstream in1(prefix + "types" + suffix);
+    std::string fname;
+    std::string line;
+
+    fname = prefix + "types" + suffix;
+    std::ifstream in1(fname);
     if (in1) {
-        std::string line;
-        std::getline(in1, line); // skip header
+        // version check
+        std::getline(in1, line);
+        int version = std::stoi(line);
+        if (version != cr_data_version) {
+            std::cerr << "ERROR: File '" << fname <<
+                "' has different format version. I couldn't load it." << std::endl;
+            return false;
+        }
+        // skip header
+        std::getline(in1, line);
+        // load body
         for (; std::getline(in1, line); ) {
             CrChop(line);
             std::vector<std::string> fields;
             katahiromz::splitbychar(fields, line, '\t');
+
+            if (fields.size() != 11) {
+                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                return false;
+            }
 
             CR_TypeID type_id = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
@@ -3499,19 +3551,34 @@ bool CR_NameScope::LoadFromFiles(
             m_types.emplace_back(type);
         }
     } else {
-        std::cerr << "ERROR: cannot load file '" <<
-            (prefix + "types" + suffix) << "'" << std::endl;
+        std::cerr << "ERROR: cannot load file '" << fname <<
+                     "'" << std::endl;
         return false;
     }
 
-    std::ifstream in2(prefix + "structures" + suffix);
+    fname = prefix + "structures" + suffix;
+    std::ifstream in2(fname);
     if (in2) {
-        std::string line;
-        std::getline(in2, line); // skip header
+        // version check
+        std::getline(in1, line);
+        int version = std::stoi(line);
+        if (version != cr_data_version) {
+            std::cerr << "ERROR: File '" << fname <<
+                "' has different format version. I couldn't load it." << std::endl;
+            return false;
+        }
+        // skip header
+        std::getline(in1, line);
+        // load body
         for (; std::getline(in2, line);) {
             CrChop(line);
             std::vector<std::string> fields;
             katahiromz::splitbychar(fields, line, '\t');
+
+            if (fields.size() < 13) {
+                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                return false;
+            }
 
             //CR_StructID struct_id = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
@@ -3526,6 +3593,11 @@ bool CR_NameScope::LoadFromFiles(
             bool alignas_explicit = !!std::stol(fields[10], NULL, 0);
             //std::string file = fields[11];
             //int lineno = std::stol(fields[12], NULL, 0);
+
+            if (fields.size() != 13 + 4 * count) {
+                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                return false;
+            }
 
             CR_LogStruct ls;
             ls.m_tid = type_id;
@@ -3548,21 +3620,41 @@ bool CR_NameScope::LoadFromFiles(
         }
     } else {
         std::cerr << "ERROR: cannot load file '" <<
-            (prefix + "structures" + suffix) << "'" << std::endl;
+                     fname << "'" << std::endl;
         return false;
     }
 
-    std::ifstream in3(prefix + "enums" + suffix);
+    fname = prefix + "enums" + suffix;
+    std::ifstream in3(fname);
     if (in3) {
-        std::string line;
-        std::getline(in3, line); // skip header
+        // version check
+        std::getline(in1, line);
+        int version = std::stoi(line);
+        if (version != cr_data_version) {
+            std::cerr << "ERROR: File '" << fname <<
+                "' has different format version. I couldn't load it." << std::endl;
+            return false;
+        }
+        // skip header
+        std::getline(in1, line);
+        // load body
         for (; std::getline(in3, line);) {
             CrChop(line);
             std::vector<std::string> fields;
             katahiromz::splitbychar(fields, line, '\t');
 
+            if (fields.size() < 2) {
+                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                return false;
+            }
+
             //CR_EnumID eid = std::stol(fields[0], NULL, 0);
             int num_items = std::stol(fields[1], NULL, 0);
+
+            if (fields.size() != 2 + num_items * 2) {
+                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                return false;
+            }
 
             CR_LogEnum le;
             for (int i = 0; i < num_items; ++i) {
@@ -3576,18 +3668,33 @@ bool CR_NameScope::LoadFromFiles(
         }
     } else {
         std::cerr << "ERROR: cannot load file '" <<
-            (prefix + "enums" + suffix) << "'" << std::endl;
+                     fname << "'" << std::endl;
         return false;
     }
 
-    std::ifstream in4(prefix + "func_types" + suffix);
+    fname = prefix + "func_types" + suffix;
+    std::ifstream in4(fname);
     if (in4) {
-        std::string line;
-        std::getline(in4, line); // skip header
+        // version check
+        std::getline(in1, line);
+        int version = std::stoi(line);
+        if (version != cr_data_version) {
+            std::cerr << "ERROR: File '" << fname <<
+                "' has different format version. I couldn't load it." << std::endl;
+            return false;
+        }
+        // skip header
+        std::getline(in1, line);
+        // load body
         for (; std::getline(in4, line);) {
             CrChop(line);
             std::vector<std::string> fields;
             katahiromz::splitbychar(fields, line, '\t');
+
+            if (fields.size() < 5) {
+                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                return false;
+            }
 
             //CR_FuncID fid = std::stol(fields[0], NULL, 0);
             int return_type = std::stol(fields[1], NULL, 0);
@@ -3605,6 +3712,11 @@ bool CR_NameScope::LoadFromFiles(
             default: assert(0);
             }
 
+            if (fields.size() != 5 + param_count * 2) {
+                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                return false;
+            }
+
             for (int i = 0; i < param_count; ++i) {
                 int j = 5 + i * 2;
                 CR_TypeID tid = std::stol(fields[j + 0], NULL, 0);
@@ -3615,18 +3727,33 @@ bool CR_NameScope::LoadFromFiles(
         }
     } else {
         std::cerr << "ERROR: cannot load file '" <<
-            (prefix + "func_types" + suffix) << "'" << std::endl;
+                     fname << "'" << std::endl;
         return false;
     }
 
-    std::ifstream in5(prefix + "vars" + suffix);
+    fname = prefix + "vars" + suffix;
+    std::ifstream in5(fname);
     if (in5) {
-        std::string line;
-        std::getline(in5, line); // skip header
+        // version check
+        std::getline(in1, line);
+        int version = std::stoi(line);
+        if (version != cr_data_version) {
+            std::cerr << "ERROR: File '" << fname <<
+                "' has different format version. I couldn't load it." << std::endl;
+            return false;
+        }
+        // skip header
+        std::getline(in1, line);
+        // load body
         for (; std::getline(in5, line);) {
             CrChop(line);
             std::vector<std::string> fields;
             katahiromz::splitbychar(fields, line, '\t');
+
+            if (fields.size() != 8) {
+                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                return false;
+            }
 
             //CR_VarID vid = std::stol(fields[0], NULL, 0);
             std::string name = fields[1];
@@ -3676,14 +3803,29 @@ bool CR_NameScope::LoadFromFiles(
         return false;
     }
 
-    std::ifstream in6(prefix + "name2name" + suffix);
+    fname = prefix + "name2name" + suffix;
+    std::ifstream in6(fname);
     if (in6) {
-        std::string line;
-        std::getline(in6, line); // skip header
+        // version check
+        std::getline(in1, line);
+        int version = std::stoi(line);
+        if (version != cr_data_version) {
+            std::cerr << "ERROR: File '" << fname <<
+                "' has different format version. I couldn't load it." << std::endl;
+            return false;
+        }
+        // skip header
+        std::getline(in1, line);
+        // load body
         for (; std::getline(in6, line);) {
             CrChop(line);
             std::vector<std::string> fields;
             katahiromz::splitbychar(fields, line, '\t');
+
+            if (fields.size() != 4) {
+                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                return false;
+            }
 
             std::string name1 = fields[0];
             std::string name2 = fields[1];
@@ -3699,7 +3841,7 @@ bool CR_NameScope::LoadFromFiles(
         }
     } else {
         std::cerr << "ERROR: cannot load file '" <<
-            (prefix + "name2name" + suffix) << "'" << std::endl;
+                     fname << "'" << std::endl;
         return false;
     }
 
@@ -3710,8 +3852,12 @@ bool CR_NameScope::SaveToFiles(
     const std::string& prefix/* = ""*/,
     const std::string& suffix/* = ".dat"*/) const
 {
-    std::ofstream out1(prefix + "types" + suffix);
+    std::string fname;
+
+    fname = prefix + "types" + suffix;
+    std::ofstream out1(fname);
     if (out1) {
+        out1 << cr_data_version << std::endl;
         out1 << "(type_id)\t(name)\t(flags)\t(sub_id)\t(count)\t(size)\t(align)\t(alignas)\t(alignas_explicit)\t(file)\t(line)" <<
             std::endl;
         for (CR_TypeID tid = 0; tid < LogTypes().size(); ++tid) {
@@ -3750,12 +3896,14 @@ bool CR_NameScope::SaveToFiles(
         }
     } else {
         std::cerr << "ERROR: cannot write file '" <<
-            (prefix + "types" + suffix) << "'" << std::endl;
+            fname << "'" << std::endl;
         return false;
     }
 
-    std::ofstream out2(prefix + "structures" + suffix);
+    fname = prefix + "structures" + suffix;
+    std::ofstream out2(fname);
     if (out2) {
+        out2 << cr_data_version << std::endl;
         out2 << "(struct_id)\t(name)\t(type_id)\t(flags)\t(is_struct)\t(size)\t(count)\t(pack)\t(align)\t(alignas)\t(alignas_explicit)\t(file)\t(line)\t(item_1_name)\t(item_1_type_id)\t(item_1_bit_offset)\t(item_1_bits)\t(item_2_type_id)\t..." <<
             std::endl;
         for (CR_TypeID sid = 0; sid < LogStructs().size(); ++sid) {
@@ -3803,12 +3951,14 @@ bool CR_NameScope::SaveToFiles(
         }
     } else {
         std::cerr << "ERROR: cannot write file '" <<
-            (prefix + "structures" + suffix) << "'" << std::endl;
+            fname << "'" << std::endl;
         return false;
     }
 
-    std::ofstream out3(prefix + "enums" + suffix);
+    fname = prefix + "enums" + suffix;
+    std::ofstream out3(fname);
     if (out3) {
+        out3 << cr_data_version << std::endl;
         out3 << "(enum_id)\t(num_items)\t(item_name_1)\t(item_value_1)\t(item_name_2)\t..." <<
             std::endl;
         for (CR_EnumID eid = 0; eid < LogEnums().size(); ++eid) {
@@ -3827,12 +3977,14 @@ bool CR_NameScope::SaveToFiles(
         }
     } else {
         std::cerr << "ERROR: cannot write file '" <<
-            (prefix + "enums" + suffix) << "'" << std::endl;
+            fname << "'" << std::endl;
         return false;
     }
 
-    std::ofstream out4(prefix + "func_types" + suffix);
+    fname = prefix + "func_types" + suffix;
+    std::ofstream out4(fname);
     if (out4) {
+        out4 << cr_data_version << std::endl;
         out4 << "(func_id)\t(return_type)\t(convention)\t(ellipsis)\t(param_count)\t(param_1_typeid)\t(param_1_name)\t(param_2_typeid)\t..." <<
             std::endl;
         for (size_t fid = 0; fid < LogFuncs().size(); ++fid) {
@@ -3854,12 +4006,14 @@ bool CR_NameScope::SaveToFiles(
         }
     } else {
         std::cerr << "ERROR: cannot write file '" <<
-            (prefix + "func_types" + suffix) << "'" << std::endl;
+            fname << "'" << std::endl;
         return false;
     }
 
-    std::ofstream out5(prefix + "vars" + suffix);
+    fname = prefix + "vars" + suffix;
+    std::ofstream out5(fname);
     if (out5) {
+        out5 << cr_data_version << std::endl;
         out5 << "(var_id)\t(name)\t(type_id)\t(text)\t(extra)\t(value_type)\t(file)\t(line)" <<
             std::endl;
         for (size_t vid = 0; vid < LogVars().size(); ++vid) {
@@ -3915,12 +4069,14 @@ bool CR_NameScope::SaveToFiles(
         }
     } else {
         std::cerr << "ERROR: cannot write file '" <<
-            (prefix + "vars" + suffix) << "'" << std::endl;
+            fname << "'" << std::endl;
         return false;
     }
 
-    std::ofstream out6(prefix + "name2name" + suffix);
+    fname = prefix + "name2name" + suffix;
+    std::ofstream out6(fname);
     if (out6) {
+        out6 << cr_data_version << std::endl;
         out6 << "(name1)\t(name2)\t(file)\t(line)" << std::endl;
         for (auto& it : m_mNameToName) {
             out6 <<
@@ -3931,7 +4087,7 @@ bool CR_NameScope::SaveToFiles(
         }
     } else {
         std::cerr << "ERROR: cannot write file '" <<
-            (prefix + "name2name" + suffix) << "'" << std::endl;
+            fname << "'" << std::endl;
         return false;
     }
 

@@ -38,3 +38,9 @@ if exist Wonders7\*.tmp del Wonders7\*.tmp
 if exist Wonders7\sanitize*.c del Wonders7\sanitize*.c
 if exist Wonders7\sanitize*.obj del Wonders7\sanitize*.obj
 if exist Wonders7\sanitize*.exe del Wonders7\sanitize*.exe
+
+if exist Wonders8.1\*.log del Wonders8.1\*.log
+if exist Wonders8.1\*.tmp del Wonders8.1\*.tmp
+if exist Wonders8.1\sanitize*.c del Wonders8.1\sanitize*.c
+if exist Wonders8.1\sanitize*.obj del Wonders8.1\sanitize*.obj
+if exist Wonders8.1\sanitize*.exe del Wonders8.1\sanitize*.exe

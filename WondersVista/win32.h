@@ -59,7 +59,7 @@
 
 /* performance data */
 #include <winperf.h>
-// NOTE: MinGW has bug in <pdh.h> on _WIN32_WINNT >= 0x0600
+/* NOTE: MinGW has bug in <pdh.h> on _WIN32_WINNT >= 0x0600 */
 #include <pdh.h>
 
 /* setup-related */
@@ -97,16 +97,16 @@
 
 #include <nspapi.h>
 
-// NOTE: <wsdapi.h> is likely not available on C
-//#include <wsdapi.h>
+/* NOTE: <wsdapi.h> is likely not available on C */
+/* #include <wsdapi.h> */
 
-// NOTE: <winhttp.h> is not compatible to <wininet.h>
-//#include <winhttp.h>
+/* NOTE: <winhttp.h> is not compatible to <wininet.h> */
+/* #include <winhttp.h> */
 
 /* more misc. */
 #include <lmrepl.h>
 
-// NOTE: MinGW has bug in <dhcpsapi.h> on _WIN32_WINNT >= 0x0600
+/* NOTE: MinGW has bug in <dhcpsapi.h> on _WIN32_WINNT >= 0x0600 */
 #include <dhcpsapi.h>
 
 #include <urlmon.h>
@@ -127,3 +127,10 @@
 #endif
 #include <rpc.h>
 #include <hlink.h>
+
+/* NOTE: RASCTRYINFO, RASIPADDR, PROCESSENTRY32 and MODULEENTRY32 macros are
+         very confusing with same name types. We fixup. */
+#undef RASCTRYINFO
+#undef RASIPADDR
+#undef PROCESSENTRY32
+#undef MODULEENTRY32

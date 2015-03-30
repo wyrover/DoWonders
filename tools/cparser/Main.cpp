@@ -14,21 +14,21 @@ const char * const cr_logo =
     "///////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser 0.3.4 (64-bit) for gcc        //\n"
+    "// CParser 0.3.5 (64-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.3.4 (64-bit) for clang      //\n"
+    "// CParser 0.3.5 (64-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.3.4 (64-bit) for cl (MSVC)  //\n"
+    "// CParser 0.3.5 (64-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser 0.3.4 (32-bit) for gcc        //\n"
+    "// CParser 0.3.5 (32-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.3.4 (32-bit) for clang      //\n"
+    "// CParser 0.3.5 (32-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.3.4 (32-bit) for cl (MSVC)  //\n"
+    "// CParser 0.3.5 (32-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
@@ -80,7 +80,7 @@ std::string CrGutsHex2(const char *& it) {
 
 std::string CrGutsOctal(const char *& it) {
     std::string ret;
-    for (; *it && ret.size() < 3; ++it) {
+    for (; *it; ++it) {
         if ('0' <= *it && *it <= '7') {
             ret += *it;
         } else {
@@ -89,6 +89,18 @@ std::string CrGutsOctal(const char *& it) {
     }
     return ret;
 } // CrGutsOctal
+
+std::string CrGutsOctal3(const char *& it) {
+    std::string ret;
+    for (; *it && ret.size() < 3; ++it) {
+        if ('0' <= *it && *it <= '7') {
+            ret += *it;
+        } else {
+            break;
+        }
+    }
+    return ret;
+} // CrGutsOctal3
 
 std::string CrGutsEscapeSequence(const char *& it) {
     std::string ret;
@@ -100,7 +112,7 @@ std::string CrGutsEscapeSequence(const char *& it) {
         ret += *it;
         break;
 
-    case '0': ret += '\0'; break;
+    //case '0': ret += '\0'; break;
     case 'a': ret += '\a'; break;
     case 'b': ret += '\b'; break;
     case 'f': ret += '\f'; break;
@@ -133,7 +145,7 @@ std::string CrGutsEscapeSequence(const char *& it) {
 
     default:
         if ('0' <= *it && *it <= '7') {
-            auto octal = CrGutsOctal(it);
+            auto octal = CrGutsOctal3(it);
             long value = std::stol(octal, NULL, 8);
             ret += static_cast<char>(value);
         } else {
@@ -4404,8 +4416,7 @@ bool CrParseMacros(
     const std::string& prefix, const std::string& suffix,
     bool is_64bit = false)
 {
-    CR_MacroSet macros;
-    CR_MacroSet checked;
+    CR_MacroSet macros, checked;
 
     // load macros
     if (!CrLoadMacros(namescope, macros, prefix, suffix, is_64bit)) {
@@ -4426,140 +4437,79 @@ bool CrParseMacros(
     auto error_info_saved = namescope.ErrorInfo();
     namescope.ErrorInfo() = make_shared<CR_ErrorInfo>();
 
-    auto end = macros.end();
-    for (auto it = macros.begin(); it != end; ++it) {
-        auto& name = it->first;
-        auto& macro = it->second;
+    for (;;) {
+        auto end = macros.end();
+        for (auto it = macros.begin(); it != end; ++it) {
+            auto& name = it->first;
+            auto& macro = it->second;
 
-        if (name == "_W64" ||
-            name.find("METHODIMP") != std::string::npos ||
-            name == "LPRASCTRYINFO" || name == "PDH_FUNCTION" ||
-            name == "RASCTRYINFOW" || name == "RASCTRYINFOA" ||
-            name == "LPRASCTRYINFOA" ||
-            name == "RPC_BAD_STUB_DATA_EXCEPTION_FILTER" ||
-            name == "INTERFACE")
-        {
-            continue;
-        }
+            if (name == "_W64" ||
+                name.find("METHODIMP") != std::string::npos ||
+                name == "LPRASCTRYINFO" || name == "PDH_FUNCTION" ||
+                name == "RASCTRYINFOW" || name == "RASCTRYINFOA" ||
+                name == "LPRASCTRYINFOA" ||
+                name == "RPC_BAD_STUB_DATA_EXCEPTION_FILTER" ||
+                name == "INTERFACE")
+            {
+                continue;
+            }
 
-        // skip function-like macros
-        if (macro.m_num_params != -1) {
-            continue;
-        }
+            // skip function-like macros
+            if (macro.m_num_params != -1) {
+                continue;
+            }
 
-        // expand macro
-        auto expanded = CrExpandMacro(macros, name, macro.m_contents);
-        CrTrimString(expanded);
-        if (expanded.empty() || expanded == name) {
-            continue;
-        }
+            // expand macro
+            auto expanded = CrExpandMacro(macros, name, macro.m_contents);
+            CrTrimString(expanded);
+            if (expanded.empty() || expanded == name) {
+                continue;
+            }
 
-        // parse as expression
-        shared_ptr<Expr> expr;
-        shared_ptr<TypeName> type_name;
-        if (parse_expression(namescope.ErrorInfo(), expr, 
-                             expanded, type_names, namescope.Is64Bit()))
-        {
-            CR_LogVar var;
-            CR_TypedValue typed_value = CrValueOnExpr(namescope, expr.get());
-            var.m_location = macro.m_location;
-            if (namescope.HasValue(typed_value)) {
-                var.m_typed_value = typed_value;
-                var.m_typed_value.m_type_id = 
-                    namescope.MakeConst(typed_value.m_type_id);
+            // parse as expression
+            shared_ptr<Expr> expr;
+            shared_ptr<TypeName> type_name;
+            if (parse_expression(namescope.ErrorInfo(), expr, 
+                                 expanded, type_names, namescope.Is64Bit()))
+            {
+                CR_LogVar var;
+                CR_TypedValue typed_value = CrValueOnExpr(namescope, expr.get());
+                var.m_location = macro.m_location;
+                if (namescope.HasValue(typed_value)) {
+                    var.m_typed_value = typed_value;
+                    var.m_typed_value.m_type_id = 
+                        namescope.MakeConst(typed_value.m_type_id);
 
-                // add macro as variable
-                auto vid = namescope.LogVars().insert(var);
-                namescope.MapVarIDToName().emplace(vid, name);
-                if (name.size()) {
-                    namescope.MapNameToVarID().emplace(name, vid);
+                    // add macro as variable
+                    auto vid = namescope.LogVars().insert(var);
+                    namescope.MapVarIDToName().emplace(vid, name);
+                    if (name.size()) {
+                        namescope.MapNameToVarID().emplace(name, vid);
+                    }
+                } else {
+                    // check the macro
+                    checked.emplace(name, macro);
                 }
+            } else if (parse_type(namescope.ErrorInfo(), type_name,
+                                  expanded, type_names, namescope.Is64Bit()))
+            {
+                // add type
+                CR_TypeID tid;
+                tid = CrGetTypeIDOfTypeName(namescope, type_name.get());
+                if (tid != cr_invalid_id) {
+                    namescope.AddAliasType(name, tid, macro.m_location);
+                }
+                type_names->emplace(name);
             } else {
                 // check the macro
                 checked.emplace(name, macro);
             }
-        } else if (parse_type(namescope.ErrorInfo(), type_name,
-                              expanded, type_names, namescope.Is64Bit()))
-        {
-            // add type
-            CR_TypeID tid;
-            tid = CrGetTypeIDOfTypeName(namescope, type_name.get());
-            if (tid != cr_invalid_id) {
-                namescope.AddAliasType(name, tid, macro.m_location);
-            }
-            type_names->emplace(name);
-        } else {
-            // check the macro
-            checked.emplace(name, macro);
         }
-    }
-
-    // retry checked macros
-    auto end2 = checked.end();
-    for (auto it2 = checked.begin(); it2 != end2; ++it2) {
-        auto& name = it2->first;
-        auto& macro = it2->second;
-
-        // expand macro
-        auto expanded = CrExpandMacro(macros, name, macro.m_contents);
-        CrTrimString(expanded);
-        if (expanded.empty()) {
-            continue;
+        if (checked.empty() || macros == checked) {
+            break;
         }
-
-        shared_ptr<Expr> expr;
-        shared_ptr<TypeName> type_name;
-        if (parse_expression(namescope.ErrorInfo(), expr, 
-                             expanded, type_names, namescope.Is64Bit()))
-        {
-            CR_LogVar var;
-            CR_TypedValue typed_value = CrValueOnExpr(namescope, expr.get());
-            var.m_location = macro.m_location;
-            if (namescope.HasValue(typed_value)) {
-                var.m_typed_value = typed_value;
-                var.m_typed_value.m_type_id =
-                    namescope.MakeConst(typed_value.m_type_id);
-
-                // add macro as variable
-                auto vid = namescope.LogVars().insert(var);
-                namescope.MapVarIDToName().emplace(vid, name);
-                if (name.size()) {
-                    namescope.MapNameToVarID().emplace(name, vid);
-                }
-            }
-        } else if (parse_type(namescope.ErrorInfo(), type_name,
-                              expanded, type_names, namescope.Is64Bit()))
-        {
-            // add type
-            CR_TypeID tid;
-            tid = CrGetTypeIDOfTypeName(namescope, type_name.get());
-            if (tid != cr_invalid_id) {
-                namescope.AddAliasType(name, tid, macro.m_location);
-            }
-            type_names->emplace(name);
-            continue;
-        } else {
-            // add variable mapping
-            auto it3 = namescope.MapNameToVarID().find(expanded);
-            if (it3 != namescope.MapNameToVarID().end()) {
-                CR_Name2Name name2name;
-                name2name.m_from = name;
-                name2name.m_to = expanded;
-                name2name.m_location = macro.m_location;
-                namescope.MapNameToName().emplace(name, name2name);
-                #if 0
-                    std::cerr << name << "::: " << macro.m_contents << std::endl;
-                #endif
-                continue;
-            } else {
-                #if 0
-                    std::cerr << name << ":: " << macro.m_contents << std::endl;
-                #endif
-            }
-        }
-        #if 0
-            std::cerr << name << ": " << macro.m_contents << std::endl;
-        #endif
+        std::swap(macros, checked);
+        checked.clear();
     }
 
     namescope.ErrorInfo() = error_info_saved;
