@@ -209,25 +209,28 @@ struct CR_LogType {
     int             m_align;        // alignment requirement of type
     int             m_alignas;      // # of alignas(#) if specified
     bool            m_alignas_explicit;
-    CR_Location     m_location;          // the location
+    CR_Location     m_location;         // the location
+    bool            m_is_macro;         // is it a macro?
 
     CR_LogType() : m_flags(0), m_sub_id(0), m_count(0), m_size(0), m_align(0),
-                   m_alignas(0), m_alignas_explicit(false) { }
+                   m_alignas(0), m_alignas_explicit(false), m_is_macro(false) { }
 
     CR_LogType(CR_TypeFlags flags, int size, const CR_Location& location) :
         m_flags(flags), m_sub_id(0), m_count(0), m_size(size), m_align(size),
-        m_alignas(0), m_alignas_explicit(false), m_location(location) { }
+        m_alignas(0), m_alignas_explicit(false), m_location(location),
+        m_is_macro(false) { }
 
     CR_LogType(CR_TypeFlags flags, int size, int align,
                const CR_Location& location) :
         m_flags(flags), m_sub_id(0), m_count(0), m_size(size), m_align(align),
-            m_alignas(0), m_alignas_explicit(false), m_location(location) { }
+            m_alignas(0), m_alignas_explicit(false), m_location(location),
+                m_is_macro(false) { }
 
     CR_LogType(CR_TypeFlags flags, int size, int align, int alignas_,
                const CR_Location& location) :
         m_flags(flags), m_sub_id(0), m_count(0), m_size(size), m_align(align),
             m_alignas(alignas_), m_alignas_explicit(false),
-                m_location(location) { }
+                m_location(location), m_is_macro(false) { }
 
     // incomplete comparison 
     bool operator==(const CR_LogType& type) const;
@@ -324,6 +327,8 @@ struct CR_LogEnum {
 struct CR_LogVar {
     CR_TypedValue   m_typed_value;      // typed value
     CR_Location     m_location;         // the location
+    bool            m_is_macro;         // is it a macro?
+    CR_LogVar() : m_is_macro(false) { }
 }; // struct CR_LogVar
 
 ////////////////////////////////////////////////////////////////////////////
@@ -394,6 +399,9 @@ public:
     // add alias type
     CR_TypeID AddAliasType(const std::string& name, CR_TypeID tid,
                            const CR_Location& location);
+    // add alias macro type
+    CR_TypeID AddAliasMacroType(const std::string& name, CR_TypeID tid,
+                                const CR_Location& location);
 
     // add a variable
     CR_VarID AddVar(const std::string& name, CR_TypeID tid,

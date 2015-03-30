@@ -4481,6 +4481,7 @@ bool CrParseMacros(
                         namescope.MakeConst(typed_value.m_type_id);
 
                     // add macro as variable
+                    var.m_is_macro = true;
                     auto vid = namescope.LogVars().insert(var);
                     namescope.MapVarIDToName().emplace(vid, name);
                     if (name.size()) {
@@ -4497,7 +4498,7 @@ bool CrParseMacros(
                 CR_TypeID tid;
                 tid = CrGetTypeIDOfTypeName(namescope, type_name.get());
                 if (tid != cr_invalid_id) {
-                    namescope.AddAliasType(name, tid, macro.m_location);
+                    namescope.AddAliasMacroType(name, tid, macro.m_location);
                 }
                 type_names->emplace(name);
             } else {

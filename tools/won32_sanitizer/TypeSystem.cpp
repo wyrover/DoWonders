@@ -614,6 +614,39 @@ CR_TypeID CR_NameScope::AddAliasType(
     return tid;
 }
 
+CR_TypeID CR_NameScope::AddAliasMacroType(
+    const std::string& name, CR_TypeID tid, const CR_Location& location)
+{
+    assert(!name.empty());
+    CR_LogType type1;
+    auto& type2 = LogType(tid);
+    if (type2.m_flags & TF_INCOMPLETE) {
+        type1.m_flags = TF_ALIAS | TF_INCOMPLETE;
+        type1.m_alignas = type2.m_alignas;
+    } else {
+        type1.m_flags = TF_ALIAS;
+        type1.m_size = type2.m_size;
+        type1.m_align = type2.m_align;
+        type1.m_alignas = type2.m_alignas;
+    }
+    #ifdef __GNUC__
+        if (type2.m_flags & TF_INACCURATE) {
+            type1.m_flags |= TF_INACCURATE;
+        }
+    #endif
+    if (type2.m_flags & TF_FUNCTION) {
+        type1.m_flags |= TF_FUNCTION;
+    }
+    type1.m_sub_id = tid;
+    type1.m_count = type2.m_count;
+    type1.m_location = location;
+    type1.m_is_macro = true;
+    tid = m_types.insert(type1);
+    m_mNameToTypeID[name] = tid;
+    m_mTypeIDToName[tid] = name;
+    return tid;
+}
+
 CR_VarID CR_NameScope::AddVar(
     const std::string& name, CR_TypeID tid, const CR_Location& location)
 {
@@ -3575,7 +3608,7 @@ bool CR_NameScope::LoadFromFiles(
             std::vector<std::string> fields;
             katahiromz::splitbychar(fields, line, '\t');
 
-            if (fields.size() < 13) {
+            if (fields.size() < 14) {
                 std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
                 return false;
             }
@@ -3591,10 +3624,11 @@ bool CR_NameScope::LoadFromFiles(
             int align = std::stol(fields[8], NULL, 0);
             int alignas_ = std::stol(fields[9], NULL, 0);
             bool alignas_explicit = !!std::stol(fields[10], NULL, 0);
-            //std::string file = fields[11];
-            //int lineno = std::stol(fields[12], NULL, 0);
+            bool is_macro = !!std::stol(fields[11], NULL, 0);
+            //std::string file = fields[12];
+            //int lineno = std::stol(fields[13], NULL, 0);
 
-            if (fields.size() != 13 + 4 * count) {
+            if (fields.size() != 14 + 4 * count) {
                 std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
                 return false;
             }
@@ -3606,6 +3640,7 @@ bool CR_NameScope::LoadFromFiles(
             ls.m_align = align;
             ls.m_alignas = alignas_;
             ls.m_alignas_explicit = alignas_explicit;
+            ls.m_is_macro = is_macro;
             ls.m_is_complete = !(flags & TF_INCOMPLETE);
 
             for (int i = 0; i < count; ++i) {
@@ -3750,7 +3785,7 @@ bool CR_NameScope::LoadFromFiles(
             std::vector<std::string> fields;
             katahiromz::splitbychar(fields, line, '\t');
 
-            if (fields.size() != 8) {
+            if (fields.size() != 9) {
                 std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
                 return false;
             }
@@ -3761,8 +3796,9 @@ bool CR_NameScope::LoadFromFiles(
             std::string text = fields[3];
             std::string extra = fields[4];
             std::string value_type = fields[5];
-            std::string file = fields[6];
-            int lineno = std::stol(fields[7], NULL, 0);
+            bool is_macro = !!std::stol(fields[6], NULL, 0);
+            std::string file = fields[7];
+            int lineno = std::stol(fields[8], NULL, 0);
 
             CR_LogVar var;
             if (text.size() && value_type == "i" && IsIntegralType(type_id)) {
@@ -3790,6 +3826,7 @@ bool CR_NameScope::LoadFromFiles(
             }
             var.m_typed_value.m_extra = extra;
             var.m_location.set(file, lineno);
+            var.m_is_macro = is_macro;
 
             auto vid = m_vars.insert(var);
             m_mVarIDToName.emplace(vid, name);
@@ -3799,7 +3836,7 @@ bool CR_NameScope::LoadFromFiles(
         }
     } else {
         std::cerr << "ERROR: cannot load file '" <<
-            (prefix + "vars" + suffix) << "'" << std::endl;
+                     fname << "'" << std::endl;
         return false;
     }
 
@@ -3858,7 +3895,7 @@ bool CR_NameScope::SaveToFiles(
     std::ofstream out1(fname);
     if (out1) {
         out1 << cr_data_version << std::endl;
-        out1 << "(type_id)\t(name)\t(flags)\t(sub_id)\t(count)\t(size)\t(align)\t(alignas)\t(alignas_explicit)\t(file)\t(line)" <<
+        out1 << "(type_id)\t(name)\t(flags)\t(sub_id)\t(count)\t(size)\t(align)\t(alignas)\t(alignas_explicit)\t(is_macro)\t(file)\t(line)" <<
             std::endl;
         for (CR_TypeID tid = 0; tid < LogTypes().size(); ++tid) {
             auto& type = LogType(tid);
@@ -3891,6 +3928,7 @@ bool CR_NameScope::SaveToFiles(
                 type.m_align << "\t" <<
                 type.m_alignas << "\t" <<
                 type.m_alignas_explicit << "\t" <<
+                type.m_is_macro << "\t" <<
                 file << "\t" <<
                 lineno << std::endl;
         }
@@ -4014,7 +4052,7 @@ bool CR_NameScope::SaveToFiles(
     std::ofstream out5(fname);
     if (out5) {
         out5 << cr_data_version << std::endl;
-        out5 << "(var_id)\t(name)\t(type_id)\t(text)\t(extra)\t(value_type)\t(file)\t(line)" <<
+        out5 << "(var_id)\t(name)\t(type_id)\t(text)\t(extra)\t(value_type)\t(is_macro)\t(file)\t(line)" <<
             std::endl;
         for (size_t vid = 0; vid < LogVars().size(); ++vid) {
             auto& var = LogVar(vid);
@@ -4064,6 +4102,7 @@ bool CR_NameScope::SaveToFiles(
                 text << "\t" <<
                 var.m_typed_value.m_extra << "\t" <<
                 value_type << "\t" <<
+                var.m_is_macro << "\t" <<
                 file << "\t" <<
                 location.m_line << std::endl;
         }
