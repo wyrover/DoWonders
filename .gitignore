@@ -46,6 +46,11 @@ tools/won32_sanitizer/won32_sanitizer64.exe
 tools/won32_sanitizer/Debug
 tools/won32_sanitizer/Release
 tools/won32_sanitizer/x64
+tools/iwon/iwon.exe
+tools/iwon/iwon64.exe
+tools/iwon/Debug
+tools/iwon/Release
+tools/iwon/x64
 Wonders*/sanitize-*.c
 Wonders*/sanitize-*.exe
 pack-cl-32/

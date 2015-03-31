@@ -258,7 +258,7 @@ std::string CrGutsFloating(const char *& it) {
     std::string ret;
     if (*it == '.') {
         ++it;
-        std::string digits = CrGutsDigits(it);
+        ret = CrGutsDigits(it);
     }
     return ret;
 }

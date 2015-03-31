@@ -1,5 +1,8 @@
 <?php
 
+// Wonders data format version
+const $cr_data_version = 1;
+
 const TF_VOID         = 0x00000001;
 const TF_CHAR         = 0x00000002;
 const TF_SHORT        = 0x00000004;
@@ -59,6 +62,38 @@ function CrNormalizeTypeFlags($flags) {
     // remove storage class specifiers
     return $flags & ~TF_INCOMPLETE;
 } // CrNormalizeTypeFlags
+
+
+function CrChop($str) {
+	return chop($str);
+}
+
+function CrEscapeString($str) {
+	return '"' . addcslashes($str, "\0..\x1F\'\"?\\\a\b\f\r\t\v") . '"';
+}
+
+function CrUnscapeString(&$ret, $str) {
+	$str = trim($str);
+	if ($str[0] == '"') {
+		$str = substr($str, 1);
+	}
+	if ($str[strlen($str) - 1] == '"') {
+		$str = substr($str, 0, strlen($str) - 1);
+	}
+	$ret = stripcslashes($str);
+	return true;
+}
+
+function CrEscapeChar($str) {
+	$ret = "'";
+	for ($str as $ch) {
+		$ret .= addcslashes($ch, "\0..\x1F\'\"?\\\a\b\f\r\t\v");
+	}
+	return $ret + "'";
+}
+
+std::string CrUnescapeChar(const std::string& str) {
+}
 
 $cr_invalid_id = -1;
 

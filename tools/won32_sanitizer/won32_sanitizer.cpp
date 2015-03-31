@@ -1,5 +1,21 @@
 #include "stdafx.h"
 
+static
+void CrReplaceString(
+    std::string& str, const std::string& from, const std::string& to)
+{
+    size_t i = 0;
+    for (;;)
+    {
+        i = str.find(from, i);
+        if (i == std::string::npos)
+            break;
+
+        str.replace(i, from.size(), to);
+        i += to.size();
+    }
+}
+
 void WsShowHelp(void) {
     std::cout <<
         "won32_sanitizer --- Won32 sanitizer" << std::endl <<
@@ -185,8 +201,10 @@ bool WsJustDoIt(
             out << "\tcheck_string(" << name << ", " <<
                 value.m_text << ");" << std::endl;
         } else if (value.m_text[0] == '"' && ns.IsWStringType(type_id)) {
+            auto text = value.m_text;
+            CrReplaceString(text, "\" \"", "\" L\"");
             out << "\tcheck_wstring(" << name << ", L" <<
-                value.m_text << ");" << std::endl;
+                text << ");" << std::endl;
         } else if (ns.IsPointerType(type_id)) {
             out << "\tcheck_value(" << name << ", (" <<
                 ns.StringOfType(type_id, "") << ")" << 

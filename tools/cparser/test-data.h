@@ -51,3 +51,5 @@ enum {
 
 #define PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL \
     ProcThreadAttributeValue (ProcThreadAttributeProtectionLevel, 0, 1, 0)
+
+#define TOUCHPREDICTIONPARAMETERS_DEFAULT_RLS_EXPO_SMOOTH_ALPHA 0.99f

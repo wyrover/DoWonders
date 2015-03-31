@@ -88,7 +88,9 @@ std::string CrEscapeString(const std::string& str) {
                 ss << "\\x" << std::hex <<
                     std::setfill('0') << std::setw(2) << n;
                 ret += ss.str();
-                count += 4;
+                // don't misrecognize "\x00" and "1" as "\x001"
+                ret += "\" \"";
+                count += 4 + 3;
             } else {
                 ret += ch;
                 count++;

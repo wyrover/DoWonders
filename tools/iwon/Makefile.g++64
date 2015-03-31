@@ -1,0 +1,36 @@
+# Makefile.g++64 --- Makefile for 64-bit GNU C++
+# Usage: make -f Makefile.g++64
+
+DOTOBJ = .o
+DOTEXE = .exe
+
+CXX = g++
+
+DEFS = -static -m64 -DJAPAN -ansi -std=c++11
+DEFS2 = 
+
+#OPTIONS = -O9 -Ofast -DNDEBUG $(DEFS) $(DEFS2) -Wall -pedantic
+OPTIONS = -O0 -g -ggdb -D_DEBUG $(DEFS) $(DEFS2) -Wall -pedantic
+
+CXXFLAGS = 
+
+OBJS = \
+	iwon64$(DOTOBJ) \
+	TypeSystem64$(DOTOBJ) \
+
+LIBS = -lcomdlg32 -limagehlp
+
+HEADERS = TypeSystem.h TextToText.hpp TextToText_inl.hpp splitjoin.h
+
+all: iwon64$(DOTEXE)
+
+iwon64$(DOTEXE): $(OBJS)
+	$(CXX) -o iwon64$(DOTEXE) $(CXXFLAGS) $(OPTIONS) $(OBJS) $(LIBS)
+
+iwon64$(DOTOBJ): $(HEADERS) iwon.cpp
+	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o iwon64$(DOTOBJ) iwon.cpp
+TypeSystem64$(DOTOBJ): $(HEADERS) TypeSystem.cpp
+	$(CXX) -c $(CXXFLAGS) $(OPTIONS) -o TypeSystem64$(DOTOBJ) TypeSystem.cpp
+
+clean:
+	rm -f *$(DOTOBJ)
