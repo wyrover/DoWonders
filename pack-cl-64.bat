@@ -1,4 +1,4 @@
-@echo off
+rem @echo off
 
 set IWON=tools\iwon\x64\Release\iwon64.exe
 if not exist %IWON% goto label_no_iwon64

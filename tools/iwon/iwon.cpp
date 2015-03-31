@@ -65,7 +65,7 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
         if (it != ns.MapNameToTypeID().end()) {
             auto tid = it->second;
             auto rtid = ns.ResolveAlias(tid);
-            auto& type = ns.LogType(rtid);
+            auto& type = ns.LogType(tid);
             auto& rtype = ns.LogType(rtid);
 
             if (type.m_location.m_file == "(predefined)") {

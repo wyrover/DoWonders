@@ -42,6 +42,12 @@ call sanitize-cl-32.bat
 if ERRORLEVEL 1 goto error
 cd ..
 
+cd Wonders8.1
+echo Wonders8.1
+call sanitize-cl-32.bat
+if ERRORLEVEL 1 goto error
+cd ..
+
 exit /b 0
 
 :error
