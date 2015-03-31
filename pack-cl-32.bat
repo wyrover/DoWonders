@@ -17,6 +17,7 @@ copy Wonders98\*-cl-32-*.dat pack-cl-32\Wonders98
 copy dll-info-32.dat pack-cl-32\Wonders98
 copy misc_batches\iwonit-cl-32-a.bat pack-cl-32\Wonders98
 copy misc_batches\iwonit-cl-32-w.bat pack-cl-32\Wonders98
+copy includes.dat pack-cl-32\Wonders98
 copy %IWON% pack-cl-32\Wonders98
 
 rem WondersMe
@@ -24,6 +25,7 @@ copy WondersMe\*-cl-32-*.dat pack-cl-32\WondersMe
 copy dll-info-32.dat pack-cl-32\WondersMe
 copy misc_batches\iwonit-cl-32-a.bat pack-cl-32\WondersMe
 copy misc_batches\iwonit-cl-32-w.bat pack-cl-32\WondersMe
+copy includes.dat pack-cl-32\WondersMe
 copy %IWON% pack-cl-32\WondersMe
 
 rem Wonders2000
@@ -31,6 +33,7 @@ copy Wonders2000\*-cl-32-*.dat pack-cl-32\Wonders2000
 copy dll-info-32.dat pack-cl-32\Wonders2000
 copy misc_batches\iwonit-cl-32-a.bat pack-cl-32\Wonders2000
 copy misc_batches\iwonit-cl-32-w.bat pack-cl-32\Wonders2000
+copy includes.dat pack-cl-32\Wonders2000
 copy %IWON% pack-cl-32\Wonders2000
 
 rem WondersXP
@@ -38,6 +41,7 @@ copy WondersXP\*-cl-32-*.dat pack-cl-32\WondersXP
 copy dll-info-32.dat pack-cl-32\WondersXP
 copy misc_batches\iwonit-cl-32-a.bat pack-cl-32\WondersXP
 copy misc_batches\iwonit-cl-32-w.bat pack-cl-32\WondersXP
+copy includes.dat pack-cl-32\WondersXP
 copy %IWON% pack-cl-32\WondersXP
 
 rem WondersVista
@@ -45,6 +49,7 @@ copy WondersVista\*-cl-32-*.dat pack-cl-32\WondersVista
 copy dll-info-32.dat pack-cl-32\WondersVista
 copy misc_batches\iwonit-cl-32-a.bat pack-cl-32\WondersVista
 copy misc_batches\iwonit-cl-32-w.bat pack-cl-32\WondersVista
+copy includes.dat pack-cl-32\WondersVista
 copy %IWON% pack-cl-32\WondersVista
 
 rem Wonders7
@@ -52,6 +57,7 @@ copy Wonders7\*-cl-32-*.dat pack-cl-32\Wonders7
 copy dll-info-32.dat pack-cl-32\Wonders7
 copy misc_batches\iwonit-cl-32-a.bat pack-cl-32\Wonders7
 copy misc_batches\iwonit-cl-32-w.bat pack-cl-32\Wonders7
+copy includes.dat pack-cl-32\Wonders7
 copy %IWON% pack-cl-32\Wonders7
 
 rem Wonders8.1
@@ -59,6 +65,7 @@ copy Wonders8.1\*-cl-32-*.dat pack-cl-32\Wonders8.1
 copy dll-info-32.dat pack-cl-32\Wonders8.1
 copy misc_batches\iwonit-cl-32-a.bat pack-cl-32\Wonders8.1
 copy misc_batches\iwonit-cl-32-w.bat pack-cl-32\Wonders8.1
+copy includes.dat pack-cl-32\Wonders8.1
 copy %IWON% pack-cl-32\Wonders8.1
 
 exit /b 0

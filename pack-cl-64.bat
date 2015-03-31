@@ -14,6 +14,7 @@ copy WondersXP\*-cl-64-*.dat pack-cl-64\WondersXP
 copy dll-info-64.dat pack-cl-64\WondersXP
 copy misc_batches\iwonit-cl-64-a.bat pack-cl-64\WondersXP
 copy misc_batches\iwonit-cl-64-w.bat pack-cl-64\WondersXP
+copy includes.dat pack-cl-64\WondersXP
 copy %IWON% pack-cl-64\WondersXP
 
 rem WondersVista
@@ -21,6 +22,7 @@ copy WondersVista\*-cl-64-*.dat pack-cl-64\WondersVista
 copy dll-info-64.dat pack-cl-64\WondersVista
 copy misc_batches\iwonit-cl-64-a.bat pack-cl-64\WondersVista
 copy misc_batches\iwonit-cl-64-w.bat pack-cl-64\WondersVista
+copy includes.dat pack-cl-64\WondersVista
 copy %IWON% pack-cl-64\WondersVista
 
 rem Wonders7
@@ -28,6 +30,7 @@ copy Wonders7\*-cl-64-*.dat pack-cl-64\Wonders7
 copy dll-info-64.dat pack-cl-64\Wonders7
 copy misc_batches\iwonit-cl-64-a.bat pack-cl-64\Wonders7
 copy misc_batches\iwonit-cl-64-w.bat pack-cl-64\Wonders7
+copy includes.dat pack-cl-64\Wonders7
 copy %IWON% pack-cl-64\Wonders7
 
 rem Wonders8.1
@@ -35,6 +38,7 @@ copy Wonders8.1\*-cl-64-*.dat pack-cl-64\Wonders8.1
 copy dll-info-64.dat pack-cl-64\Wonders8.1
 copy misc_batches\iwonit-cl-64-a.bat pack-cl-64\Wonders8.1
 copy misc_batches\iwonit-cl-64-w.bat pack-cl-64\Wonders8.1
+copy includes.dat pack-cl-64\Wonders8.1
 copy %IWON% pack-cl-64\Wonders8.1
 
 exit /b 0
