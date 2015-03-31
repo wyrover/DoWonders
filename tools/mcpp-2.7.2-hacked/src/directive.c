@@ -1561,41 +1561,6 @@ DEFBUF *    install_macro(
         cwarn( "More than %.0s%ld macros defined"           /* _W4_ */
                 , NULL , std_limits.n_macro, NULL);
 
-    /* hacked by katahiromz */
-    if ((mcpp_debug & MACRO_DEF)) {
-        char *replaced, *replaced2, *replaced3, *replaced4, *replaced5;
-        char *params[64];
-        int i, nargs = dp->nargs;
-
-        if (nargs == -770) {
-            nargs = -1;
-        } else if (nargs < 0) {
-            nargs = 0;
-        } else {
-            nargs &= 0x7F;
-        }
-        for (i = 0; i < 64; ++i) params[i] = NULL;
-
-        do_macro_params(params, dp->parmnames);
-        #if 0
-            for (i = 0; i < nargs; i++) {
-                printf("!!: %s\n", params[i]);
-            }
-        #endif
-        replaced = str_replace(dp->repl, "\t", " ");
-        replaced2 = str_replace(replaced, "\n", " ");
-        replaced3 = str_replace(replaced2, "\r", " ");
-        replaced4 = do_macro_repl(nargs, params, replaced3);
-        mcpp_fprintf( OUT, "%s\t%d\t%s\t%s\t%s\t%ld\n", dp->name, nargs,
-                      dp->parmnames, replaced4, dp->fname, dp->mline);
-
-        free_macro_params(nargs, params);
-        free(replaced);
-        free(replaced2);
-        free(replaced3);
-        free(replaced4);
-    }
-
     return  dp;
 }
 
@@ -1846,3 +1811,54 @@ void    clear_symtable( void)
 }
 #endif
 
+/* hacked by katahiromz */
+void     output_macro(DEFBUF *dp)
+{
+    char *replaced, *replaced2, *replaced3, *replaced4;
+    char *params[64];
+    int i, nargs = dp->nargs;
+
+    if (nargs == -770) {
+        nargs = -1;
+    } else if (nargs < 0) {
+        nargs = 0;
+    } else {
+        nargs &= 0x7F;
+    }
+    for (i = 0; i < 64; ++i) params[i] = NULL;
+
+    do_macro_params(params, dp->parmnames);
+    #if 0
+        for (i = 0; i < nargs; i++) {
+            printf("!!: %s\n", params[i]);
+        }
+    #endif
+    replaced = str_replace(dp->repl, "\t", " ");
+    replaced2 = str_replace(replaced, "\n", " ");
+    replaced3 = str_replace(replaced2, "\r", " ");
+    replaced4 = do_macro_repl(nargs, params, replaced3);
+    printf("%s\t%d\t%s\t%s\t%s\t%ld\n", dp->name, nargs,
+           dp->parmnames, replaced4, dp->fname, dp->mline);
+
+    free_macro_params(nargs, params);
+    free(replaced);
+    free(replaced2);
+    free(replaced3);
+    free(replaced4);
+}
+
+/* hacked by katahiromz */
+void     output_all_macros( void)
+{
+    DEFBUF *    next;
+    DEFBUF *    dp;
+    DEFBUF **   symp;
+
+    for (symp = symtab; symp < &symtab[ SBSIZE]; symp++) {
+        for (next = *symp; next != NULL; ) {
+            dp = next;
+            next = dp->link;
+            output_macro(dp);
+        }
+    }
+}

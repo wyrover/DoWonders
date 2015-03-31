@@ -829,10 +829,15 @@ plus:
 
         case '!':
             /* hacked by katahiromz */
+            /* -! */
             mcpp_debug |= MACRO_DEF;
             option_flags.z = TRUE;  /* No output of included file   */
             option_flags.p = TRUE;  /* No output of #line           */
             no_output = 1;
+            /* data format version */
+            printf("1\n");
+            /* header */
+            printf("(name)\t(num_params)\t(params)\t(contents)\t(file)\t(line)\n");
             break;
 
         case 'K':
@@ -905,6 +910,24 @@ plus:
             }
             mkdep |= MD_MKDEP;
             break;
+
+/* hacked by katahiromz */
+#if COMPILER == MSC
+        case 'm':
+            if (str_eq( mcpp_optarg, "64")) {               /* -m64 */
+                if (str_eq( CPU, "i386"))
+                    strcpy( arch, "x86_64");
+                /* Else ignore  */
+                break;
+            } else if (str_eq( mcpp_optarg, "32")) {        /* -m32 */
+                if (str_eq( CPU, "x86_64"))
+                    strcpy( arch, "i386");
+                /* Else ignore  */
+                break;
+            }
+            usage(opt);
+            break;
+#endif  /* COMPILER == MSC */
 
 #if SYS_FAMILY == SYS_UNIX
         case 'm':
@@ -1479,6 +1502,11 @@ static void usage(
 "-j          Don't output the source line in diagnostics.\n",
 "-M, -MM, -MD, -MMD, -MP, -MQ target, -MT target, -MF file\n",
 "            Output source file dependency line for makefile.\n",
+/* hacked by katahiromz */
+#if COMPILER == MSC
+"-m32        Change target CPU from x86_64 to i386.\n",
+"-m64        Change target CPU from i386 to x86_64.\n",
+#endif
 #if SYS_FAMILY == SYS_UNIX
 "-m32        Change target CPU from x86_64, ppc64 to i386, ppc, respectively.\n",
 "-m64        Change target CPU from i386, ppc to x86_64, ppc64, respectively.\n",
@@ -1627,7 +1655,8 @@ static void set_opt_list(
     "b",
 #endif
 
-#if SYS_FAMILY == SYS_UNIX
+/* hacked by katahiromz */
+#if SYS_FAMILY == SYS_UNIX || COMPILER == MSC
     "m:",
 #endif
 

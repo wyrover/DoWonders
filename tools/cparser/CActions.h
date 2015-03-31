@@ -8,7 +8,7 @@
 #ifndef PARSERSITE_H_
 #define PARSERSITE_H_
 
-#define DEEPDEBUG
+//#define DEEPDEBUG
 
 namespace cparser
 {

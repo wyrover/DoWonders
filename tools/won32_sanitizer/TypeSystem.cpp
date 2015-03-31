@@ -3364,7 +3364,7 @@ CR_NameScope::SConstant(const std::string& text, const std::string& extra) {
     if (extra.find("L") != std::string::npos ||
         extra.find("l") != std::string::npos)
     {
-        std::wstring wstr = MAnsiToWide(text.data()).data();
+        auto wstr = MAnsiToWide(text.data(), int(text.size()));
         ret.m_type_id = AddConstWCharArray(wstr.size() + 1);
         ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
     } else {
@@ -3384,7 +3384,7 @@ CR_NameScope::SConstant(CR_TypeID tid, const std::string& text, const std::strin
     if (extra.find("L") != std::string::npos ||
         extra.find("l") != std::string::npos)
     {
-        std::wstring wstr = MAnsiToWide(text.data()).data();
+        auto wstr = MAnsiToWide(text.data(), int(text.size()));
         ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
     }
     else {
@@ -3556,8 +3556,8 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in1, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
-            std::cerr << "ERROR: File '" << fname <<
-                "' has different format version. I couldn't load it." << std::endl;
+            ErrorInfo()->add_error("File '" + fname +
+                "' has different format version. Failed.");
             return false;
         }
         // skip header
@@ -3569,7 +3569,7 @@ bool CR_NameScope::LoadFromFiles(
             katahiromz::splitbychar(fields, line, '\t');
 
             if (fields.size() != 12) {
-                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
 
@@ -3581,9 +3581,9 @@ bool CR_NameScope::LoadFromFiles(
             int size = std::stol(fields[5], NULL, 0);
             int align = std::stol(fields[6], NULL, 0);
             int alignas_ = std::stol(fields[7], NULL, 0);
-			bool alignas_explicit = !!std::stol(fields[8], NULL, 0);
-			bool is_macro = !!std::stol(fields[9], NULL, 0);
-			std::string file = fields[10];
+            bool alignas_explicit = !!std::stol(fields[8], NULL, 0);
+            bool is_macro = !!std::stol(fields[9], NULL, 0);
+            std::string file = fields[10];
             int lineno = std::stol(fields[11], NULL, 0);
 
             if (name.size()) {
@@ -3600,12 +3600,11 @@ bool CR_NameScope::LoadFromFiles(
             type.m_alignas = alignas_;
             type.m_alignas_explicit = alignas_explicit;
             type.m_location.set(file, lineno);
-			type.m_is_macro = is_macro;
+            type.m_is_macro = is_macro;
             m_types.emplace_back(type);
         }
     } else {
-        std::cerr << "ERROR: cannot load file '" << fname <<
-                     "'" << std::endl;
+        ErrorInfo()->add_error("cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3616,8 +3615,8 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in2, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
-            std::cerr << "ERROR: File '" << fname <<
-                "' has different format version. I couldn't load it." << std::endl;
+            ErrorInfo()->add_error("File '" + fname +
+                "' has different format version. Failed.");
             return false;
         }
         // skip header
@@ -3629,7 +3628,7 @@ bool CR_NameScope::LoadFromFiles(
             katahiromz::splitbychar(fields, line, '\t');
 
             if (fields.size() < 13) {
-                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
 
@@ -3648,7 +3647,7 @@ bool CR_NameScope::LoadFromFiles(
             //int lineno = std::stol(fields[12], NULL, 0);
 
             if (fields.size() != 13 + 4 * count) {
-                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
 
@@ -3672,8 +3671,7 @@ bool CR_NameScope::LoadFromFiles(
             m_structs.emplace_back(ls);
         }
     } else {
-        std::cerr << "ERROR: cannot load file '" <<
-                     fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3684,8 +3682,8 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in3, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
-            std::cerr << "ERROR: File '" << fname <<
-                "' has different format version. I couldn't load it." << std::endl;
+            ErrorInfo()->add_error("File '" + fname +
+                "' has different format version. Failed.");
             return false;
         }
         // skip header
@@ -3697,7 +3695,7 @@ bool CR_NameScope::LoadFromFiles(
             katahiromz::splitbychar(fields, line, '\t');
 
             if (fields.size() < 2) {
-                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
 
@@ -3705,7 +3703,7 @@ bool CR_NameScope::LoadFromFiles(
             int num_items = std::stol(fields[1], NULL, 0);
 
             if (fields.size() != 2 + num_items * 2) {
-                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
 
@@ -3720,8 +3718,7 @@ bool CR_NameScope::LoadFromFiles(
             m_enums.emplace_back(le);
         }
     } else {
-        std::cerr << "ERROR: cannot load file '" <<
-                     fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3732,8 +3729,8 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in4, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
-            std::cerr << "ERROR: File '" << fname <<
-                "' has different format version. I couldn't load it." << std::endl;
+            ErrorInfo()->add_error("File '" + fname +
+                "' has different format version. Failed.");
             return false;
         }
         // skip header
@@ -3745,7 +3742,7 @@ bool CR_NameScope::LoadFromFiles(
             katahiromz::splitbychar(fields, line, '\t');
 
             if (fields.size() < 5) {
-                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
 
@@ -3766,7 +3763,7 @@ bool CR_NameScope::LoadFromFiles(
             }
 
             if (fields.size() != 5 + param_count * 2) {
-                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
 
@@ -3779,8 +3776,7 @@ bool CR_NameScope::LoadFromFiles(
             m_funcs.emplace_back(func);
         }
     } else {
-        std::cerr << "ERROR: cannot load file '" <<
-                     fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3791,8 +3787,8 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in5, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
-            std::cerr << "ERROR: File '" << fname <<
-                "' has different format version. I couldn't load it." << std::endl;
+            ErrorInfo()->add_error("File '" + fname +
+                "' has different format version. Failed.");
             return false;
         }
         // skip header
@@ -3804,7 +3800,7 @@ bool CR_NameScope::LoadFromFiles(
             katahiromz::splitbychar(fields, line, '\t');
 
             if (fields.size() != 9) {
-                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
 
@@ -3853,8 +3849,7 @@ bool CR_NameScope::LoadFromFiles(
             }
         }
     } else {
-        std::cerr << "ERROR: cannot load file '" <<
-                     fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3865,8 +3860,8 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in6, line);
         int version = std::stoi(line);
         if (version != cr_data_version) {
-            std::cerr << "ERROR: File '" << fname <<
-                "' has different format version. I couldn't load it." << std::endl;
+            ErrorInfo()->add_error("File '" + fname +
+                "' has different format version. Failed.");
             return false;
         }
         // skip header
@@ -3878,7 +3873,7 @@ bool CR_NameScope::LoadFromFiles(
             katahiromz::splitbychar(fields, line, '\t');
 
             if (fields.size() != 4) {
-                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
 
@@ -3895,8 +3890,7 @@ bool CR_NameScope::LoadFromFiles(
             m_mNameToName.emplace(name1, name2name);
         }
     } else {
-        std::cerr << "ERROR: cannot load file '" <<
-                     fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3951,8 +3945,7 @@ bool CR_NameScope::SaveToFiles(
                 lineno << std::endl;
         }
     } else {
-        std::cerr << "ERROR: cannot write file '" <<
-            fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot write file '" + fname + "'");
         return false;
     }
 
@@ -4006,8 +3999,7 @@ bool CR_NameScope::SaveToFiles(
             out2 << std::endl;
         }
     } else {
-        std::cerr << "ERROR: cannot write file '" <<
-            fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot write file '" + fname + "'");
         return false;
     }
 
@@ -4032,8 +4024,7 @@ bool CR_NameScope::SaveToFiles(
             out3 << std::endl;
         }
     } else {
-        std::cerr << "ERROR: cannot write file '" <<
-            fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot write file '" + fname + "'");
         return false;
     }
 
@@ -4061,8 +4052,7 @@ bool CR_NameScope::SaveToFiles(
             out4 << std::endl;
         }
     } else {
-        std::cerr << "ERROR: cannot write file '" <<
-            fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot write file '" + fname + "'");
         return false;
     }
 
@@ -4125,8 +4115,7 @@ bool CR_NameScope::SaveToFiles(
                 location.m_line << std::endl;
         }
     } else {
-        std::cerr << "ERROR: cannot write file '" <<
-            fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot write file '" + fname + "'");
         return false;
     }
 
@@ -4143,8 +4132,7 @@ bool CR_NameScope::SaveToFiles(
                 it.second.m_location.m_line << std::endl;
         }
     } else {
-        std::cerr << "ERROR: cannot write file '" <<
-            fname << "'" << std::endl;
+        ErrorInfo()->add_error("cannot write file '" + fname + "'");
         return false;
     }
 

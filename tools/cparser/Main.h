@@ -208,14 +208,6 @@ struct CR_Macro {
     CR_Macro() : m_num_params(0), m_ellipsis(false) { }
 };
 
-inline bool operator==(const CR_Macro& m1, const CR_Macro& m2) {
-    return
-        m1.m_num_params == m2.m_num_params &&
-        m1.m_params == m2.m_params &&
-        m1.m_contents == m2.m_contents &&
-        m1.m_ellipsis == m2.m_ellipsis;
-}
-
 typedef std::unordered_map<std::string,CR_Macro> CR_MacroSet;
 
 ////////////////////////////////////////////////////////////////////////////

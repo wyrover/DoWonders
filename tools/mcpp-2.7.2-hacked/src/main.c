@@ -432,6 +432,11 @@ int     main
     at_end();                       /* Do the final commands        */
 
 fatal_error_exit:
+    /* hacked by katahiromz */
+    if ((mcpp_debug & MACRO_DEF)) {
+        output_all_macros();
+    }
+
 #if MCPP_LIB
     /* Free malloced memory */
     if (mcpp_debug & MACRO_CALL) {

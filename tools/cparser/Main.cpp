@@ -2217,7 +2217,7 @@ CR_TypedValue CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
         return CrCalcSizeOfExpr(namescope, pe->m_expr.get());
 
     default:
-		return CR_TypedValue();
+        return CR_TypedValue();
     }
 }
 
@@ -3140,7 +3140,7 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                          DeclorList *dl)
 {
     assert(dl);
-	CR_TypedValue value;
+    CR_TypedValue value;
     for (auto& declor : *dl) {
         CR_TypeID tid2 = tid;
 
@@ -3155,11 +3155,12 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
             case Declor::IDENTIFIER:
                 if (d->m_flags && namescope.IsFuncType(tid2))
                     namescope.AddTypeFlags(tid2, d->m_flags);
-				if (namescope.HasValue(value)) {
-					namescope.AddVar(d->m_name, tid2, d->m_location, value);
-				} else {
-					namescope.AddVar(d->m_name, tid2, d->m_location);
-				}
+                if (namescope.HasValue(value)) {
+                    namescope.AddVar(d->m_name, tid2, d->m_location, value);
+                } else {
+                    namescope.AddVar(d->m_name, tid2, d->m_location);
+                }
+				value.clear();
                 #ifdef DEEPDEBUG
                     printf("#%s\n", namescope.StringOfType(tid2, d->m_name).data());
                 #endif
@@ -3172,10 +3173,10 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     auto ac = (*pointers)[0];
                     namescope.AddTypeFlags(tid2, ac->m_flags);
                 }
-				if (d->m_initer.get()) {
-					value = CrValueOnIniter(namescope, d->m_initer.get());
-				}
-				tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, d->m_location);
+                if (d->m_initer.get()) {
+                    value = CrValueOnIniter(namescope, d->m_initer.get());
+                }
+                tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, d->m_location);
                 d = d->m_declor.get();
                 break;
 
@@ -3187,14 +3188,14 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 } else {
                     int_value = 0;
                 }
-				if (d->m_initer.get()) {
-					value = CrValueOnIniter(namescope, d->m_initer.get());
-					if (value.m_extra == "L") {
-						int_value = value.m_size / 2;
-					} else {
-						int_value = value.m_size;
-					}
-				}
+                if (d->m_initer.get()) {
+                    value = CrValueOnIniter(namescope, d->m_initer.get());
+                    if (value.m_extra == "L") {
+                        int_value = int(value.m_size / 2);
+                    } else {
+                        int_value = int(value.m_size);
+                    }
+                }
                 tid2 = namescope.AddArrayType(tid2, int_value, d->m_location);
                 d = d->m_declor.get();
                 continue;
@@ -3969,13 +3970,30 @@ bool CrLoadMacros(
 {
     macro_set.clear();
 
-    std::ifstream in1(prefix + "macros" + suffix);
+    std::string fname = prefix + "macros" + suffix;
+    std::ifstream in1(fname);
     if (in1) {
         std::string line;
+        // version check
+        std::getline(in1, line);
+        int version = std::stoi(line);
+        if (version != cr_data_version) {
+            std::cerr << "ERROR: File '" << fname <<
+                "' has different format version. I couldn't load it." << std::endl;
+            return false;
+        }
+        // skip header
+        std::getline(in1, line);
+        // load body
         for (; std::getline(in1, line); ) {
             CrChop(line);
             std::vector<std::string> fields;
-            katahiromz::split(fields, line, "\t");
+            katahiromz::splitbychar(fields, line, '\t');
+
+            if (fields.size() < 6) {
+                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
+                return false;
+            }
 
             std::string name = fields[0];
             int num_params = std::stoi(fields[1], NULL, 0);
@@ -3984,7 +4002,7 @@ bool CrLoadMacros(
             CrTrimString(contents);
             std::string file = fields[4];
             int lineno = std::stol(fields[5], NULL, 0);
-            CR_Location location(file, lineno);
+
 
             CR_Macro macro;
             if (params.find("...") != std::string::npos) {
@@ -3994,14 +4012,18 @@ bool CrLoadMacros(
             macro.m_num_params = num_params;
             katahiromz::split(macro.m_params, params, ",");
             macro.m_contents = contents;
+
+            CR_Location location(file, lineno);
             macro.m_location = location;
 
             macro_set.emplace(name, macro);
         }
         return true;
+    } else {
+        std::cerr << "ERROR: cannot load file '" << fname <<
+                     "'" << std::endl;
     }
 
-    namescope.ErrorInfo()->add_error("cannot load macros");
     return false;
 }
 
@@ -4546,11 +4568,20 @@ bool CrParseMacros(
                 }
                 type_names->emplace(name);
             } else {
-                // check the macro
-                checked.emplace(name, macro);
+                auto it = namescope.MapNameToVarID().find(expanded);
+                if (it != namescope.MapNameToVarID().end()) {
+					CR_Name2Name name2name;
+					name2name.m_from = name;
+					name2name.m_to = expanded;
+					name2name.m_location = macro.m_location;
+					namescope.MapNameToName().emplace(name, name2name);
+                } else {
+                    // check the macro
+                    checked.emplace(name, macro);
+                }
             }
         }
-        if (checked.empty() || macros == checked) {
+        if (checked.empty() || macros.size() == checked.size()) {
             break;
         }
         std::swap(macros, checked);

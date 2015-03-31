@@ -8,6 +8,9 @@
 #ifndef TYPESYSTEM_H_
 #define TYPESYSTEM_H_
 
+// Wonders data format version
+extern int cr_data_version;
+
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypeFlags --- type flags
 

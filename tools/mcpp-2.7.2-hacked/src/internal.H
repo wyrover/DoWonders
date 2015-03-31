@@ -536,6 +536,10 @@ extern char *   stpcpy( char * dest, const char * src);
                 /* Non-Standard library function*/
 #endif
 
+/* hacked by katahiromz */
+extern void     output_all_macros( void);
+extern void     output_macro(DEFBUF *dp);
+
 #if MCPP_LIB    /* Setting to use mcpp as a subroutine  */
 /* directive.c  */
 extern void     clear_symtable( void);
