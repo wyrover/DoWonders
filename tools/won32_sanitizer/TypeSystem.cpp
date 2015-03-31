@@ -2800,7 +2800,7 @@ CR_NameScope::And(const CR_TypedValue& value1,
 {
     CR_TypedValue v1 = value1, v2 = value2;
     auto ret = BiOpInt(v1, v2);
-    if (ret.m_type_id != cr_invalid_id) {
+    if (ret.m_type_id != cr_invalid_id && HasValue(v1) && HasValue(v2)) {
         if (IsIntegralType(ret.m_type_id)) {
             auto n1 = GetLongLongValue(v1);
             auto n2 = GetLongLongValue(v2);
@@ -2820,7 +2820,7 @@ CR_NameScope::Or(const CR_TypedValue& value1,
 {
     CR_TypedValue v1 = value1, v2 = value2;
     auto ret = BiOpInt(v1, v2);
-    if (ret.m_type_id != cr_invalid_id) {
+    if (ret.m_type_id != cr_invalid_id && HasValue(v1) && HasValue(v2)) {
         if (IsIntegralType(ret.m_type_id)) {
             auto n1 = GetLongLongValue(v1);
             auto n2 = GetLongLongValue(v2);
@@ -2840,7 +2840,7 @@ CR_NameScope::Xor(const CR_TypedValue& value1,
 {
     CR_TypedValue v1 = value1, v2 = value2;
     auto ret = BiOpInt(v1, v2);
-    if (ret.m_type_id != cr_invalid_id) {
+    if (ret.m_type_id != cr_invalid_id && HasValue(v1) && HasValue(v2)) {
         if (IsIntegralType(ret.m_type_id)) {
             auto n1 = GetLongLongValue(v1);
             auto n2 = GetLongLongValue(v2);

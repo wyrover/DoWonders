@@ -45,9 +45,9 @@ enum {
 
 #define ProcThreadAttributeValue(Number, Thread, Input, Additive) \
     (((Number) & PROC_THREAD_ATTRIBUTE_NUMBER) | \
-     ((Thread != FALSE) ? PROC_THREAD_ATTRIBUTE_THREAD : 0) | \
-     ((Input != FALSE) ? PROC_THREAD_ATTRIBUTE_INPUT : 0) | \
-     ((Additive != FALSE) ? PROC_THREAD_ATTRIBUTE_ADDITIVE : 0))
+     ((Thread != 0) ? PROC_THREAD_ATTRIBUTE_THREAD : 0) | \
+     ((Input != 0) ? PROC_THREAD_ATTRIBUTE_INPUT : 0) | \
+     ((Additive != 0) ? PROC_THREAD_ATTRIBUTE_ADDITIVE : 0))
 
 #define PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL \
     ProcThreadAttributeValue (ProcThreadAttributeProtectionLevel, 0, 1, 0)

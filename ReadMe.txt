@@ -27,12 +27,13 @@ there are 4 ways to build:
     * x64 + Debug
     * x64 + Release
 
-If build of tools was ended, execute "do-wonders-cl-64.bat" on 64-bit Visual
+If build of tools was ended, edit version number of the batch file 
+msc_ver.bat. And then execute "do-wonders-cl-64.bat" on 64-bit Visual
 Studio (VS) command prompt (x64), and/or execute "do-wonders-cl-32.bat" on 
 32-bit VS command prompt (x86).  Then, construction of Win32 API database 
 will begin.
 
-If everything was ended, some ".dat" files will be generated. Use them for
+If everything was ended, some ".dat" files will be created. Use them for
 free.
 
 You can check the database by "sanitize-cl-32.bat" or "sanitize-cl-64.bat".

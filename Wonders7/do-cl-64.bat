@@ -1,5 +1,7 @@
 @echo off
 
+call ..\msc_ver.bat
+
 SET REDIRECTOR=..\tools\redirector\x64\Release\redirector64.exe
 if not exist %REDIRECTOR% goto label_no_redirector64
 
@@ -9,7 +11,7 @@ if not exist %MCPP% goto label_no_mcpp
 SET CPARSER=..\tools\cparser\x64\Release\cparser64.exe
 if not exist %CPARSER% goto label_no_cparser64
 
-SET PREDEF_COMMON=-D_M_X64=100 -D_M_AMD64=100 -D_MT=1 -D_WIN32=1 -D_MSC_VER=1800 -D_MSC_FULL_VER=180021005 -D_WIN64=1
+SET PREDEF_COMMON=-D_M_X64=100 -D_M_AMD64=100 -D_MT=1 -D_WIN32=1 -D_WIN64=1 %MSC_VER%
 
 %REDIRECTOR% nul macros-cl-64-a.dat macros-cl-64-a.log %MCPP% %PREDEF_COMMON% -m64 -DMBCS -D_MBCS -! win32.h
 %REDIRECTOR% nul macros-cl-64-w.dat macros-cl-64-w.log %MCPP% %PREDEF_COMMON% -m64 -DUNICODE -D_UNICODE -! win32.h

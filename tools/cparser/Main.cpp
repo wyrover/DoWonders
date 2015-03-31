@@ -2720,11 +2720,16 @@ CR_TypedValue CrValueOnInclOrExpr(CR_NameScope& namescope, InclOrExpr *ioe) {
     if (ioe->size() == 1) {
         ret = CrValueOnExclOrExpr(namescope, (*ioe)[0].get());
     } else {
-        namescope.IntZero(ret);
+        CR_TypedValue tmp;
+        namescope.IntZero(tmp);
         for (auto& eoe : *ioe) {
-            ret = namescope.Or(
-                ret, CrValueOnExclOrExpr(namescope, eoe.get()));
+            auto value = CrValueOnExclOrExpr(namescope, eoe.get());
+            if (!namescope.HasValue(value)) {
+                return ret;
+            }
+            tmp = namescope.Or(tmp, value);
         }
+        ret = tmp;
     }
     #ifdef DEEPDEBUG
         printf("CrValueOnInclOrExpr: \"%s\"\n", ret.m_text.data());
@@ -2887,10 +2892,12 @@ CR_TypedValue CrValueOnCondExpr(CR_NameScope& namescope, CondExpr *ce) {
 
     case CondExpr::QUESTION:
         ret = CrValueOnLogOrExpr(namescope, ce->m_log_or_expr.get());
-        if (namescope.GetIntValue(ret) != 0) {
-            ret = CrValueOnExpr(namescope, ce->m_expr.get());
-        } else {
-            ret = CrValueOnCondExpr(namescope, ce->m_cond_expr.get());
+        if (namescope.HasValue(ret)) {
+            if (namescope.GetIntValue(ret) != 0) {
+                ret = CrValueOnExpr(namescope, ce->m_expr.get());
+            } else {
+                ret = CrValueOnCondExpr(namescope, ce->m_cond_expr.get());
+            }
         }
         break;
 
@@ -3160,7 +3167,7 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 } else {
                     namescope.AddVar(d->m_name, tid2, d->m_location);
                 }
-				value.clear();
+                value.clear();
                 #ifdef DEEPDEBUG
                     printf("#%s\n", namescope.StringOfType(tid2, d->m_name).data());
                 #endif
@@ -4482,9 +4489,8 @@ bool CrParseMacros(
     const std::string& prefix, const std::string& suffix,
     bool is_64bit = false)
 {
-    CR_MacroSet macros, checked;
-
     // load macros
+    CR_MacroSet macros;
     if (!CrLoadMacros(namescope, macros, prefix, suffix, is_64bit)) {
         return false;
     }
@@ -4503,9 +4509,13 @@ bool CrParseMacros(
     auto error_info_saved = namescope.ErrorInfo();
     namescope.ErrorInfo() = make_shared<CR_ErrorInfo>();
 
+    // set targets
+    CR_MacroSet checked, targets = macros;
+
+    // for all targets
     for (;;) {
-        auto end = macros.end();
-        for (auto it = macros.begin(); it != end; ++it) {
+        auto end = targets.end();
+        for (auto it = targets.begin(); it != end; ++it) {
             auto& name = it->first;
             auto& macro = it->second;
 
@@ -4570,21 +4580,23 @@ bool CrParseMacros(
             } else {
                 auto it = namescope.MapNameToVarID().find(expanded);
                 if (it != namescope.MapNameToVarID().end()) {
-					CR_Name2Name name2name;
-					name2name.m_from = name;
-					name2name.m_to = expanded;
-					name2name.m_location = macro.m_location;
-					namescope.MapNameToName().emplace(name, name2name);
+                    CR_Name2Name name2name;
+                    name2name.m_from = name;
+                    name2name.m_to = expanded;
+                    name2name.m_location = macro.m_location;
+                    namescope.MapNameToName().emplace(name, name2name);
                 } else {
                     // check the macro
                     checked.emplace(name, macro);
                 }
             }
         }
-        if (checked.empty() || macros.size() == checked.size()) {
+        if (checked.empty() || targets.size() == checked.size()) {
             break;
         }
-        std::swap(macros, checked);
+        // make checked macros targets
+        std::swap(targets, checked);
+        // clear checked
         checked.clear();
     }
 
