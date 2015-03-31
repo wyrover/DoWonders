@@ -5,6 +5,10 @@
                               by katahiromz
                       ------------------------------
 
+
+
+
+
 +--------+
 |ABSTRACT|
 +--------+
@@ -15,6 +19,29 @@ DoWonders contains C / Win32 parser (cparser), a hacked C preprocessor
 
 cparser extracts type information on Win32 API. mcpp-hacked extracts macro 
 information. dllexpdumper extracts DLL information.
+
++------+
+|STATUS|
++------+
+
+We tested on Visual C++ 2013 Express.
+
+    --------------------
+               C O N G R A T U L A T I O N !!!
+                                    ------------------
+
+ALMOST ALL INFORMATION OF WIN32 API HAVE BEEN UNVEILED!
+TYPES, STRUCTURES, FUNCTIONS, MACROS, AND EVERYTHING.
+
+You can download all data with iwonit program (Won32 interactive).
+
+    Wonders98 data
+    WondersMe data
+    Wonders2000 data
+    WondersXP data
+    WondersVista data
+    Wonders7 data
+    Wonders8.1 data
 
 +-----+
 |USAGE|
@@ -38,28 +65,23 @@ free.
 
 You can check the database by "sanitize-cl-32.bat" or "sanitize-cl-64.bat".
 
-+------+
-|STATUS|
-+------+
-We are testing on Visual C++ 2013 and TDM-GCC-64 + MSYS.
-
-Now I have implemented "typed values" and I am sanitizing API Database.
-
-NOTE: We couldn't sanitize database on GCC, because GCC and MinGW contains 
-      specific bugs and differences from Visual C++. We just trust Visual 
-      C++'s behavior. See file "GCC-BUGS.txt" about GCC's bugs.
 
 +-----+
 |TO DO|
 +-----+
- * Improve C parser.
  * Create a Web site of the Win32 API database.
  * Provide accessibility to Win32 API for major languages.
  * Create a new Win32 API world.
 
++----------+
+|TRADEMARKS|
++----------+
+
+Microsoft, Windows and Win32 API are registered trademarks of Microsoft 
+Corporation.
 
 /////////////////////////////////////////////////////
-// Katayama Hirofumi MZ (katahiromz) [THE ARMY ANT]
+// Katayama Hirofumi MZ (katahiromz) [ARMYANT]
 // Homepage     http://katahiromz.web.fc2.com/eindex.html
 // BBS          http://katahiromz.bbs.fc2.com/
 // E-Mail       katayama.hirofumi.mz@gmail.com

@@ -33,6 +33,15 @@ void CrTrimString(std::string& str) {
     }
 }
 
+void IwShowLogo(void) {
+    std::cerr <<
+        "############################################" << std::endl <<
+        "# iwon --- Won32 interactive by katahiromz #" << std::endl <<
+        "# Wonders API Database (Won32)             #" << std::endl <<
+        "# katayama.hirofumi.mz@gmail.com           #" << std::endl <<
+        "############################################" << std::endl;
+}
+
 void IwShowHelp(void) {
     std::cout <<
         "iwon --- Won32 interactive" << std::endl <<
@@ -227,13 +236,13 @@ bool IwJustDoIt(
         std::cerr << "ERROR: cannot load data" << std::endl;
         return false;
     }
-    std::cout << "Loaded." << std::endl << std::endl;
+    std::cout << "Loaded." << std::endl;
 
     if (target.size()) {
         return IwJustDoIt(ns, target);
     } else {
+        std::cout << "You are welcome!" << std::endl;
         std::cout << "Enter 'quit' to quit." << std::endl;
-        std::cout << std::endl;
         std::string line;
         for (;;) {
             std::cout << std::endl;
@@ -287,7 +296,12 @@ int main(int argc, char **argv) {
                          "'." << std::endl;
             return 1;
         } else {
-            target = argv[i];
+            if (target.empty()) {
+                target = argv[i];
+            } else {
+                target += " ";
+                target += argv[i];
+            }
         }
     }
 
@@ -301,6 +315,9 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    if (target.empty()) {
+        IwShowLogo();
+    }
     IwJustDoIt(prefix, suffix, target);
 
     return 0;
