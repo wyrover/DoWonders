@@ -1567,7 +1567,8 @@ bool CR_NameScope::IsFuncType(CR_TypeID tid) const {
     if (tid == cr_invalid_id)
         return false;
     tid = ResolveAlias(tid);
-    if (LogType(tid).m_flags & TF_FUNCTION)
+    const CR_TypeFlags flags = (TF_ALIAS | TF_FUNCTION);
+    if ((LogType(tid).m_flags & flags) == TF_FUNCTION)
         return true;
     return false;
 } // IsFuncType
@@ -3333,12 +3334,15 @@ CR_NameScope::FConstant(const std::string& text, const std::string& extra) {
         } else {
             ret.m_text = "-INF";
         }
+        ret.m_extra = "";
     } else if (std::isnan(ld)) {
         ret.m_text = "NAN";
+        ret.m_extra = "";
     } else {
         char buf[512];
         std::sprintf(buf, "%Lg", ld);
         ret.m_text = buf;
+        ret.m_extra = extra;
     }
     return ret;
 }
@@ -3839,6 +3843,8 @@ bool CR_NameScope::LoadFromFiles(
                 var.m_typed_value = SConstant(type_id, text, extra);
             } else if (text.size() && value_type == "p" && IsPointerType(type_id)) {
                 var.m_typed_value = PConstant(type_id, text, extra);
+            } else {
+                var.m_typed_value.m_type_id = type_id;
             }
             var.m_typed_value.m_extra = extra;
             var.m_location.set(file, lineno);

@@ -338,8 +338,10 @@ std::string CrGutsFloatingSuffix(const char *& it, CR_TypeFlags& flags) {
         if (*it == 'f' || *it == 'F') {
             flags &= ~TF_DOUBLE;
             flags |= TF_FLOAT;
+            ret = "F";
         } else if (*it == 'l' || *it == 'L') {
             flags |= TF_LONG | TF_DOUBLE;
+            ret = "L";
         } else {
             break;
         }
@@ -4578,17 +4580,8 @@ bool CrParseMacros(
                 }
                 type_names->emplace(name);
             } else {
-                auto it = namescope.MapNameToVarID().find(expanded);
-                if (it != namescope.MapNameToVarID().end()) {
-                    CR_Name2Name name2name;
-                    name2name.m_from = name;
-                    name2name.m_to = expanded;
-                    name2name.m_location = macro.m_location;
-                    namescope.MapNameToName().emplace(name, name2name);
-                } else {
-                    // check the macro
-                    checked.emplace(name, macro);
-                }
+                // check the macro
+                checked.emplace(name, macro);
             }
         }
         if (checked.empty() || targets.size() == checked.size()) {
@@ -4598,6 +4591,28 @@ bool CrParseMacros(
         std::swap(targets, checked);
         // clear checked
         checked.clear();
+    }
+
+    auto end = checked.end();
+    for (auto it = checked.begin(); it != end; ++it) {
+        auto& name = it->first;
+        auto& macro = it->second;
+
+        // expand macro
+        auto expanded = CrExpandMacro(macros, name, macro.m_contents);
+        CrTrimString(expanded);
+        if (expanded.empty() || expanded == name) {
+            continue;
+        }
+
+        auto it2 = namescope.MapNameToVarID().find(expanded);
+        if (it2 != namescope.MapNameToVarID().end()) {
+            CR_Name2Name name2name;
+            name2name.m_from = name;
+            name2name.m_to = expanded;
+            name2name.m_location = macro.m_location;
+            namescope.MapNameToName().emplace(name, name2name);
+        }
     }
 
     namescope.ErrorInfo() = error_info_saved;

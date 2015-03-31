@@ -59,6 +59,7 @@ void IwShowVersion(void) {
 
 bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
     bool ret = false;
+    // type
     {
         auto it = ns.MapNameToTypeID().find(target);
         if (it != ns.MapNameToTypeID().end()) {
@@ -127,41 +128,76 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
             ret = true;
         }
     }
+    // variable or function
     {
         auto it = ns.MapNameToVarID().find(target);
         if (it != ns.MapNameToVarID().end()) {
             auto vid = it->second;
             auto& var = ns.LogVar(vid);
             auto& value = var.m_typed_value;
-            auto tid = ns.ResolveAlias(value.m_type_id);
-            auto& type = ns.LogType(tid);
-            if (ns.IsFuncType(tid)) {
+            auto tid = value.m_type_id;
+            auto rtid = tid;
+            if (tid != cr_invalid_id) {
+                rtid = ns.ResolveAlias(tid);
+            }
+            if (ns.IsFuncType(rtid)) {
                 // function
                 std::cout << target << " is a function, defined in " <<
-                             type.m_location.str() << "." << std::endl;
-                std::cout << ns.StringOfType(tid, target, true) << ";" << std::endl;
-            } else {
+                    var.m_location.str() << "." << std::endl;
+                std::cout << ns.StringOfType(rtid, target, true) << ";" << std::endl;
+            }
+            else {
                 if (var.m_is_macro) {
+                    assert(rtid != cr_invalid_id);
                     if (var.m_location.m_file == "(predefined)") {
                         // predefined macro constant
                         std::cout << target << " is a predefined macro constant." << std::endl;
                         std::cout << ns.StringOfType(tid, target, true) << " = " <<
-                                     value.m_text << value.m_extra << ";" << std::endl;
-                    } else {
+                            value.m_text << value.m_extra << ";" << std::endl;
+                    }
+                    else {
                         // macro constant
                         std::cout << target << " is a macro constant, defined in " <<
-                                     type.m_location.str() << "." << std::endl;
+                            var.m_location.str() << "." << std::endl;
                         std::cout << ns.StringOfType(tid, target, true) << " = " <<
-                                     value.m_text << value.m_extra << ";" << std::endl;
+                            value.m_text << value.m_extra << ";" << std::endl;
                     }
-                } else {
-                    // variable
-                    std::cout << target << " is a variable, defined in " <<
-                                 type.m_location.str() << "." << std::endl;
-                    std::cout << ns.StringOfType(tid, target, true) << ";" << std::endl;
+                    auto& type = ns.LogType(rtid);
+                    std::cout << "size: " << type.m_size << std::endl;
                 }
-                std::cout << "size: " << type.m_size << std::endl;
+                else {
+                    if (rtid != cr_invalid_id) {
+                        // variable with value
+                        std::cout << target << " is a variable, defined in " <<
+                            var.m_location.str() << "." << std::endl;
+                        std::cout << ns.StringOfType(tid, target, true) <<
+                            " = " << value.m_text << value.m_extra <<
+                            ";" << std::endl;
+                        auto& type = ns.LogType(rtid);
+                        std::cout << "size: " << type.m_size << std::endl;
+                    }
+                    else {
+                        // variable without value
+                        std::cout << target << " is a variable without value, defined in " <<
+                            var.m_location.str() << "." << std::endl;
+                        std::cout << ns.StringOfType(tid, target, true) << ";" << std::endl;
+                        auto& type = ns.LogType(rtid);
+                        std::cout << "size: " << type.m_size << std::endl;
+                    }
+                }
             }
+            ret = true;
+        }
+    }
+    // name alias
+    {
+        auto it = ns.MapNameToName().find(target);
+        if (it != ns.MapNameToName().end()) {
+            auto name2name = it->second;
+            std::cout << target << " is an alias macro of " << 
+                name2name.m_to << ", defined in " <<
+                name2name.m_location.str() << "." << std::endl;
+            ret = true;
         }
     }
     if (!ret) {
@@ -186,10 +222,12 @@ bool IwJustDoIt(
         getchar();
     #endif
 
+    std::cout << "Loading data..." << std::endl;
     if (!ns.LoadFromFiles(prefix, suffix)) {
         std::cerr << "ERROR: cannot load data" << std::endl;
         return false;
     }
+    std::cout << "Loaded." << std::endl << std::endl;
 
     if (target.size()) {
         return IwJustDoIt(ns, target);
@@ -198,12 +236,13 @@ bool IwJustDoIt(
         std::cout << std::endl;
         std::string line;
         for (;;) {
+            std::cout << std::endl;
             std::cout << "Enter name of type, function or constant: ";
             std::getline(std::cin, line);
             CrTrimString(line);
             CrReplaceString(line, "  ", " ");
             if (line == "quit" || line == "Quit" || line == "QUIT") {
-                std::cout << "Good bye!" << std::endl;
+                std::cout << "See you!" << std::endl;
                 break;
             }
             IwJustDoIt(ns, line);
@@ -224,7 +263,7 @@ int main(int argc, char **argv) {
     getchar();
 #endif
 
-	std::string target;
+    std::string target;
     for (int i = 1; i < argc; ++i) {
         if (_stricmp(argv[i], "/?") == 0 ||
             _stricmp(argv[i], "--help") == 0)
@@ -243,13 +282,13 @@ int main(int argc, char **argv) {
         {
             ++i;
             suffix = argv[i];
-		} else if (argv[i][0] == '-' || argv[i][0] == '/') {
+        } else if (argv[i][0] == '-' || argv[i][0] == '/') {
             std::cerr << "ERROR: Invalid option '" << argv[i] <<
                          "'." << std::endl;
             return 1;
-		} else {
-			target = argv[i];
-		}
+        } else {
+            target = argv[i];
+        }
     }
 
     if (show_help) {

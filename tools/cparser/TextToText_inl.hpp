@@ -15,7 +15,6 @@ MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi) : m_wide(NULL)
     assert(ansi);
     #ifdef _WIN32
         const int len = ::MultiByteToWideChar(CP_ACP, 0, ansi, -1, NULL, 0);
-        assert(len);
         const size_t siz = len * sizeof(wchar_t);
         wchar_t *psz = reinterpret_cast<wchar_t *>(malloc(siz));
         if (psz)
@@ -43,7 +42,6 @@ MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi, int count)
     assert(ansi);
     #ifdef _WIN32
         const int len = ::MultiByteToWideChar(CP_ACP, 0, ansi, count, NULL, 0);
-        assert(len);
         const size_t siz = len * sizeof(wchar_t);
         wchar_t *psz = reinterpret_cast<wchar_t *>(malloc(siz));
         if (psz)
@@ -138,7 +136,6 @@ MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide) : m_ansi(NULL)
     #ifdef _WIN32
         const int len =
             ::WideCharToMultiByte(CP_ACP, 0, wide, -1, NULL, 0, NULL, NULL);
-        assert(len);
         const size_t siz = len * sizeof(char);
         char *psz = reinterpret_cast<char *>(malloc(siz));
         if (psz)
@@ -167,7 +164,6 @@ MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide, int count)
     #ifdef _WIN32
         const int len =
             ::WideCharToMultiByte(CP_ACP, 0, wide, count, NULL, 0, NULL, NULL);
-        assert(len);
         const size_t siz = len * sizeof(char);
         char *psz = reinterpret_cast<char *>(malloc(siz));
         if (psz)
