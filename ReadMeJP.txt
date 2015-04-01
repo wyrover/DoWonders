@@ -31,16 +31,11 @@ Visual C++ 2013 Express でテストしました。
 Win32 APIのほとんど全ての情報がベールをぬぎました！
 型、構造体、関数、マクロ、そしてすべて。
 
-iwonit プログラム (Won32 interactive) 付きのすべてのデータがダウンロード可
-能です。
+iwonit プログラム (Won32 interactive) 付きのすべてのデータが Wonders API
+公式サイトからダウンロード可能です。
 
-    Wonders98 データ
-    WondersMe データ
-    Wonders2000 データ
-    WondersXP データ
-    WondersVista データ
-    Wonders7 データ
-    Wonders8.1 データ
+    Wonders API 公式サイト
+    http://katahiromz.esy.es/wonders/
 
 +------+
 |使い方|

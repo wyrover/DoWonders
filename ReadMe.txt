@@ -33,15 +33,11 @@ We tested on Visual C++ 2013 Express.
 ALMOST ALL INFORMATION OF WIN32 API HAVE BEEN UNVEILED!
 TYPES, STRUCTURES, FUNCTIONS, MACROS, AND EVERYTHING.
 
-You can download all data with iwonit program (Won32 interactive).
+You can download all data with iwonit program (Won32 interactive) from 
+the Wonders API official site:
 
-    Wonders98 data
-    WondersMe data
-    Wonders2000 data
-    WondersXP data
-    WondersVista data
-    Wonders7 data
-    Wonders8.1 data
+    the Wonders API official site
+    http://katahiromz.esy.es/wonders/
 
 +-----+
 |USAGE|
