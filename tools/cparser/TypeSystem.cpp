@@ -2291,6 +2291,8 @@ void CR_NameScope::SetLongLongValue(CR_TypedValue& value, long long n) const {
             ld = static_cast<long double>(n);
             value.assign<long double>(static_cast<long double>(n));
             value.m_extra = "L";
+        } else {
+            return;
         }
         if (std::isinf(ld)) {
             if (ld >= 0) {
@@ -2343,6 +2345,8 @@ void CR_NameScope::SetULongLongValue(CR_TypedValue& value, unsigned long long u)
             ld = static_cast<long double>(u);
             value.assign<long double>(static_cast<long double>(u));
             value.m_extra = "L";
+        } else {
+            return;
         }
         if (std::isinf(ld)) {
             if (ld >= 0) {
@@ -3122,6 +3126,8 @@ void CR_NameScope::SetValue(
             long double ld = *reinterpret_cast<const long double *>(ptr);
             value.assign<long double>(ld);
             value.m_extra = "L";
+        } else {
+            return;
         }
         if (std::isinf(ld)) {
             if (ld >= 0) {
@@ -3143,7 +3149,7 @@ void CR_NameScope::SetValue(
             value.assign<unsigned long long>(n);
             value.m_extra = "LL";
         } else if (type.m_size == 4) {
-            auto n = reinterpret_cast<unsigned int>(ptr);
+            auto n = static_cast<unsigned int>(reinterpret_cast<size_t>(ptr));
             value.assign<unsigned int>(n);
             value.m_extra = "";
         }
@@ -3404,7 +3410,7 @@ CR_NameScope::IConstant(const std::string& text, const std::string& extra) {
 
     bool minus = false;
     unsigned long long ull;
-    long long ll;
+    long long ll = 0;
     if (text[0] == '-') {
         ull = std::strtoull(text.data() + 1, NULL, 0);
         ll = static_cast<long long>(ull);
@@ -3646,7 +3652,7 @@ bool CR_NameScope::LoadFromFiles(
             //std::string file = fields[11];
             //int lineno = std::stol(fields[12], NULL, 0);
 
-            if (fields.size() != 13 + 4 * count) {
+            if (int(fields.size()) != 13 + 4 * count) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
@@ -3702,7 +3708,7 @@ bool CR_NameScope::LoadFromFiles(
             //CR_EnumID eid = std::stol(fields[0], NULL, 0);
             int num_items = std::stol(fields[1], NULL, 0);
 
-            if (fields.size() != 2 + num_items * 2) {
+            if (int(fields.size()) != 2 + num_items * 2) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
@@ -3762,7 +3768,7 @@ bool CR_NameScope::LoadFromFiles(
             default: assert(0);
             }
 
-            if (fields.size() != 5 + param_count * 2) {
+            if (int(fields.size()) != 5 + param_count * 2) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }

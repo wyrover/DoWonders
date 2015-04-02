@@ -10,15 +10,14 @@ MZC_INLINE MAnsiToWide::MAnsiToWide() : m_wide(_wcsdup(L"")), m_size(0)
 {
 }
 
-MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi) : m_wide(NULL)
+MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi) : m_wide(NULL), m_size(0)
 {
     assert(ansi);
     #ifdef _WIN32
         const int len = ::MultiByteToWideChar(CP_ACP, 0, ansi, -1, NULL, 0);
         const size_t siz = len * sizeof(wchar_t);
         wchar_t *psz = reinterpret_cast<wchar_t *>(malloc(siz));
-        if (psz)
-        {
+        if (psz) {
             ::MultiByteToWideChar(CP_ACP, 0, ansi, -1, psz, len);
             m_wide = psz;
             m_size = len;
@@ -28,8 +27,7 @@ MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi) : m_wide(NULL)
         const int len = 1 + std::mbsrtowcs(NULL, &ansi, 0, &mb);
         const size_t siz = len * sizeof(wchar_t);
         wchar_t *psz = reinterpret_cast<wchar_t *>(malloc(siz));
-        if (psz)
-        {
+        if (psz) {
             std::mbsrtowcs(psz, &ansi, len, &mb);
             m_wide = psz;
             m_size = len;
@@ -37,15 +35,15 @@ MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi) : m_wide(NULL)
     #endif
 }
 
-MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi, int count)
+MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi, int count) :
+    m_wide(NULL), m_size(0)
 {
     assert(ansi);
     #ifdef _WIN32
         const int len = ::MultiByteToWideChar(CP_ACP, 0, ansi, count, NULL, 0);
         const size_t siz = len * sizeof(wchar_t);
         wchar_t *psz = reinterpret_cast<wchar_t *>(malloc(siz));
-        if (psz)
-        {
+        if (psz) {
             ::MultiByteToWideChar(CP_ACP, 0, ansi, count, psz, len);
             m_wide = psz;
             m_size = len;
@@ -55,8 +53,7 @@ MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi, int count)
         const int len = 1 + std::mbsrtowcs(NULL, &ansi, count, &mb);
         const size_t siz = len * sizeof(wchar_t);
         wchar_t *psz = reinterpret_cast<wchar_t *>(malloc(siz));
-        if (psz)
-        {
+        if (psz) {
             std::mbsrtowcs(psz, &ansi, len, &mb);
             m_wide = psz;
             m_size = len;
@@ -130,7 +127,8 @@ MZC_INLINE MWideToAnsi::MWideToAnsi() : m_ansi(_strdup("")), m_size(0)
 {
 }
 
-MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide) : m_ansi(NULL)
+MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide) :
+    m_ansi(NULL), m_size(0)
 {
     assert(wide);
     #ifdef _WIN32
@@ -138,8 +136,7 @@ MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide) : m_ansi(NULL)
             ::WideCharToMultiByte(CP_ACP, 0, wide, -1, NULL, 0, NULL, NULL);
         const size_t siz = len * sizeof(char);
         char *psz = reinterpret_cast<char *>(malloc(siz));
-        if (psz)
-        {
+        if (psz) {
             ::WideCharToMultiByte(CP_ACP, 0, wide, -1, psz, len, NULL, NULL);
             m_ansi = psz;
             m_size = len;
@@ -149,8 +146,7 @@ MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide) : m_ansi(NULL)
         const int len = 1 + std::wcsrtombs(NULL, &wide, 0, &mb);
         const size_t siz = len * sizeof(char);
         char *psz = reinterpret_cast<char *>(malloc(siz));
-        if (psz)
-        {
+        if (psz) {
             std::wcsrtombs(psz, &wide, len, &mb);
             m_ansi = psz;
             m_size = len;
@@ -158,7 +154,8 @@ MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide) : m_ansi(NULL)
     #endif
 }
 
-MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide, int count)
+MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide, int count) :
+    m_ansi(NULL), m_size(0)
 {
     assert(wide);
     #ifdef _WIN32
@@ -166,8 +163,7 @@ MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide, int count)
             ::WideCharToMultiByte(CP_ACP, 0, wide, count, NULL, 0, NULL, NULL);
         const size_t siz = len * sizeof(char);
         char *psz = reinterpret_cast<char *>(malloc(siz));
-        if (psz)
-        {
+        if (psz) {
             ::WideCharToMultiByte(CP_ACP, 0, wide, count, psz, len, NULL, NULL);
             m_ansi = psz;
             m_size = len;
@@ -177,8 +173,7 @@ MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide, int count)
         const int len = 1 + std::wcsrtombs(NULL, &wide, count, &mb);
         const size_t siz = len * sizeof(char);
         char *psz = reinterpret_cast<char *>(malloc(siz));
-        if (psz)
-        {
+        if (psz) {
             std::wcsrtombs(psz, &wide, len, &mb);
             m_ansi = psz;
             m_size = len;
@@ -262,8 +257,7 @@ MZC_INLINE MUtf8ToWide::MUtf8ToWide(const char *utf8) : m_wide(NULL)
     assert(len);
     const size_t siz = len * sizeof(wchar_t);
     wchar_t *psz = reinterpret_cast<wchar_t *>(malloc(siz));
-    if (psz)
-    {
+    if (psz) {
         ::MultiByteToWideChar(CP_UTF8, 0, utf8, -1, psz, len);
         m_wide = psz;
     }
@@ -343,8 +337,7 @@ MZC_INLINE MWideToUtf8::MWideToUtf8(const wchar_t *wide) : m_utf8(NULL)
     assert(len);
     const size_t siz = len * sizeof(char);
     char *psz = reinterpret_cast<char *>(malloc(siz));
-    if (psz)
-    {
+    if (psz) {
         ::WideCharToMultiByte(CP_UTF8, 0, wide, -1, psz, len, NULL, NULL);
         m_utf8 = psz;
     }

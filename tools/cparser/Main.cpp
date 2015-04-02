@@ -915,21 +915,21 @@ void cparser::Lexer::do_line(
         case '~': infos.emplace_back(T_TILDA, "~"); ++it; break;
         case '?':
             // trigraphs
-            if (CrLexeme(it, "??<")) {
+            if (CrLexeme(it, "??" "<")) {
                 infos.emplace_back(T_L_BRACE, "{");
-            } else if (CrLexeme(it, "??>")) {
+            } else if (CrLexeme(it, "??" ">")) {
                 infos.emplace_back(T_R_BRACE, "}");
-            } else if (CrLexeme(it, "??(")) {
+            } else if (CrLexeme(it, "??" "(")) {
                 infos.emplace_back(T_L_BRACKET, "[");
-            } else if (CrLexeme(it, "??)")) {
+            } else if (CrLexeme(it, "??" ")")) {
                 infos.emplace_back(T_R_BRACKET, "]");
-            } else if (CrLexeme(it, "??=")) {
+            } else if (CrLexeme(it, "??" "=")) {
                 infos.emplace_back(T_SHARP, "#");
-            } else if (CrLexeme(it, "??'")) {
+            } else if (CrLexeme(it, "??" "'")) {
                 infos.emplace_back(T_XOR, "^");
-            } else if (CrLexeme(it, "??!")) {
+            } else if (CrLexeme(it, "??" "!")) {
                 infos.emplace_back(T_OR, "|");
-            } else if (CrLexeme(it, "??-")) {
+            } else if (CrLexeme(it, "??" "-")) {
                 infos.emplace_back(T_TILDA, "~");
             } else {
                 infos.emplace_back(T_QUESTION, "?");
@@ -4163,7 +4163,7 @@ CrSubstituteMacro(
             return nodes;
         }
     } else {
-        if (macro.m_num_params != params.size() ||
+        if (macro.m_num_params != int(params.size()) ||
             macro.m_params.size() != params.size())
         {
             return nodes;
