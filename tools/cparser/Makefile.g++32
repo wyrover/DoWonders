@@ -27,7 +27,7 @@ CR_HEADERS = \
 	TypeSystem.h \
 	C_AST.h \
 	mzc2mini.h \
-	splitjoin.h \
+	StringAssort.h \
 	TextToText.hpp \
 	TextToText_inl.hpp \
 

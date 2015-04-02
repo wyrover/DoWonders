@@ -49,7 +49,7 @@ using std::make_shared;
 ////////////////////////////////////////////////////////////////////////////
 
 #define KATAHIROMZ_NAMESPACE katahiromz
-#include "splitjoin.h"		// katahiromz::split, katahiromz::join
+#include "StringAssort.h"   // katahiromz::split, katahiromz::join
 
 #include "Location.h"       // CR_Location
 #include "Main.h"

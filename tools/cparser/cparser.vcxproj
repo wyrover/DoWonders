@@ -168,7 +168,7 @@
     <ClInclude Include="Location.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="mzc2mini.h" />
-    <ClInclude Include="splitjoin.h" />
+    <ClInclude Include="StringAssort.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TextToText.hpp" />
     <ClInclude Include="TextToText_inl.hpp" />

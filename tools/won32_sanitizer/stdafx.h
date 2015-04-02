@@ -48,9 +48,7 @@ using std::make_shared;
 #include "Location.h"       // CR_Location
 #include "Main.h"
 #include "TypeSystem.h"
-
-#define KATAHIROMZ_NAMESPACE katahiromz
-#include "splitjoin.h"
+#include "StringAssort.h"
 
 ////////////////////////////////////////////////////////////////////////////
 

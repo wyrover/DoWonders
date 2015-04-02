@@ -20,7 +20,7 @@ OBJS = \
 
 LIBS = 
 
-HEADERS = TypeSystem.h TextToText.hpp TextToText_inl.hpp splitjoin.h
+HEADERS = TypeSystem.h TextToText.hpp TextToText_inl.hpp StringAssort.h
 
 all: iwon$(DOTEXE)
 

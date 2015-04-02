@@ -1,38 +1,5 @@
 #include "stdafx.h"
 
-static
-void CrReplaceString(
-    std::string& str, const std::string& from, const std::string& to)
-{
-    size_t i = 0;
-    for (;;)
-    {
-        i = str.find(from, i);
-        if (i == std::string::npos)
-            break;
-
-        str.replace(i, from.size(), to);
-        i += to.size();
-    }
-}
-
-void CrTrimString(std::string& str) {
-    static const char *spaces = " \t";
-    size_t i = str.find_first_not_of(spaces);
-    size_t j = str.find_last_not_of(spaces);
-    if (i != std::string::npos) {
-        if (j != std::string::npos) {
-            str = str.substr(i, j - i + 1);
-        } else {
-            str = str.substr(i);
-        }
-    } else {
-        if (j != std::string::npos) {
-            str = str.substr(0, j + 1);
-        }
-    }
-}
-
 void IwShowLogo(void) {
     std::cerr <<
         "############################################" << std::endl <<
@@ -63,7 +30,7 @@ void IwShowVersion(void) {
         "iwon --- Won32 interactive for 32-bit cl (VC++)\n"
 # endif
 #endif
-        "Version 0.2" << std::endl;
+        "Version 0.3" << std::endl;
 }
 
 bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
@@ -248,8 +215,10 @@ bool IwJustDoIt(
             std::cout << std::endl;
             std::cout << "Enter name of type, function or constant: ";
             std::getline(std::cin, line);
-            CrTrimString(line);
-            CrReplaceString(line, "  ", " ");
+            katahiromz::trim(line);
+            do {
+                ;
+            } while (katahiromz::replace_string(line, "  ", " "));
             if (line == "quit" || line == "Quit" || line == "QUIT") {
                 std::cout << "See you!" << std::endl;
                 break;

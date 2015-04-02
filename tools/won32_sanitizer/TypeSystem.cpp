@@ -33,12 +33,6 @@ CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags) {
     return flags & ~TF_INCOMPLETE;
 } // CrNormalizeTypeFlags
 
-void CrChop(std::string& str) {
-    if (str.size() && str[str.size() - 1] == '\n') {
-        str.resize(str.size() - 1);
-    }
-}
-
 std::string CrEscapeString(const std::string& str) {
     std::string ret;
     size_t count = 0;
@@ -3570,9 +3564,9 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in1, line);
         // load body
         for (; std::getline(in1, line); ) {
-            CrChop(line);
+            katahiromz::chomp(line);
             std::vector<std::string> fields;
-            katahiromz::splitbychar(fields, line, '\t');
+            katahiromz::split_by_char(fields, line, '\t');
 
             if (fields.size() != 12) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
@@ -3629,9 +3623,9 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in2, line);
         // load body
         for (; std::getline(in2, line);) {
-            CrChop(line);
+            katahiromz::chomp(line);
             std::vector<std::string> fields;
-            katahiromz::splitbychar(fields, line, '\t');
+            katahiromz::split_by_char(fields, line, '\t');
 
             if (fields.size() < 13) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
@@ -3696,9 +3690,9 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in3, line);
         // load body
         for (; std::getline(in3, line);) {
-            CrChop(line);
+            katahiromz::chomp(line);
             std::vector<std::string> fields;
-            katahiromz::splitbychar(fields, line, '\t');
+            katahiromz::split_by_char(fields, line, '\t');
 
             if (fields.size() < 2) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
@@ -3743,9 +3737,9 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in4, line);
         // load body
         for (; std::getline(in4, line);) {
-            CrChop(line);
+            katahiromz::chomp(line);
             std::vector<std::string> fields;
-            katahiromz::splitbychar(fields, line, '\t');
+            katahiromz::split_by_char(fields, line, '\t');
 
             if (fields.size() < 5) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
@@ -3801,9 +3795,9 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in5, line);
         // load body
         for (; std::getline(in5, line);) {
-            CrChop(line);
+            katahiromz::chomp(line);
             std::vector<std::string> fields;
-            katahiromz::splitbychar(fields, line, '\t');
+            katahiromz::split_by_char(fields, line, '\t');
 
             if (fields.size() != 9) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
@@ -3876,9 +3870,9 @@ bool CR_NameScope::LoadFromFiles(
         std::getline(in6, line);
         // load body
         for (; std::getline(in6, line);) {
-            CrChop(line);
+            katahiromz::chomp(line);
             std::vector<std::string> fields;
-            katahiromz::splitbychar(fields, line, '\t');
+            katahiromz::split_by_char(fields, line, '\t');
 
             if (fields.size() != 4) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");

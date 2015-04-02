@@ -3766,25 +3766,9 @@ enum CR_ExitCode {
     cr_exit_cannot_open_input = 8
 };
 
-static
-void CrReplaceString(
-    std::string& str, const std::string& from, const std::string& to)
-{
-    size_t i = 0;
-    for (;;)
-    {
-        i = str.find(from, i);
-        if (i == std::string::npos)
-            break;
-
-        str.replace(i, from.size(), to);
-        i += to.size();
-    }
-}
-
 std::string CrConvertCmdLineParam(const std::string& str) {
     std::string ret = str;
-    CrReplaceString(ret, "\"", "\"\"");
+    katahiromz::replace_string(ret, "\"", "\"\"");
     if (ret.find_first_of("\" \t\f\v") != std::string::npos) {
         ret = "\"" + str + "\"";
     }
@@ -3919,23 +3903,6 @@ int CrInputCSrc(
 ////////////////////////////////////////////////////////////////////////////
 // semantic analysis
 
-void CrTrimString(std::string& str) {
-    static const char *spaces = " \t";
-    size_t i = str.find_first_not_of(spaces);
-    size_t j = str.find_last_not_of(spaces);
-    if (i != std::string::npos) {
-        if (j != std::string::npos) {
-            str = str.substr(i, j - i + 1);
-        } else {
-            str = str.substr(i);
-        }
-    } else {
-        if (j != std::string::npos) {
-            str = str.substr(0, j + 1);
-        }
-    }
-}
-
 void CrTrimNodes(std::vector<cmacro::Node>& nodes) {
     size_t m = 0, n = 0;
     for (size_t i = 0; i < nodes.size(); ++i) {
@@ -3995,9 +3962,9 @@ bool CrLoadMacros(
         std::getline(in1, line);
         // load body
         for (; std::getline(in1, line); ) {
-            CrChop(line);
+            katahiromz::chomp(line);
             std::vector<std::string> fields;
-            katahiromz::splitbychar(fields, line, '\t');
+            katahiromz::split_by_char(fields, line, '\t');
 
             if (fields.size() < 6) {
                 std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
@@ -4008,7 +3975,7 @@ bool CrLoadMacros(
             int num_params = std::stoi(fields[1], NULL, 0);
             std::string params = fields[2];
             std::string contents = fields[3];
-            CrTrimString(contents);
+            katahiromz::trim(contents);
             std::string file = fields[4];
             int lineno = std::stol(fields[5], NULL, 0);
 
@@ -4539,7 +4506,7 @@ bool CrParseMacros(
 
             // expand macro
             auto expanded = CrExpandMacro(macros, name, macro.m_contents);
-            CrTrimString(expanded);
+            katahiromz::trim(expanded);
             if (expanded.empty() || expanded == name) {
                 continue;
             }
@@ -4600,7 +4567,7 @@ bool CrParseMacros(
 
         // expand macro
         auto expanded = CrExpandMacro(macros, name, macro.m_contents);
-        CrTrimString(expanded);
+        katahiromz::trim(expanded);
         if (expanded.empty() || expanded == name) {
             continue;
         }

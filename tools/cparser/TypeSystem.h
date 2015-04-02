@@ -57,8 +57,6 @@ typedef unsigned long CR_TypeFlags;
 
 CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags);
 
-void CrChop(std::string& str);
-
 std::string CrEscapeString(const std::string& str);
 std::string CrUnescapeString(const std::string& str);
 
