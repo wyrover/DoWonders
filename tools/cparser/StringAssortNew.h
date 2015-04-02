@@ -11,7 +11,7 @@
     #error Use C++ compiler. You lose.
 #endif
 
-#if !(__cplusplus >= 199711L) // Not modern C++
+#if !(__cplusplus >= 199711L) // Not modern C++?
     #error Modern C++ compiler is required. You lose.
 #endif
 
