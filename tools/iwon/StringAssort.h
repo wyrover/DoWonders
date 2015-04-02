@@ -1,5 +1,5 @@
 #ifndef KATAHIROMZ_STRINGASSORT
-#define KATAHIROMZ_STRINGASSORT 0x000  // Verison 0.0.0
+#define KATAHIROMZ_STRINGASSORT 0x001  // Verison 0.0.1
 
 ////////////////////////////////////////////////////////////////////////////
 // StringAssort.h --- katahiromz's C++ string function assortment
@@ -9,6 +9,10 @@
 
 #ifndef __cplusplus
     #error Use C++ compiler. You lose.
+#endif
+
+#if !(__cplusplus >= 199711L) // Not modern C++
+    #error Modern C++ compiler is required. You lose.
 #endif
 
 #include <string>
@@ -63,21 +67,12 @@ namespace katahiromz
     {
         container.clear();
         std::size_t i = 0, j = str.find(sep);
-#if (__cplusplus >= 201103L) // modern C++
         while (j != t_string_container::value_type::npos) {
             container.push_back(std::move(str.substr(i, j - i)));
             i = j + 1;
             j = str.find(sep, i);
         }
         container.push_back(std::move(str.substr(i, -1)));
-#else // not modern C++
-        while (j != t_string_container::value_type::npos) {
-            container.push_back(str.substr(i, j - i));
-            i = j + 1;
-            j = str.find(sep, i);
-        }
-        container.push_back(str.substr(i, -1));
-#endif // not modern C++
     }
 
     // void split(string_container&, const string&, const string&);
@@ -88,21 +83,12 @@ namespace katahiromz
     {
         container.clear();
         std::size_t i = 0, j = str.find(sep);
-#if __cplusplus >= 201103L // modern C++
         while (j != t_string_container::value_type::npos) {
             container.emplace_back(std::move(str.substr(i, j - i)));
             i = j + 1;
             j = str.find(sep, i);
         }
         container.emplace_back(std::move(str.substr(i, -1)));
-#else // not modern C++
-        while (j != t_string_container::value_type::npos) {
-            container.push_back(str.substr(i, j - i));
-            i = j + 1;
-            j = str.find(sep, i);
-        }
-        container.push_back(str.substr(i, -1));
-#endif // not modern C++
     }
 
     // void tokenize(string_container&, const string&, const string&);
@@ -119,41 +105,23 @@ namespace katahiromz
                 return;
             }
             i = str.find_first_of(seps, j);
-#if __cplusplus >= 201103L // modern C++
             if (i == t_string_container::value_type::npos) {
                 container.emplace_back(std::move(str.substr(j)));
                 return;
             }
             container.emplace_back(std::move(str.substr(j, i - j)));
-#else // not modern C++
-            if (i == t_string_container::value_type::npos) {
-                container.push_back(str.substr(j));
-                return;
-            }
-            container.push_back(str.substr(j, i - j));
-#endif // not modern C++
         }
     }
 
     template <typename t_string, typename t_char = typename t_string::value_type>
     inline bool replace_char(t_string& str, t_char from, t_char to) {
         bool ret = false;
-#if __cplusplus >= 201103L // modern C++
         for (auto& ch : str) {
             if (ch == from) {
                 ch = to;
                 ret = true;
             }
         }
-#else
-        const size_t siz = str.size();
-        for (size_t i = 0; i < siz; ++i) {
-            if (str[i] == from) {
-                str[i] = to;
-                ret = true;
-            }
-        }
-#endif
         return ret;
     }
 
@@ -173,21 +141,10 @@ namespace katahiromz
         return ret;
     }
 
-	template <typename t_string, typename t_char = typename t_string::value_type>
-	bool replace_string(t_string& str, const t_char *from, const t_char *to) {
-		bool ret = false;
-		size_t i = 0, from_len = strlen(from), to_len = strlen(to);
-		for (;;) {
-			i = str.find(from, i);
-			if (i == t_string::npos)
-				break;
-
-			str.replace(i, from_len, to);
-			i += to_len;
-			ret = true;
-		}
-		return ret;
-	}
+    template <typename t_string, typename t_char = typename t_string::value_type>
+    bool replace_string(t_string& str, const t_char *from, const t_char *to) {
+        return replace_string(str, t_string(from), t_string(to));
+    }
 
     template <typename t_string>
     inline void trim(t_string& str, const t_string& spaces) {
@@ -206,7 +163,7 @@ namespace katahiromz
         }
     }
 
-    inline void trim(std::string& str)  { trim<std::string>(str, " \t\n\r\f\v"); }
+    inline void trim(std::string& str)  { trim<std::string>(str,   " \t\n\r\f\v"); }
     inline void trim(std::wstring& str) { trim<std::wstring>(str, L" \t\n\r\f\v"); }
 
     template <typename t_string>
