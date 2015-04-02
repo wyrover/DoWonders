@@ -1,8 +1,8 @@
-#ifndef KATAHIROMZ_STRINGASSORT
-#define KATAHIROMZ_STRINGASSORT 0x001  // Verison 0.0.1
+#ifndef KATAHIROMZ_STRINGASSORT_NEW
+#define KATAHIROMZ_STRINGASSORT_NEW 0x001  // Verison 0.0.1
 
 ////////////////////////////////////////////////////////////////////////////
-// StringAssort.h --- katahiromz's C++ string function assortment
+// StringAssortNew.h --- katahiromz's C++ string function assortment
 // by Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>.
 // This file is public domain software (PDS).
 ////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@
 
 namespace katahiromz
 {
-    // string join_by_char(const string_container&, char);
+    // t_string join_by_char(const t_string_container&, t_char);
     template <typename t_string_container,
               typename t_string = typename t_string_container::value_type>
     typename t_string_container::value_type
@@ -27,8 +27,8 @@ namespace katahiromz
                  typename t_string::value_type sep)
     {
         typename t_string_container::value_type result;
-        typename t_string_container::const_iterator it = container.begin();
-        typename t_string_container::const_iterator end = container.end();
+        auto it = container.begin();
+        auto end = container.end();
         if (it != end) {
             result = *it;
             for (++it; it != end; ++it) {
@@ -39,15 +39,15 @@ namespace katahiromz
         return result;
     }
 
-    // string join(const string_container&, const string&);
+    // t_string join(const t_string_container&, const t_string&);
     template <typename t_string_container>
     typename t_string_container::value_type
     join(const t_string_container& container,
          const typename t_string_container::value_type& sep)
     {
         typename t_string_container::value_type result;
-        typename t_string_container::const_iterator it = container.begin();
-        typename t_string_container::const_iterator end = container.end();
+        auto it = container.begin();
+        auto end = container.end();
         if (it != end) {
             result = *it;
             for (++it; it != end; ++it) {
@@ -58,7 +58,7 @@ namespace katahiromz
         return result;
     }
 
-    // void split_by_char(string_container&, const string&, char);
+    // void split_by_char(t_string_container&, const t_string&, char);
     template <typename t_string_container, 
               typename t_string = typename t_string_container::value_type>
     void split_by_char(t_string_container& container,
@@ -68,14 +68,14 @@ namespace katahiromz
         container.clear();
         std::size_t i = 0, j = str.find(sep);
         while (j != t_string_container::value_type::npos) {
-            container.push_back(std::move(str.substr(i, j - i)));
+            container.emplace_back(std::move(str.substr(i, j - i)));
             i = j + 1;
             j = str.find(sep, i);
         }
-        container.push_back(std::move(str.substr(i, -1)));
+        container.emplace_back(std::move(str.substr(i, -1)));
     }
 
-    // void split(string_container&, const string&, const string&);
+    // void split(t_string_container&, const t_string&, const t_string&);
     template <typename t_string_container>
     void split(t_string_container& container,
         const typename t_string_container::value_type& str,
@@ -91,7 +91,7 @@ namespace katahiromz
         container.emplace_back(std::move(str.substr(i, -1)));
     }
 
-    // void tokenize(string_container&, const string&, const string&);
+    // void tokenize(t_string_container&, const t_string&, const t_string&);
     template <typename t_string_container>
     void tokenize(t_string_container& container,
         const typename t_string_container::value_type& str,
@@ -113,6 +113,7 @@ namespace katahiromz
         }
     }
 
+    // bool replace_char(t_string&, t_char, t_char);
     template <typename t_string, typename t_char = typename t_string::value_type>
     inline bool replace_char(t_string& str, t_char from, t_char to) {
         bool ret = false;
@@ -125,6 +126,7 @@ namespace katahiromz
         return ret;
     }
 
+    // bool replace_string(t_string&, const t_string&, const t_string&);
     template <typename t_string>
     bool replace_string(t_string& str, const t_string& from, const t_string& to) {
         bool ret = false;
@@ -141,11 +143,13 @@ namespace katahiromz
         return ret;
     }
 
+    // bool replace_string(t_string&, const t_char *, const t_char *);
     template <typename t_string, typename t_char = typename t_string::value_type>
     bool replace_string(t_string& str, const t_char *from, const t_char *to) {
         return replace_string(str, t_string(from), t_string(to));
     }
 
+    // void trim(t_string&, const t_string&);
     template <typename t_string>
     inline void trim(t_string& str, const t_string& spaces) {
         size_t i = str.find_first_not_of(spaces);
@@ -163,9 +167,12 @@ namespace katahiromz
         }
     }
 
+    // void trim(std::string&);
     inline void trim(std::string& str)  { trim<std::string>(str,   " \t\n\r\f\v"); }
+    // void trim(std::wstring&);
     inline void trim(std::wstring& str) { trim<std::wstring>(str, L" \t\n\r\f\v"); }
 
+    // void chomp(t_string&);
     template <typename t_string>
     inline void chomp(t_string& str) {
         const typename t_string::value_type CR = '\r';
@@ -182,4 +189,4 @@ namespace katahiromz
 
 } // namespace katahiromz
 
-#endif  // ndef KATAHIROMZ_STRINGASSORT
+#endif  // ndef KATAHIROMZ_STRINGASSORT_NEW
