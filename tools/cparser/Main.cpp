@@ -14,21 +14,21 @@ const char * const cr_logo =
     "///////////////////////////////////////////\n"
 #if defined(_WIN64) || defined(__LP64__) || defined(_LP64)
 # ifdef __GNUC__
-    "// CParser 0.3.5 (64-bit) for gcc        //\n"
+    "// CParser 0.3.6 (64-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.3.5 (64-bit) for clang      //\n"
+    "// CParser 0.3.6 (64-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.3.5 (64-bit) for cl (MSVC)  //\n"
+    "// CParser 0.3.6 (64-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
 #else   // !64-bit
 # ifdef __GNUC__
-    "// CParser 0.3.5 (32-bit) for gcc        //\n"
+    "// CParser 0.3.6 (32-bit) for gcc        //\n"
 # elif defined(__clang__)
-    "// CParser 0.3.5 (32-bit) for clang      //\n"
+    "// CParser 0.3.6 (32-bit) for clang      //\n"
 # elif defined(_MSC_VER)
-    "// CParser 0.3.5 (32-bit) for cl (MSVC)  //\n"
+    "// CParser 0.3.6 (32-bit) for cl (MSVC)  //\n"
 # else
 #  error You lose!
 # endif
@@ -3939,70 +3939,6 @@ std::string CrStringifyNodes(std::vector<cmacro::Node>& nodes) {
     return ret;
 }
 
-bool CrLoadMacros(
-    CR_NameScope& namescope, CR_MacroSet& macro_set,
-    const std::string& prefix, const std::string& suffix,
-    bool is_64bit = false)
-{
-    macro_set.clear();
-
-    std::string fname = prefix + "macros" + suffix;
-    std::ifstream in1(fname);
-    if (in1) {
-        std::string line;
-        // version check
-        std::getline(in1, line);
-        int version = std::stoi(line);
-        if (version != cr_data_version) {
-            std::cerr << "ERROR: File '" << fname <<
-                "' has different format version. I couldn't load it." << std::endl;
-            return false;
-        }
-        // skip header
-        std::getline(in1, line);
-        // load body
-        for (; std::getline(in1, line); ) {
-            katahiromz::chomp(line);
-            std::vector<std::string> fields;
-            katahiromz::split_by_char(fields, line, '\t');
-
-            if (fields.size() < 6) {
-                std::cerr << "ERROR: File '" << fname << "' was invalid." << std::endl;
-                return false;
-            }
-
-            std::string name = fields[0];
-            int num_params = std::stoi(fields[1], NULL, 0);
-            std::string params = fields[2];
-            std::string contents = fields[3];
-            katahiromz::trim(contents);
-            std::string file = fields[4];
-            int lineno = std::stol(fields[5], NULL, 0);
-
-
-            CR_Macro macro;
-            if (params.find("...") != std::string::npos) {
-                --num_params;
-                macro.m_ellipsis = true;
-            }
-            macro.m_num_params = num_params;
-            katahiromz::split(macro.m_params, params, ",");
-            macro.m_contents = contents;
-
-            CR_Location location(file, lineno);
-            macro.m_location = location;
-
-            macro_set.emplace(name, macro);
-        }
-        return true;
-    } else {
-        std::cerr << "ERROR: cannot load file '" << fname <<
-                     "'" << std::endl;
-    }
-
-    return false;
-}
-
 void CrLexMacro(
     std::vector<cmacro::Node>& nodes, const std::string& contents)
 {
@@ -4459,8 +4395,7 @@ bool CrParseMacros(
     bool is_64bit = false)
 {
     // load macros
-    CR_MacroSet macros;
-    if (!CrLoadMacros(namescope, macros, prefix, suffix, is_64bit)) {
+    if (!namescope.LoadMacros(prefix, suffix)) {
         return false;
     }
 
@@ -4479,7 +4414,7 @@ bool CrParseMacros(
     namescope.ErrorInfo() = make_shared<CR_ErrorInfo>();
 
     // set targets
-    CR_MacroSet checked, targets = macros;
+    CR_MacroSet checked, targets = namescope.Macros();
 
     // for all targets
     for (;;) {
@@ -4505,7 +4440,8 @@ bool CrParseMacros(
             }
 
             // expand macro
-            auto expanded = CrExpandMacro(macros, name, macro.m_contents);
+            auto expanded = CrExpandMacro(
+                namescope.Macros(), name, macro.m_contents);
             katahiromz::trim(expanded);
             if (expanded.empty() || expanded == name) {
                 continue;
@@ -4566,7 +4502,7 @@ bool CrParseMacros(
         auto& macro = it->second;
 
         // expand macro
-        auto expanded = CrExpandMacro(macros, name, macro.m_contents);
+        auto expanded = CrExpandMacro(namescope.Macros(), name, macro.m_contents);
         katahiromz::trim(expanded);
         if (expanded.empty() || expanded == name) {
             continue;

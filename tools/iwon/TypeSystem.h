@@ -8,9 +8,6 @@
 #ifndef TYPESYSTEM_H_
 #define TYPESYSTEM_H_
 
-// Wonders data format version
-extern int cr_data_version;
-
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypeFlags --- type flags
 
@@ -342,6 +339,20 @@ struct CR_Name2Name {
 };
 
 ////////////////////////////////////////////////////////////////////////////
+// CR_Macro
+
+struct CR_Macro {
+    int                         m_num_params;
+    std::vector<std::string>    m_params;
+    std::string                 m_contents;
+    CR_Location                 m_location;
+    bool                        m_ellipsis;
+    CR_Macro() : m_num_params(0), m_ellipsis(false) { }
+};
+
+typedef std::unordered_map<std::string,CR_Macro> CR_MacroSet;
+
+////////////////////////////////////////////////////////////////////////////
 // CR_NameScope --- universe of names, types, functions and variables etc.
 
 class CR_NameScope {
@@ -364,7 +375,11 @@ public:
     bool LoadFromFiles(
         const std::string& prefix = "",
         const std::string& suffix = ".dat");
-    
+
+    bool LoadMacros(
+        const std::string& prefix = "",
+        const std::string& suffix = ".dat");
+
     bool SaveToFiles(
         const std::string& prefix = "",
         const std::string& suffix = ".dat") const;
@@ -768,6 +783,9 @@ public:
           shared_ptr<CR_ErrorInfo>& ErrorInfo()       { return m_error_info; }
     const shared_ptr<CR_ErrorInfo>& ErrorInfo() const { return m_error_info; }
 
+          CR_MacroSet& Macros()       { return m_macros; }
+    const CR_MacroSet& Macros() const { return m_macros; }
+
 protected:
     shared_ptr<CR_ErrorInfo>            m_error_info;
     bool                                m_is_64bit;
@@ -782,6 +800,7 @@ protected:
     CR_DeqSet<CR_LogEnum>               m_enums;
     CR_DeqSet<CR_LogVar>                m_vars;
     std::map<std::string, CR_Name2Name> m_mNameToName;
+    CR_MacroSet                         m_macros;
 
 public:
     CR_TypeID                           m_void_type;

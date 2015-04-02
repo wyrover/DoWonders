@@ -197,20 +197,6 @@ protected:
 };
 
 ////////////////////////////////////////////////////////////////////////////
-// CR_Macro
-
-struct CR_Macro {
-    int                         m_num_params;
-    std::vector<std::string>    m_params;
-    std::string                 m_contents;
-    CR_Location                 m_location;
-    bool                        m_ellipsis;
-    CR_Macro() : m_num_params(0), m_ellipsis(false) { }
-};
-
-typedef std::unordered_map<std::string,CR_Macro> CR_MacroSet;
-
-////////////////////////////////////////////////////////////////////////////
 // cmacro::Token, cmacro::Node
 
 namespace cmacro {

@@ -3905,6 +3905,68 @@ bool CR_NameScope::LoadFromFiles(
     return true;
 }
 
+bool CR_NameScope::LoadMacros(
+    const std::string& prefix/* = ""*/,
+    const std::string& suffix/* = ".dat"*/)
+{
+    m_macros.clear();
+
+    std::string fname = prefix + "macros" + suffix;
+    std::ifstream in1(fname);
+    if (in1) {
+        std::string line;
+        // version check
+        std::getline(in1, line);
+        int version = std::stoi(line);
+        if (version != cr_data_version) {
+            ErrorInfo()->add_error("File '" + fname +
+                "' has different format version. Failed.");
+            return false;
+        }
+        // skip header
+        std::getline(in1, line);
+        // load body
+        for (; std::getline(in1, line); ) {
+            katahiromz::chomp(line);
+            std::vector<std::string> fields;
+            katahiromz::split_by_char(fields, line, '\t');
+
+            if (fields.size() < 6) {
+                ErrorInfo()->add_error("File '" + fname + "' is invalid.");
+                return false;
+            }
+
+            std::string name = fields[0];
+            int num_params = std::stoi(fields[1], NULL, 0);
+            std::string params = fields[2];
+            std::string contents = fields[3];
+            katahiromz::trim(contents);
+            std::string file = fields[4];
+            int lineno = std::stol(fields[5], NULL, 0);
+
+            CR_Macro macro;
+            if (params.find("...") != std::string::npos) {
+                --num_params;
+                macro.m_ellipsis = true;
+            }
+            macro.m_num_params = num_params;
+            katahiromz::split(macro.m_params, params, ",");
+            macro.m_contents = contents;
+
+            CR_Location location(file, lineno);
+            macro.m_location = location;
+
+            m_macros.emplace(name, macro);
+        }
+        return true;
+    } else {
+        ErrorInfo()->add_error("cannot load file '" + fname + "'");
+        return false;
+    }
+
+    return false;
+}
+
 bool CR_NameScope::SaveToFiles(
     const std::string& prefix/* = ""*/,
     const std::string& suffix/* = ".dat"*/) const
