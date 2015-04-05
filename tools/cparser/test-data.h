@@ -61,3 +61,7 @@ const LONG long_constant = 123456;
 #define LONG_CONSTANT 123456L
 
 const int const_int_array[2];
+
+const int * const constant_pointer = NULL;
+
+typedef const int * const constant_pointer_type;

@@ -708,6 +708,11 @@ CR_TypeID CR_NameScope::AddConstType(CR_TypeID tid) {
         tid = AddArrayType(tid, int(type2.m_count), type2.m_location);
         return tid;
     }
+    if (type2.m_flags & TF_POINTER) {
+        tid = AddConstType(type2.m_sub_id);
+        tid = AddPointerType(tid, TF_CONST, type2.m_location);
+        return tid;
+    }
     if (type2.m_flags & TF_INCOMPLETE) {
         type1.m_flags = TF_CONST | TF_INCOMPLETE;
     } else {
