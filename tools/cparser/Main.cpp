@@ -3162,10 +3162,15 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
 
             switch (d->m_declor_type) {
             case Declor::IDENTIFIER:
-                if (d->m_flags && namescope.IsFuncType(tid2))
+				if (d->m_initer.get()) {
+					value = CrValueOnIniter(namescope, d->m_initer.get());
+				}
+				if (d->m_flags && namescope.IsFuncType(tid2))
                     namescope.AddTypeFlags(tid2, d->m_flags);
                 if (namescope.HasValue(value)) {
-                    namescope.AddVar(d->m_name, tid2, d->m_location, value);
+                    auto ctid = namescope.AddConstType(tid2);
+                    value.m_type_id = ctid;
+                    namescope.AddVar(d->m_name, ctid, d->m_location, value);
                 } else {
                     namescope.AddVar(d->m_name, tid2, d->m_location);
                 }
@@ -4458,8 +4463,8 @@ bool CrParseMacros(
                 var.m_location = macro.m_location;
                 if (namescope.HasValue(typed_value)) {
                     var.m_typed_value = typed_value;
-                    var.m_typed_value.m_type_id = 
-                        namescope.MakeConst(typed_value.m_type_id);
+                    auto ctid = namescope.AddConstType(typed_value.m_type_id);
+                    var.m_typed_value.m_type_id = ctid;
 
                     // add macro as variable
                     var.m_is_macro = true;

@@ -188,7 +188,6 @@ struct CR_LogType {
     CR_ID        m_sub_id;          // sub ID.
     // m_sub_id means...
     // For TF_ALIAS:                A type ID (CR_TypeID).
-    // For TF_ALIAS | TF_FUNCTION:  A type ID (CR_TypeID).
     // For TF_POINTER:              A type ID (CR_TypeID).
     // For TF_ARRAY:                A type ID (CR_TypeID).
     // For TF_CONST:                A type ID (CR_TypeID).
@@ -198,7 +197,7 @@ struct CR_LogType {
     // For TF_STRUCT:               A struct ID (CR_StructID).
     // For TF_ENUM:                 An enum ID (CR_EnumID).
     // For TF_UNION:                A struct ID (CR_StructID).
-    // otherwise: zero
+    // otherwise:                   Zero.
 
     size_t          m_count;        // for TF_ARRAY, TF_STRUCT, TF_UNION
                                     //     TF_VECTOR
@@ -653,20 +652,20 @@ public:
     CR_TypeID IsStringType(CR_TypeID tid) const;
     CR_TypeID IsWStringType(CR_TypeID tid) const;
 
-    // is it function type?
+    // is it a function type?
     bool IsFuncType(CR_TypeID tid) const;
-    // is it predefined type?
+    // is it a predefined type?
     bool IsPredefinedType(CR_TypeID tid) const;
-    // is it integer type?
+    // is it an integer type?
     bool IsIntegralType(CR_TypeID tid) const;
-    // is it floating type?
+    // is it a floating type?
     bool IsFloatingType(CR_TypeID tid) const;
-    // is it unsigned type?
+    // is it an unsigned type?
     bool IsUnsignedType(CR_TypeID tid) const;
-    // is it unsigned type?
+    // is it a pointer type?
     bool IsPointerType(CR_TypeID tid) const;
-    // is it function type?
-    bool IsFunctionType(CR_TypeID tid) const;
+    // is it a constant type?
+    bool IsConstantType(CR_TypeID tid) const;
 
     //
     // ResolveAlias

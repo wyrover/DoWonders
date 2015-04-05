@@ -53,3 +53,11 @@ enum {
     ProcThreadAttributeValue (ProcThreadAttributeProtectionLevel, 0, 1, 0)
 
 #define TOUCHPREDICTIONPARAMETERS_DEFAULT_RLS_EXPO_SMOOTH_ALPHA 0.99f
+
+typedef long LONG;
+
+const LONG long_constant = 123456;
+
+#define LONG_CONSTANT 123456L
+
+const int const_int_array[2];

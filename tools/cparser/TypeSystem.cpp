@@ -598,9 +598,6 @@ CR_TypeID CR_NameScope::AddAliasType(
             type1.m_flags |= TF_INACCURATE;
         }
     #endif
-    if (type2.m_flags & TF_FUNCTION) {
-        type1.m_flags |= TF_FUNCTION;
-    }
     type1.m_sub_id = tid;
     type1.m_count = type2.m_count;
     type1.m_location = location;
@@ -630,9 +627,6 @@ CR_TypeID CR_NameScope::AddAliasMacroType(
             type1.m_flags |= TF_INACCURATE;
         }
     #endif
-    if (type2.m_flags & TF_FUNCTION) {
-        type1.m_flags |= TF_FUNCTION;
-    }
     type1.m_sub_id = tid;
     type1.m_count = type2.m_count;
     type1.m_location = location;
@@ -704,6 +698,16 @@ CR_TypeID CR_NameScope::AddConstType(CR_TypeID tid) {
     }
     CR_LogType type1;
     auto& type2 = LogType(tid);
+    if (type2.m_flags & TF_CONST) {
+        // it is already a constant
+        return tid;
+    }
+    if (type2.m_flags & (TF_ARRAY | TF_VECTOR)) {
+        // A constant of array is an array of constant
+        tid = AddConstType(type2.m_sub_id);
+        tid = AddArrayType(tid, int(type2.m_count), type2.m_location);
+        return tid;
+    }
     if (type2.m_flags & TF_INCOMPLETE) {
         type1.m_flags = TF_CONST | TF_INCOMPLETE;
     } else {
@@ -751,7 +755,7 @@ CR_TypeID CR_NameScope::AddPointerType(
     auto type2 = LogType(tid);
     auto name = NameFromTypeID(tid);
     if (!name.empty()) {
-        if ((type2.m_flags & (TF_ALIAS | TF_FUNCTION)) != TF_FUNCTION) {
+        if (!(type2.m_flags & TF_FUNCTION)) {
             if (flags & TF_CONST) {
                 if (flags & TF_PTR32) {
                     name += "* __ptr32 const ";
@@ -1248,9 +1252,6 @@ bool CR_NameScope::CompleteType(CR_TypeID tid, CR_LogType& type) {
                     type.m_flags |= TF_INACCURATE;
                 }
             #endif
-            if (type2.m_flags & TF_FUNCTION) {
-                type.m_flags |= TF_FUNCTION;
-            }
             type.m_flags &= ~TF_INCOMPLETE;
             return true;
         }
@@ -1561,8 +1562,8 @@ bool CR_NameScope::IsFuncType(CR_TypeID tid) const {
     if (tid == cr_invalid_id)
         return false;
     tid = ResolveAlias(tid);
-    const CR_TypeFlags flags = (TF_ALIAS | TF_FUNCTION);
-    if ((LogType(tid).m_flags & flags) == TF_FUNCTION)
+    auto& type = LogType(tid);
+    if (type.m_flags & TF_FUNCTION)
         return true;
     return false;
 } // IsFuncType
@@ -1661,16 +1662,17 @@ bool CR_NameScope::IsPointerType(CR_TypeID tid) const {
     return false;
 }
 
-bool CR_NameScope::IsFunctionType(CR_TypeID tid) const {
+// is it a constant type?
+bool CR_NameScope::IsConstantType(CR_TypeID tid) const {
     while (tid != cr_invalid_id) {
         tid = ResolveAlias(tid);
-        if (tid != cr_invalid_id) {
+        if (tid == cr_invalid_id) {
             break;
         }
         auto& type = LogType(tid);
-        if (type.m_flags & TF_POINTER)
+        if (type.m_flags & TF_CONST)
             return true;
-        if ((type.m_flags & (TF_ALIAS | TF_FUNCTION)) == TF_FUNCTION) {
+        if (type.m_flags & TF_ARRAY) {
             tid = type.m_sub_id;
         } else {
             break;
