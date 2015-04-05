@@ -66,8 +66,8 @@ namespace cparser
     protected:
         int                         m_pack;
         int                         m_default_packing;
-        std::deque<int>             m_packs;
-        std::deque<std::string>     m_idents;
+        std::vector<int>            m_packs;
+        std::vector<std::string>    m_idents;
     }; // Packing
 
     //

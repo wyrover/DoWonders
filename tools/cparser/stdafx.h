@@ -29,7 +29,6 @@
 #include <unordered_map>    // for std::unordered_map
 #include <unordered_set>    // for std::unordered_set
 #include <set>              // for std::set
-#include <deque>            // for std::deque
 #include <algorithm>        // for std::sort, std::unique
 #include <new>              // for std::bad_alloc
 

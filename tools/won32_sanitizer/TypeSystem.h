@@ -85,10 +85,10 @@ typedef CR_ID                   CR_EnumID;
 typedef CR_ID                   CR_VarID;
 
 // a set of ID 
-typedef CR_DeqSet<CR_ID>        CR_IDSet;
+typedef CR_VecSet<CR_ID>        CR_IDSet;
 
 // a set of type id
-typedef CR_DeqSet<CR_TypeID>    CR_TypeSet;
+typedef CR_VecSet<CR_TypeID>    CR_TypeSet;
 
 // invalid address
 #ifdef _WIN64
@@ -765,20 +765,20 @@ public:
         return m_enums[eid];
     }
 
-          CR_DeqSet<CR_LogType>& LogTypes()       { return m_types; }
-    const CR_DeqSet<CR_LogType>& LogTypes() const { return m_types; }
+          CR_VecSet<CR_LogType>& LogTypes()       { return m_types; }
+    const CR_VecSet<CR_LogType>& LogTypes() const { return m_types; }
 
-          CR_DeqSet<CR_LogStruct>& LogStructs()       { return m_structs; }
-    const CR_DeqSet<CR_LogStruct>& LogStructs() const { return m_structs; }
+          CR_VecSet<CR_LogStruct>& LogStructs()       { return m_structs; }
+    const CR_VecSet<CR_LogStruct>& LogStructs() const { return m_structs; }
 
-          CR_DeqSet<CR_LogFunc>& LogFuncs()       { return m_funcs; }
-    const CR_DeqSet<CR_LogFunc>& LogFuncs() const { return m_funcs; }
+          CR_VecSet<CR_LogFunc>& LogFuncs()       { return m_funcs; }
+    const CR_VecSet<CR_LogFunc>& LogFuncs() const { return m_funcs; }
 
-          CR_DeqSet<CR_LogEnum>& LogEnums()       { return m_enums; }
-    const CR_DeqSet<CR_LogEnum>& LogEnums() const { return m_enums; }
+          CR_VecSet<CR_LogEnum>& LogEnums()       { return m_enums; }
+    const CR_VecSet<CR_LogEnum>& LogEnums() const { return m_enums; }
 
-          CR_DeqSet<CR_LogVar>& LogVars()       { return m_vars; }
-    const CR_DeqSet<CR_LogVar>& LogVars() const { return m_vars; }
+          CR_VecSet<CR_LogVar>& LogVars()       { return m_vars; }
+    const CR_VecSet<CR_LogVar>& LogVars() const { return m_vars; }
 
           shared_ptr<CR_ErrorInfo>& ErrorInfo()       { return m_error_info; }
     const shared_ptr<CR_ErrorInfo>& ErrorInfo() const { return m_error_info; }
@@ -794,11 +794,11 @@ protected:
     std::map<std::string, CR_VarID>     m_mNameToVarID;
     std::map<CR_VarID, std::string>     m_mVarIDToName;
     std::map<std::string, CR_TypeID>    m_mNameToFuncTypeID;
-    CR_DeqSet<CR_LogType>               m_types;
-    CR_DeqSet<CR_LogFunc>               m_funcs;
-    CR_DeqSet<CR_LogStruct>             m_structs;
-    CR_DeqSet<CR_LogEnum>               m_enums;
-    CR_DeqSet<CR_LogVar>                m_vars;
+    CR_VecSet<CR_LogType>               m_types;
+    CR_VecSet<CR_LogFunc>               m_funcs;
+    CR_VecSet<CR_LogStruct>             m_structs;
+    CR_VecSet<CR_LogEnum>               m_enums;
+    CR_VecSet<CR_LogVar>                m_vars;
     std::map<std::string, CR_Name2Name> m_mNameToName;
     CR_MacroSet                         m_macros;
 

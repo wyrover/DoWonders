@@ -9,23 +9,23 @@
 #define MAIN_H_
 
 ////////////////////////////////////////////////////////////////////////////
-// CR_DeqSet<ITEM_T> -- deque and set
+// CR_VecSet<ITEM_T> -- vector and set
 
 template <typename ITEM_T>
-class CR_DeqSet : public std::deque<ITEM_T>
+class CR_VecSet : public std::vector<ITEM_T>
 {
 public:
-    CR_DeqSet() { }
+    CR_VecSet() { }
 
-    CR_DeqSet(const CR_DeqSet<ITEM_T>& vs) : std::deque<ITEM_T>(vs)
+    CR_VecSet(const CR_VecSet<ITEM_T>& vs) : std::vector<ITEM_T>(vs)
     { }
 
-    CR_DeqSet<ITEM_T>& operator=(const CR_DeqSet<ITEM_T>& vs) {
+    CR_VecSet<ITEM_T>& operator=(const CR_VecSet<ITEM_T>& vs) {
         this->assign(vs.begin(), vs.end());
         return *this;
     }
 
-    virtual ~CR_DeqSet() { }
+    virtual ~CR_VecSet() { }
 
     std::size_t insert(const ITEM_T& item) {
         this->push_back(item);
@@ -60,14 +60,14 @@ public:
         return this->size() - 1;
     }
 
-    void AddHead(const CR_DeqSet<ITEM_T>& items) {
-        std::deque<ITEM_T>::insert(
-            std::deque<ITEM_T>::begin(), items.begin(), items.end());
+    void AddHead(const CR_VecSet<ITEM_T>& items) {
+        std::vector<ITEM_T>::insert(
+            std::vector<ITEM_T>::begin(), items.begin(), items.end());
     }
 
-    void AddTail(const CR_DeqSet<ITEM_T>& items) {
-        std::deque<ITEM_T>::insert(
-            std::deque<ITEM_T>::end(), items.begin(), items.end());
+    void AddTail(const CR_VecSet<ITEM_T>& items) {
+        std::vector<ITEM_T>::insert(
+            std::vector<ITEM_T>::end(), items.begin(), items.end());
     }
 
     std::size_t count(const ITEM_T& item) const {
@@ -98,12 +98,12 @@ public:
         if (i != j)
             this->resize(j);
     }
-}; // class CR_DeqSet<ITEM_T>
+}; // class CR_VecSet<ITEM_T>
 
 namespace std
 {
     template <typename ITEM_T>
-    inline void swap(CR_DeqSet<ITEM_T>& vs1, CR_DeqSet<ITEM_T>& vs2) {
+    inline void swap(CR_VecSet<ITEM_T>& vs1, CR_VecSet<ITEM_T>& vs2) {
         vs1.swap(vs2);
     }
 }
@@ -111,7 +111,7 @@ namespace std
 ////////////////////////////////////////////////////////////////////////////
 // CR_StringSet
 
-typedef CR_DeqSet<std::string> CR_StringSet;
+typedef CR_VecSet<std::string> CR_StringSet;
 
 ////////////////////////////////////////////////////////////////////////////
 // CR_ErrorInfo
