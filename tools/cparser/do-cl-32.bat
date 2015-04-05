@@ -1,6 +1,6 @@
 @echo off
 
-call ..\msc_ver.bat
+call ..\..\msc_ver.bat
 
 SET REDIRECTOR=..\redirector\Release\redirector.exe
 if not exist %REDIRECTOR% goto label_no_redirector
