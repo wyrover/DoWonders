@@ -102,7 +102,7 @@ namespace cparser
         scanner_iterator    m_current;
         scanner_iterator    m_end;
         Packing             m_packing;
-	public:
+    public:
         CR_Location         m_location;
     };
 
@@ -138,7 +138,7 @@ namespace cparser
         str_iterator        m_current;
         str_iterator        m_end;
         Packing             m_packing;
-	public:
+    public:
         CR_Location         m_location;
     };
 

@@ -3162,15 +3162,14 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
 
             switch (d->m_declor_type) {
             case Declor::IDENTIFIER:
-				if (d->m_initer.get()) {
-					value = CrValueOnIniter(namescope, d->m_initer.get());
-				}
-				if (d->m_flags && namescope.IsFuncType(tid2))
+                if (d->m_initer.get()) {
+                    value = CrValueOnIniter(namescope, d->m_initer.get());
+                }
+                if (d->m_flags && namescope.IsFuncType(tid2))
                     namescope.AddTypeFlags(tid2, d->m_flags);
                 if (namescope.HasValue(value)) {
-                    auto ctid = namescope.AddConstType(tid2);
-                    value.m_type_id = ctid;
-                    namescope.AddVar(d->m_name, ctid, d->m_location, value);
+                    value.m_type_id = tid2;
+                    namescope.AddVar(d->m_name, tid2, d->m_location, value);
                 } else {
                     namescope.AddVar(d->m_name, tid2, d->m_location);
                 }
