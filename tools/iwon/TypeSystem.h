@@ -54,8 +54,10 @@ typedef unsigned long CR_TypeFlags;
 
 CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags);
 
-std::string CrEscapeString(const std::string& str);
-std::string CrUnescapeString(const std::string& str);
+std::string CrEscapeStringA2A(const std::string& str);
+std::string CrEscapeStringW2A(const std::wstring& wstr);
+bool CrUnscapeStringA2A(std::string& ret, const std::string& str);
+bool CrUnscapeStringA2W(std::wstring& ret, const std::string& str);
 
 std::string CrEscapeChar(const std::string& str);
 std::string CrUnescapeChar(const std::string& str);
@@ -197,7 +199,7 @@ struct CR_LogType {
     // For TF_STRUCT:               A struct ID (CR_StructID).
     // For TF_ENUM:                 An enum ID (CR_EnumID).
     // For TF_UNION:                A struct ID (CR_StructID).
-    // otherwise:                   Zero.
+    // Otherwise:                   Zero.
 
     size_t          m_count;        // for TF_ARRAY, TF_STRUCT, TF_UNION
                                     //     TF_VECTOR
@@ -304,6 +306,7 @@ struct CR_LogStruct {
     bool operator!=(const CR_LogStruct& ls) const;
 
     bool empty() const { return m_members.empty(); }
+    size_t size() const { return m_members.size(); }
 }; // struct CR_LogStruct
 
 ////////////////////////////////////////////////////////////////////////////
@@ -527,6 +530,9 @@ public:
     CR_TypedValue SConstant(CR_TypeID tid, const std::string& text, const std::string& extra);
     CR_TypedValue IConstant(CR_TypeID tid, const std::string& text, const std::string& extra);
 
+    CR_TypedValue SConstant(const std::wstring& text);
+    CR_TypedValue SConstant(CR_TypeID tid, const std::wstring& text);
+
     CR_TypedValue BiOp(CR_TypedValue& v1, CR_TypedValue& v2) const;
     CR_TypedValue BiOpInt(CR_TypedValue& v1, CR_TypedValue& v2) const;
     int CompareValue(const CR_TypedValue& v1, const CR_TypedValue& v2) const;
@@ -576,6 +582,8 @@ public:
     //
     // getters
     //
+
+    std::string StringFromValue(const CR_TypedValue& value) const;
 
     // get size of type
     int SizeOfType(CR_TypeID tid) const {
@@ -666,6 +674,14 @@ public:
     bool IsPointerType(CR_TypeID tid) const;
     // is it a constant type?
     bool IsConstantType(CR_TypeID tid) const;
+    // is it an array type?
+    bool IsArrayType(CR_TypeID tid) const;
+    // is it a struct type?
+    bool IsStructType(CR_TypeID tid) const;
+    // is it a union type?
+    bool IsUnionType(CR_TypeID tid) const;
+    // is it a struct or union type?
+    bool IsStructOrUnionType(CR_TypeID tid) const;
 
     //
     // ResolveAlias
@@ -779,11 +795,11 @@ public:
           CR_VecSet<CR_LogVar>& LogVars()       { return m_vars; }
     const CR_VecSet<CR_LogVar>& LogVars() const { return m_vars; }
 
-          shared_ptr<CR_ErrorInfo>& ErrorInfo()       { return m_error_info; }
-    const shared_ptr<CR_ErrorInfo>& ErrorInfo() const { return m_error_info; }
-
           CR_MacroSet& Macros()       { return m_macros; }
     const CR_MacroSet& Macros() const { return m_macros; }
+
+          shared_ptr<CR_ErrorInfo>& ErrorInfo()       { return m_error_info; }
+    const shared_ptr<CR_ErrorInfo>& ErrorInfo() const { return m_error_info; }
 
 protected:
     shared_ptr<CR_ErrorInfo>            m_error_info;

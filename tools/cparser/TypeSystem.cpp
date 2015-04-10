@@ -33,7 +33,7 @@ CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags) {
     return flags & ~TF_INCOMPLETE;
 } // CrNormalizeTypeFlags
 
-std::string CrEscapeString(const std::string& str) {
+std::string CrEscapeStringA2A(const std::string& str) {
     std::string ret;
     size_t count = 0;
     const size_t siz = str.size();
@@ -82,7 +82,6 @@ std::string CrEscapeString(const std::string& str) {
                 ss << "\\x" << std::hex <<
                     std::setfill('0') << std::setw(2) << n;
                 ret += ss.str();
-                // don't misrecognize "\x00" and "1" as "\x001"
                 ret += "\" \"";
                 count += 4 + 3;
             } else {
@@ -95,7 +94,68 @@ std::string CrEscapeString(const std::string& str) {
     return "\"" + ret + "\"";
 }
 
-bool CrUnscapeString(std::string& ret, const std::string& str) {
+std::string CrEscapeStringW2A(const std::wstring& wstr) {
+    std::string ret;
+    size_t count = 0;
+    const size_t siz = wstr.size();
+    for (size_t i = 0; i < siz; ++i) {
+        wchar_t ch = wstr[i];
+        switch (ch) {
+        case L'\'': case L'\"': case L'\?': case L'\\':
+            ret += '\\';
+            ret += char(ch);
+            count += 2;
+            break;
+        case L'\a':
+            ret += '\\';
+            ret += 'a';
+            count += 2;
+            break;
+        case L'\b':
+            ret += '\\';
+            ret += 'b';
+            count += 2;
+            break;
+        case L'\f':
+            ret += '\\';
+            ret += 'f';
+            count += 2;
+            break;
+        case L'\r':
+            ret += '\\';
+            ret += 'r';
+            count += 2;
+            break;
+        case L'\t':
+            ret += '\\';
+            ret += 't';
+            count += 2;
+            break;
+        case L'\v':
+            ret += '\\';
+            ret += 'v';
+            count += 2;
+            break;
+        default:
+            if (ch < 0x20 || ch >= 0x100) {
+                int n = static_cast<int>(ch);
+                std::stringstream ss;
+                ss << "\\x" << std::hex <<
+                    std::setfill('0') << std::setw(4) << n;
+                ret += ss.str();
+                ret += "\" \"";
+                count += 6 + 3;
+            } else {
+                ret += char(ch);
+                count++;
+            }
+        }
+    }
+    ret.resize(count);
+    return "\"" + ret + "\"";
+}
+
+bool CrUnscapeStringA2A(std::string& ret, const std::string& str) {
     ret.clear();
     size_t siz = str.size();
     bool inside = false, is_valid = true;
@@ -179,6 +239,115 @@ bool CrUnscapeString(std::string& ret, const std::string& str) {
     return is_valid;
 }
 
+bool CrUnscapeStringA2W(std::wstring& ret, const std::string& str) {
+    ret.clear();
+    size_t siz = str.size();
+    bool inside = false, is_valid = true;
+    for (size_t i = 0; i < siz; ++i) {
+        char ch = str[i];
+        if (ch == '\"') {
+            if (inside) {
+                if (++i < siz && str[i] == '\"') {
+                    ret += L'\"';
+                } else {
+                    --i;
+                    inside = false;
+                }
+            } else {
+                inside = true;
+            }
+            continue;
+        }
+        if (!inside) {
+            if (!isspace(ch)) {
+                is_valid = false;
+            }
+            continue;
+        }
+        if (ch != L'\\') {
+            ret += wchar_t(ch);
+            continue;
+        }
+        if (++i >= siz) {
+            return false;
+        }
+        ch = str[i];
+        switch (ch) {
+        case '\'': case '\"': case '\?': case '\\':
+            ret += wchar_t(ch);
+            break;
+        case 'a': ret += L'\a'; break;
+        case 'b': ret += L'\b'; break;
+        case 'f': ret += L'\f'; break;
+        case 'n': ret += L'\n'; break;
+        case 'r': ret += L'\r'; break;
+        case 't': ret += L'\t'; break;
+        case 'v': ret += L'\v'; break;
+        case 'x':
+            {
+                std::string hex;
+                if (++i < siz && isxdigit(str[i])) {
+                    hex += str[i];
+                    if (++i < siz && isxdigit(str[i])) {
+                        hex += str[i];
+                        if (++i < siz && isxdigit(str[i])) {
+                            hex += str[i];
+                            if (++i < siz && isxdigit(str[i])) {
+                                hex += str[i];
+                            } else {
+                                --i;
+                            }
+                        } else {
+                            --i;
+                        }
+                    } else {
+                        --i;
+                    }
+                } else {
+                    --i;
+                    is_valid = false; // invalid escape sequence
+                }
+                auto n = std::stoul(hex, NULL, 16);
+                ret += static_cast<wchar_t>(n);
+            }
+            break;
+        default:
+            if ('0' <= ch && ch <= '7') {
+                std::string oct;
+                oct += ch;
+                if (++i < siz && '0' <= str[i] && str[i] <= '7') {
+                    oct += str[i];
+                    if (++i < siz && '0' <= str[i] && str[i] <= '7') {
+                        oct += str[i];
+                        if (++i < siz && '0' <= str[i] && str[i] <= '7') {
+                            oct += str[i];
+                            if (++i < siz && '0' <= str[i] && str[i] <= '7') {
+                                oct += str[i];
+                                if (++i < siz && '0' <= str[i] && str[i] <= '7') {
+                                    oct += str[i];
+                                } else {
+                                    --i;
+                                }
+                            } else {
+                                --i;
+                            }
+                        } else {
+                            --i;
+                        }
+                    } else {
+                        --i;
+                    }
+                } else {
+                    --i;
+                }
+                auto n = std::stoul(oct, NULL, 8);
+                ret += static_cast<wchar_t>(n);
+            }
+        }
+    }
+    return is_valid;
+}
+
 std::string CrEscapeChar(const std::string& str) {
     std::string ret;
     ret += '\'';
@@ -189,30 +358,12 @@ std::string CrEscapeChar(const std::string& str) {
             ret += '\\';
             ret += ch;
             break;
-        case '\a':
-            ret += '\\';
-            ret += 'a';
-            break;
-        case '\b':
-            ret += '\\';
-            ret += 'b';
-            break;
-        case '\f':
-            ret += '\\';
-            ret += 'f';
-            break;
-        case '\r':
-            ret += '\\';
-            ret += 'r';
-            break;
-        case '\t':
-            ret += '\\';
-            ret += 't';
-            break;
-        case '\v':
-            ret += '\\';
-            ret += 'v';
-            break;
+        case '\a': ret += '\\'; ret += 'a'; break;
+        case '\b': ret += '\\'; ret += 'b'; break;
+        case '\f': ret += '\\'; ret += 'f'; break;
+        case '\r': ret += '\\'; ret += 'r'; break;
+        case '\t': ret += '\\'; ret += 't'; break;
+        case '\v': ret += '\\'; ret += 'v'; break;
         default:
             if (ch < 0x20) {
                 int n = static_cast<int>(ch);
@@ -1342,6 +1493,25 @@ void CR_NameScope::CompleteTypeInfo() {
     }
 }
 
+std::string CR_NameScope::StringFromValue(const CR_TypedValue& value) const {
+    auto tid = value.m_type_id;
+    if (tid == cr_invalid_id) {
+        return "";
+    }
+    if (IsIntegralType(tid)) {
+        return value.m_text + value.m_extra;
+    } else if (IsFloatingType(tid)) {
+        if (value.m_text.find("INF") != std::string::npos ||
+            value.m_text.find("NAN") != std::string::npos)
+        {
+            return value.m_text;
+        }
+        return value.m_text + value.m_extra;
+    } else {
+        return value.m_text;
+    }
+}
+
 std::string CR_NameScope::StringOfEnum(
     const std::string& name, CR_EnumID eid) const
 {
@@ -1675,9 +1845,86 @@ bool CR_NameScope::IsConstantType(CR_TypeID tid) const {
             break;
         }
         auto& type = LogType(tid);
-        if (type.m_flags & TF_CONST)
+        if (type.m_flags & TF_CONST) {
             return true;
-        if (type.m_flags & TF_ARRAY) {
+        }
+        if (type.m_flags & (TF_ARRAY | TF_VECTOR)) {
+            tid = type.m_sub_id;
+        } else {
+            break;
+        }
+    }
+    return false;
+}
+
+// is it an array type?
+bool CR_NameScope::IsArrayType(CR_TypeID tid) const {
+    while (tid != cr_invalid_id) {
+        tid = ResolveAlias(tid);
+        if (tid == cr_invalid_id) {
+            break;
+        }
+        auto& type = LogType(tid);
+        if (type.m_flags & TF_ARRAY)
+            return true;
+        if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            tid = type.m_sub_id;
+        } else {
+            break;
+        }
+    }
+    return false;
+}
+
+// is it a struct type?
+bool CR_NameScope::IsStructType(CR_TypeID tid) const {
+    while (tid != cr_invalid_id) {
+        tid = ResolveAlias(tid);
+        if (tid == cr_invalid_id) {
+            break;
+        }
+        auto& type = LogType(tid);
+        if (type.m_flags & TF_STRUCT)
+            return true;
+        if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            tid = type.m_sub_id;
+        } else {
+            break;
+        }
+    }
+    return false;
+}
+
+// is it a union type?
+bool CR_NameScope::IsUnionType(CR_TypeID tid) const {
+    while (tid != cr_invalid_id) {
+        tid = ResolveAlias(tid);
+        if (tid == cr_invalid_id) {
+            break;
+        }
+        auto& type = LogType(tid);
+        if (type.m_flags & TF_UNION)
+            return true;
+        if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+            tid = type.m_sub_id;
+        } else {
+            break;
+        }
+    }
+    return false;
+}
+
+// is it a struct or union type?
+bool CR_NameScope::IsStructOrUnionType(CR_TypeID tid) const {
+    while (tid != cr_invalid_id) {
+        tid = ResolveAlias(tid);
+        if (tid == cr_invalid_id) {
+            break;
+        }
+        auto& type = LogType(tid);
+        if (type.m_flags & (TF_STRUCT | TF_UNION))
+            return true;
+        if ((type.m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
             tid = type.m_sub_id;
         } else {
             break;
@@ -2032,6 +2279,7 @@ CR_TypedValue CR_NameScope::StaticCast(
     if (tid == value.m_type_id) {
         return value;
     }
+
     CR_TypedValue ret;
     ret.m_type_id = tid;
     ret.m_size = SizeOfType(tid);
@@ -2062,9 +2310,14 @@ CR_TypedValue CR_NameScope::StaticCast(
         } else if (IsFloatingType(tid)) {
             auto ld2 = GetLongDoubleValue(value);
             SetLongDoubleValue(ret, ld2);
-        } else if (IsPointerType(tid)) {
+        } else if (IsPointerType(tid) &&
+                   !(value.m_text.size() && value.m_text[0] == '"'))
+        {
             auto u2 = GetULongLongValue(value);
             SetULongLongValue(ret, u2);
+        } else {
+            ret = value;
+            ret.m_type_id = tid;
         }
     }
 
@@ -3056,6 +3309,9 @@ void CR_NameScope::SetIntValue(CR_TypedValue& value, int n) const {
 }
 
 bool CR_NameScope::HasValue(const CR_TypedValue& value) const {
+    if (value.m_text.size() && value.m_text[0] == '\"') {
+        return true;
+    }
     if (value.m_ptr == NULL || value.m_type_id == cr_invalid_id) {
         return false;
     }
@@ -3208,30 +3464,6 @@ CR_TypeID CR_NameScope::MakeSigned(CR_TypeID tid) const {
     return cr_invalid_id;
 }
 
-CR_TypeID CR_NameScope::MakeConst(CR_TypeID tid) const {
-    if (tid == cr_invalid_id) {
-        return tid;
-    }
-    CR_LogType type1;
-    auto& type2 = LogType(tid);
-    if (type2.m_flags & TF_INCOMPLETE) {
-        type1.m_flags = TF_CONST | TF_INCOMPLETE;
-    } else {
-        type1.m_flags = TF_CONST;
-        type1.m_size = type2.m_size;
-        type1.m_align = type2.m_align;
-    }
-    if (type2.m_flags & TF_BITFIELD) {
-        type1.m_flags |= TF_BITFIELD;
-    }
-    type1.m_sub_id = tid;
-    size_t i = m_types.Find(type1);
-    if (i == cr_invalid_id) {
-        return tid;
-    }
-    return i;
-}
-
 CR_TypeID CR_NameScope::MakeUnsigned(CR_TypeID tid) const {
     tid = ResolveAlias(tid);
     if (IsIntegralType(tid)) {
@@ -3263,6 +3495,31 @@ CR_TypeID CR_NameScope::MakeUnsigned(CR_TypeID tid) const {
         }
     }
     return cr_invalid_id;
+}
+
+CR_TypeID CR_NameScope::MakeConst(CR_TypeID tid) const {
+    if (tid == cr_invalid_id) {
+        return tid;
+    }
+    CR_LogType type1;
+    auto& type2 = LogType(tid);
+    if (type2.m_flags & TF_CONST) {
+        // it is already a constant
+        return tid;
+    }
+    if (type2.m_flags & TF_INCOMPLETE) {
+        type1.m_flags = TF_CONST | TF_INCOMPLETE;
+    } else {
+        type1.m_flags = TF_CONST;
+        type1.m_size = type2.m_size;
+        type1.m_align = type2.m_align;
+    }
+    if (type2.m_flags & TF_BITFIELD) {
+        type1.m_flags |= TF_BITFIELD;
+    }
+    type1.m_sub_id = tid;
+    auto tid2 = m_types.Find(type1);
+    return tid2;
 }
 
 CR_TypedValue
@@ -3372,7 +3629,7 @@ CR_TypedValue
 CR_NameScope::SConstant(const std::string& text, const std::string& extra) {
     CR_TypedValue ret;
 
-    ret.m_text = CrEscapeString(text);
+    ret.m_text = CrEscapeStringA2A(text);
     ret.m_extra = extra;
     if (extra.find("L") != std::string::npos ||
         extra.find("l") != std::string::npos)
@@ -3391,7 +3648,7 @@ CR_TypedValue
 CR_NameScope::SConstant(CR_TypeID tid, const std::string& text, const std::string& extra) {
     CR_TypedValue ret;
 
-    ret.m_text = CrEscapeString(text);
+    ret.m_text = CrEscapeStringA2A(text);
     ret.m_extra = extra;
     ret.m_type_id = tid;
     if (extra.find("L") != std::string::npos ||
@@ -3403,6 +3660,26 @@ CR_NameScope::SConstant(CR_TypeID tid, const std::string& text, const std::strin
     else {
         ret.assign(text.data(), text.size() + 1);
     }
+    return ret;
+}
+
+CR_TypedValue
+CR_NameScope::SConstant(const std::wstring& text) {
+    CR_TypedValue ret;
+    ret.m_text = CrEscapeStringW2A(text);
+    ret.m_extra = "L";
+    ret.m_type_id = AddConstWCharArray(text.size() + 1);
+    ret.assign(text.data(), (text.size() + 1) * sizeof(WCHAR));
+    return ret;
+}
+
+CR_TypedValue
+CR_NameScope::SConstant(CR_TypeID tid, const std::wstring& text) {
+    CR_TypedValue ret;
+    ret.m_text = CrEscapeStringW2A(text);
+    ret.m_extra = "L";
+    ret.m_type_id = tid;
+    ret.assign(text.data(), (text.size() + 1) * sizeof(WCHAR));
     return ret;
 }
 
@@ -3542,7 +3819,7 @@ CR_NameScope::IConstant(CR_TypeID tid, const std::string& text, const std::strin
 
 ////////////////////////////////////////////////////////////////////////////
 
-// Wonders data format version
+// Wonders API data format version
 int cr_data_version = 1;
 
 bool CR_NameScope::LoadFromFiles(
@@ -3617,7 +3894,7 @@ bool CR_NameScope::LoadFromFiles(
             m_types.emplace_back(type);
         }
     } else {
-        ErrorInfo()->add_error("cannot load file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3684,7 +3961,7 @@ bool CR_NameScope::LoadFromFiles(
             m_structs.emplace_back(ls);
         }
     } else {
-        ErrorInfo()->add_error("cannot load file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3731,7 +4008,7 @@ bool CR_NameScope::LoadFromFiles(
             m_enums.emplace_back(le);
         }
     } else {
-        ErrorInfo()->add_error("cannot load file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3789,7 +4066,7 @@ bool CR_NameScope::LoadFromFiles(
             m_funcs.emplace_back(func);
         }
     } else {
-        ErrorInfo()->add_error("cannot load file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3834,22 +4111,27 @@ bool CR_NameScope::LoadFromFiles(
                 var.m_typed_value = FConstant(text, extra);
             } else if (text.size() && value_type == "s" && IsStringType(type_id)) {
                 std::string unescaped;
-                if (CrUnscapeString(unescaped, text)) {
+                if (CrUnscapeStringA2A(unescaped, text)) {
                     text = unescaped;
                 } else {
                     ErrorInfo()->add_error("invalid string: '" + text + "'");
                 }
                 var.m_typed_value = SConstant(type_id, text, extra);
             } else if (text.size() && value_type == "S" && IsWStringType(type_id)) {
-                std::string unescaped;
-                if (CrUnscapeString(unescaped, text)) {
-                    text = unescaped;
+                std::wstring unescaped;
+                if (CrUnscapeStringA2W(unescaped, text)) {
+                    ;
                 } else {
                     ErrorInfo()->add_error("invalid string: '" + text + "'");
                 }
-                var.m_typed_value = SConstant(type_id, text, extra);
+                var.m_typed_value = SConstant(type_id, unescaped);
             } else if (text.size() && value_type == "p" && IsPointerType(type_id)) {
                 var.m_typed_value = PConstant(type_id, text, extra);
+            } else if (text.size() && value_type == "c") {
+                var.m_typed_value.m_text = text;
+                std::string unescaped;
+                CrUnscapeStringA2A(unescaped, extra);
+				var.m_typed_value.assign(unescaped.data(), unescaped.size());
             } else {
                 var.m_typed_value.m_type_id = type_id;
             }
@@ -3864,7 +4146,7 @@ bool CR_NameScope::LoadFromFiles(
             }
         }
     } else {
-        ErrorInfo()->add_error("cannot load file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3905,7 +4187,7 @@ bool CR_NameScope::LoadFromFiles(
             m_mNameToName.emplace(name1, name2name);
         }
     } else {
-        ErrorInfo()->add_error("cannot load file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot load file '" + fname + "'");
         return false;
     }
 
@@ -3967,7 +4249,7 @@ bool CR_NameScope::LoadMacros(
         }
         return true;
     } else {
-        ErrorInfo()->add_error("cannot load file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot load file '" + fname + "'");
         return false;
     }
 
@@ -4022,7 +4304,7 @@ bool CR_NameScope::SaveToFiles(
                 lineno << std::endl;
         }
     } else {
-        ErrorInfo()->add_error("cannot write file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot write file '" + fname + "'");
         return false;
     }
 
@@ -4076,7 +4358,7 @@ bool CR_NameScope::SaveToFiles(
             out2 << std::endl;
         }
     } else {
-        ErrorInfo()->add_error("cannot write file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot write file '" + fname + "'");
         return false;
     }
 
@@ -4101,7 +4383,7 @@ bool CR_NameScope::SaveToFiles(
             out3 << std::endl;
         }
     } else {
-        ErrorInfo()->add_error("cannot write file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot write file '" + fname + "'");
         return false;
     }
 
@@ -4129,7 +4411,7 @@ bool CR_NameScope::SaveToFiles(
             out4 << std::endl;
         }
     } else {
-        ErrorInfo()->add_error("cannot write file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot write file '" + fname + "'");
         return false;
     }
 
@@ -4163,6 +4445,8 @@ bool CR_NameScope::SaveToFiles(
                     value_type = "s";
                 } else if (IsWStringType(tid) && text[0] == '\"') {
                     value_type = "S";
+                } else if (text[0] == '{') {
+                    value_type = "c";
                 } else if (IsPointerType(tid)) {
                     unsigned long long n = std::stoull(text, NULL, 0);
                     if (n != cr_invalid_address) {
@@ -4192,7 +4476,7 @@ bool CR_NameScope::SaveToFiles(
                 location.m_line << std::endl;
         }
     } else {
-        ErrorInfo()->add_error("cannot write file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot write file '" + fname + "'");
         return false;
     }
 
@@ -4209,7 +4493,7 @@ bool CR_NameScope::SaveToFiles(
                 it.second.m_location.m_line << std::endl;
         }
     } else {
-        ErrorInfo()->add_error("cannot write file '" + fname + "'");
+        ErrorInfo()->add_error("Cannot write file '" + fname + "'");
         return false;
     }
 

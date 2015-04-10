@@ -1872,10 +1872,59 @@ cparser::Lexer::parse_pragma(
 } // parse_pragma
 
 ////////////////////////////////////////////////////////////////////////////
-// CrValueOn...Expr functions
+// CrStringOn... functions
 
 using namespace cparser;
 
+std::string CrStringOnIniter(CR_NameScope& namescope, Initer *i);
+std::string CrStringOnIniterList(CR_NameScope& namescope, IniterList *il);
+CR_TypedValue CrValueOnAssignExpr(CR_NameScope& namescope, AssignExpr *ae);
+
+std::string CrStringOnAssignExpr(CR_NameScope& namescope, AssignExpr *ae) {
+    assert(ae);
+    CR_TypedValue value = CrValueOnAssignExpr(namescope, ae);
+    auto ret = namescope.StringFromValue(value);
+    return ret;
+}
+
+std::string CrStringOnIniter(CR_NameScope& namescope, Initer *i) {
+    assert(i);
+    std::string ret;
+    switch (i->m_initer_type) {
+    case Initer::SIMPLE:
+        ret = CrStringOnAssignExpr(namescope, i->m_assign_expr.get());
+        break;
+
+    case Initer::COMPLEX:
+        ret = CrStringOnIniterList(namescope, i->m_initer_list.get());
+        break;
+
+	default:
+		assert(0);
+    }
+    return ret;
+}
+
+std::string CrStringOnIniterList(CR_NameScope& namescope, IniterList *il) {
+    assert(il);
+    std::string ret = "{";
+    const size_t siz = il->size();
+    if (siz) {
+        ret += CrStringOnIniter(namescope, (*il)[0].get());
+        for (size_t i = 1; i < siz; ++i) {
+            ret += ", ";
+            ret += CrStringOnIniter(namescope, (*il)[i].get());
+        }
+    }
+    ret += "}";
+    return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////
+// CrValueOn... functions
+
+CR_TypedValue CrValueOnIniterList(CR_NameScope& namescope, CR_TypeID tid, IniterList *il);
+CR_TypedValue CrValueOnIniter(CR_NameScope& namescope, CR_TypeID tid, Initer *initer);
 CR_TypedValue CrValueOnPrimExpr(CR_NameScope& namescope, PrimExpr *pe);
 CR_TypedValue CrValueOnPostfixExpr(CR_NameScope& namescope, PostfixExpr *pe);
 CR_TypedValue CrValueOnUnaryExpr(CR_NameScope& namescope, UnaryExpr *ue);
@@ -1907,10 +1956,90 @@ CR_TypedValue CrSize_tValue(CR_NameScope& namescope, unsigned long long n = 0) {
 }
 
 CR_TypedValue
-CrValueOnIniter(CR_NameScope& namescope, Initer *initer) {
+CrValueOnIniterList(CR_NameScope& namescope, CR_TypeID tid, IniterList *il) {
+    #ifdef DEEPDEBUG
+        printf("CrValueOnIniterList: %d\n", int(il->size()));
+    #endif
+
+    CR_TypedValue ret;
+    auto tid2 = namescope.ResolveAliasAndCV(tid);
+    auto& type2 = namescope.LogType(tid2);
+
+    std::vector<char> data;
+    data.resize(type2.m_size);
+    memset(data.data(), 0, data.size());
+
+    int count = int(il->size());
+    if (int(type2.m_count) < count) {
+        count = type2.m_count;
+    }
+
+    if (type2.m_flags & TF_ARRAY) {
+        // array type
+        auto tid3 = type2.m_sub_id;
+        auto& type3 = namescope.LogType(tid3);
+        for (int i = 0; i < count; ++i) {
+            CR_TypedValue value = 
+				CrValueOnIniter(namescope, type2.m_sub_id, (*il)[i].get());
+            memcpy(&data[i * type3.m_size], value.m_ptr, type3.m_size);
+        }
+    } else if (type2.m_flags & TF_STRUCT) {
+        // struct type
+        auto& ls = namescope.LogStruct(type2.m_sub_id);
+        auto& members = ls.m_members;
+        int byte_offset = 0;
+        for (int i = 0; i < count; ++i) {
+            auto& m = members[i];
+            auto tid3 = m.m_type_id;
+			auto& type3 = namescope.LogType(tid3);
+            auto bit_offset = m.m_bit_offset;
+
+            CR_TypedValue value = 
+				CrValueOnIniter(namescope, tid3, (*il)[i].get());
+            memcpy(&data[byte_offset], value.m_ptr, type3.m_size);
+
+            // TODO: bitfield
+            assert(bit_offset % 8 == 0);
+            byte_offset += bit_offset / 8;
+        }
+    } else if (type2.m_flags & TF_UNION) {
+        // union type
+        auto& ls = namescope.LogStruct(type2.m_sub_id);
+        auto& members = ls.m_members;
+        if (count) {
+            auto& m = members[0];
+            auto tid3 = m.m_type_id;
+			auto& type3 = namescope.LogType(tid3);
+			auto bit_offset = m.m_bit_offset;
+            CR_TypedValue value = 
+				CrValueOnIniter(namescope, tid3, (*il)[0].get());
+            memcpy(data.data(), value.m_ptr, type3.m_size);
+        }
+    } else {
+        return ret;
+    }
+
+    ret.m_type_id = tid;
+    ret.m_text = CrStringOnIniterList(namescope, il);
+    ret.assign(data.data(), data.size());
+    ret.m_size = data.size();
+
+    // set extra
+    std::string str(data.data(), data.size());
+    ret.m_extra = CrEscapeStringA2A(str);
+
+    #ifdef DEEPDEBUG
+        printf("CrValueOnIniterList: \"%s\"\n", ret.m_text.data());
+    #endif
+    return ret;
+}
+
+CR_TypedValue
+CrValueOnIniter(CR_NameScope& namescope, CR_TypeID tid, Initer *initer) {
     #ifdef DEEPDEBUG
         printf("CrValueOnIniter: %d\n", initer->m_initer_type);
     #endif
+
     CR_TypedValue ret;
     switch (initer->m_initer_type) {
     case Initer::SIMPLE:
@@ -1918,12 +2047,15 @@ CrValueOnIniter(CR_NameScope& namescope, Initer *initer) {
         break;
 
     case Initer::COMPLEX:
-        // TODO: complex initer
+        ret = CrValueOnIniterList(namescope, tid, initer->m_initer_list.get());
         break;
 
     default:
         assert(0);
     }
+
+    ret = namescope.StaticCast(tid, ret);
+
     #ifdef DEEPDEBUG
         printf("CrValueOnIniter: \"%s\"\n", ret.m_text.data());
     #endif
@@ -3145,6 +3277,22 @@ void CrAnalyseTypedefDeclorListVector(
     }
 }
 
+CR_TypedValue CrFixValue(CR_NameScope& namescope, const CR_TypedValue& value) {
+    CR_TypedValue ret = value;
+    if (value.m_text.size() && value.m_text[0] == '{') {
+        if (namescope.IsStringType(value.m_type_id)) {
+            std::string str(reinterpret_cast<char *>(value.m_ptr), value.m_size);
+            ret.m_text = CrEscapeStringA2A(str);
+            ret.m_extra = "";
+        } else if (namescope.IsWStringType(value.m_type_id)) {
+            std::wstring wstr(reinterpret_cast<wchar_t *>(value.m_ptr), value.m_size / 2);
+            ret.m_text = CrEscapeStringW2A(wstr);
+            ret.m_extra = "L";
+        }
+    }
+    return ret;
+}
+
 void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                          DeclorList *dl)
 {
@@ -3163,7 +3311,8 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
             switch (d->m_declor_type) {
             case Declor::IDENTIFIER:
                 if (d->m_initer.get()) {
-                    value = CrValueOnIniter(namescope, d->m_initer.get());
+                    value = CrValueOnIniter(namescope, tid2, d->m_initer.get());
+                    value = CrFixValue(namescope, value);
                 }
                 if (d->m_flags && namescope.IsFuncType(tid2))
                     namescope.AddTypeFlags(tid2, d->m_flags);
@@ -3186,10 +3335,11 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                     auto ac = (*pointers)[0];
                     namescope.AddTypeFlags(tid2, ac->m_flags);
                 }
-                if (d->m_initer.get()) {
-                    value = CrValueOnIniter(namescope, d->m_initer.get());
-                }
                 tid2 = CrAnalysePointers(namescope, d->m_pointers.get(), tid2, d->m_location);
+                if (d->m_initer.get()) {
+                    value = CrValueOnIniter(namescope, tid2, d->m_initer.get());
+                    value = CrFixValue(namescope, value);
+                }
                 d = d->m_declor.get();
                 break;
 
@@ -3201,15 +3351,11 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 } else {
                     int_value = 0;
                 }
-                if (d->m_initer.get()) {
-                    value = CrValueOnIniter(namescope, d->m_initer.get());
-                    if (value.m_extra == "L") {
-                        int_value = int(value.m_size / 2);
-                    } else {
-                        int_value = int(value.m_size);
-                    }
-                }
                 tid2 = namescope.AddArrayType(tid2, int_value, d->m_location);
+                if (d->m_initer.get()) {
+                    value = CrValueOnIniter(namescope, tid2, d->m_initer.get());
+                    value = CrFixValue(namescope, value);
+                }
                 d = d->m_declor.get();
                 continue;
 
@@ -3964,7 +4110,7 @@ void CrLexMacro(
         case '"':
             {
                 auto text = CrGutsString(it);
-                text = CrEscapeString(text);
+                text = CrEscapeStringA2A(text);
                 nodes.emplace_back(cmacro::MT_STRING, text);
             }
             break;
@@ -3979,7 +4125,7 @@ void CrLexMacro(
             ++it;
             if (*it == '"') {
                 auto text = CrGutsString(it);
-                text = "L" + CrEscapeString(text);
+                text = "L" + CrEscapeStringA2A(text);
                 nodes.emplace_back(cmacro::MT_STRING, text);
             } else if (*it == '\'') {
                 auto text = CrGutsChar(it);
@@ -4155,7 +4301,7 @@ CrSubstituteMacro(
                 if (it->m_text == macro.m_params[i]) {
                     // stringify param
                     auto text = CrStringifyNodes(params[i]);
-                    text = CrEscapeString(text);
+                    text = CrEscapeStringA2A(text);
                     cmacro::Node node(cmacro::MT_STRING, text);
                     new_nodes.emplace_back(node);
                     break;

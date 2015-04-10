@@ -1,6 +1,6 @@
 <?php
 
-// Wonders data format version
+// Wonders API data format version
 const $cr_data_version = 1;
 
 const TF_VOID         = 0x00000001;
@@ -35,6 +35,7 @@ const TF_INACCURATE   = 0x04000000;   // size and/or alignment is not accurate
 const TF_VECTOR       = 0x08000000;
 const TF_BITFIELD     = 0x10000000;
 const TF_ALIAS        = 0x20000000;
+//
 const TF_INT128       = 0x80000000;
 
 function CrNormalizeTypeFlags($flags) {
@@ -63,36 +64,226 @@ function CrNormalizeTypeFlags($flags) {
     return $flags & ~TF_INCOMPLETE;
 } // CrNormalizeTypeFlags
 
-
 function CrChop($str) {
-	return chop($str);
+    return chop($str);
 }
 
 function CrEscapeString($str) {
-	return '"' . addcslashes($str, "\0..\x1F\'\"?\\\a\b\f\r\t\v") . '"';
+    $ret = "";
+    $siz = strlen($str);
+    for ($i = 0; $i < siz; ++$i) {
+        $ch = $str[$i];
+        switch ($ch) {
+        case "'": case "\"": case "?": case "\\":
+            $ret .= $ch;
+            break;
+        case "\a":
+            $ret .= "\\a";
+            break;
+        case "\b":
+            $ret .= "\\b";
+            break;
+        case "\f":
+            $ret .= "\\f";
+            break;
+        case "\r":
+            $ret .= "\\r";
+            break;
+        case "\t":
+            $ret .= "\\t";
+            break;
+        case "\v":
+            $ret .= "\\v";
+            break;
+        default:
+            if (ord($ch) < 0x20) {
+                $n = ord($ch);
+                $ret .= "\x";
+                $ret .= sprintf("%02X", $n);
+                $ret .= "\" \"";
+            } else {
+                $ret .= $ch;
+            }
+        }
+    }
+    return "\"" . $ret . "\"";
+}
+
+function cr_isspace($ch) {
+    return preg_match("/^\\s$/", $ch)
+}
+
+function cr_isxdigit($ch) {
+    return preg_match("/^[0-9A-Fa-f]$/", $ch)
 }
 
 function CrUnscapeString(&$ret, $str) {
-	$str = trim($str);
-	if ($str[0] == '"') {
-		$str = substr($str, 1);
-	}
-	if ($str[strlen($str) - 1] == '"') {
-		$str = substr($str, 0, strlen($str) - 1);
-	}
-	$ret = stripcslashes($str);
-	return true;
+    $ret = "";
+    $siz = strlen($str);
+    $inside = false;
+    $is_valid = true;
+    for ($i = 0; $i < $siz; ++$i) {
+        $ch = $str[$i];
+        if ($ch == "\"") {
+            if ($inside) {
+                if (++$i < $siz && $str[$i] == "\"") {
+                    $ret .= "\"";
+                } else {
+                    --$i;
+                    $inside = false;
+                }
+            } else {
+                $inside = true;
+            }
+            continue;
+        }
+        if (!$inside) {
+            if (!cr_isspace) {
+                $is_valid = false;
+            }
+            continue;
+        }
+        if ($ch != '\\') {
+            $ret .= $ch;
+            continue;
+        }
+        if (++$i >= $siz) {
+            return false;
+        }
+        $ch = $str[$i];
+        switch ($ch) {
+        case "\'": case "\"": case "?": case "\\":
+            $ret .= $ch;
+            break;
+        case "a": $ret .= "\a"; break;
+        case "b": $ret .= "\b"; break;
+        case "f": $ret .= "\f"; break;
+        case "n": $ret .= "\n"; break;
+        case "r": $ret .= "\r"; break;
+        case "t": $ret .= "\t"; break;
+        case "v": $ret .= "\v"; break;
+        case "x": 
+            $hex = "";
+            if (++$i < $siz && cr_isxdigit($str[$i])) {
+                $hex .= $str[$i];
+                if (++$i < $siz && cr_isxdigit($str[$i])) {
+                    $hex .= $str[$i];
+                } else {
+                    --$i;
+                }
+            } else {
+                --$i;
+                $is_valid = false; // invalid escape sequence
+            }
+            $n = intval($hex, 16);
+            $ret .= chr($n);
+            break;
+        default:
+            if ('0' <= $ch && $ch <= '7') {
+                $oct = "";
+                $oct .= $ch;
+                if (++$i < $siz && '0' <= $str[$i] && $str[$i] <= '7') {
+                    $oct .= $str[$i];
+                    if (++$i < $siz && '0' <= $str[$i] && $str[$i] <= '7') {
+                        $oct .= $str[$i];
+                    } else {
+                        --$i;
+                    }
+                } else {
+                    --$i;
+                }
+                $n = intval($oct, 8);
+                $ret .= chr($n);
+            }
+        }
+    }
+    return $is_valid;
 }
 
 function CrEscapeChar($str) {
-	$ret = "'";
-	for ($str as $ch) {
-		$ret .= addcslashes($ch, "\0..\x1F\'\"?\\\a\b\f\r\t\v");
-	}
-	return $ret + "'";
+    $ret = "\'";
+    $siz = strlen($str);
+    for ($i = 0; $i < $siz; ++$i) {
+        $ch = $str[$i];
+        switch ($ch) {
+        case "\'": caes "\"": case "?": case "\\":
+            $ret .= "\\":
+            $ret .= $ch;
+            break;
+        case "\a": $ret .= "\\"; $ret .= "a"; break;
+        case "\b": $ret .= "\\"; $ret .= "b"; break;
+        case "\f": $ret .= "\\"; $ret .= "f"; break;
+        case "\r": $ret .= "\\"; $ret .= "r"; break;
+        case "\t": $ret .= "\\"; $ret .= "t"; break;
+        case "\v": $ret .= "\\"; $ret .= "v"; break;
+        default:
+            if (ord($ch) < 0x20) {
+                $n = ord($ch);
+                $ret .= "\\x";
+                $ret .= sprintf("%02X", $n);
+            } else {
+                $ret .= $ch;
+            }
+        }
+    }
+    $ret .= "\'";
+    return $ret;
 }
 
 std::string CrUnescapeChar(const std::string& str) {
+    $ret = "";
+    $i = 1;
+    $siz = strlen($str);
+    $ch = $str[1];
+    switch ($ch) {
+    case "\'": case "\"": case "?": case "\\":
+        $ret .= $ch;
+        break;
+    case 'a': $ret .= "\a"; break;
+    case 'b': $ret .= "\b"; break;
+    case 'f': $ret .= "\f"; break;
+    case 'n': $ret .= "\n"; break;
+    case 'r': $ret .= "\r"; break;
+    case 't': $ret .= "\t"; break;
+    case 'v': $ret .= "\v"; break;
+    case 'x':
+        $hex = "";
+        ++$i;
+        if ($i < $siz && cr_isxdigit($str[$i])) {
+            $hex .= $str[$i];
+            ++$i;
+            if ($i < $siz && cr_isxdigit($str[$i])) {
+                $hex .= $str[$i];
+            } else {
+                --$i;
+            }
+        } else {
+            --$i;
+        }
+        $n = intval($hex, 16);
+        $ret .= chr($n);
+        break;
+    default:
+        if ('0' <= $ch && $ch <= '7') {
+            $oct = "";
+            $oct .= $ch;
+            ++$i;
+            if ($i < $siz && '0' <= $str[$i] && $str[$i] <= '7') {
+                $oct .= $str[$i];
+                ++$i;
+                if ($i < $siz && '0' <= $str[$i] && $str[$i] <= '7') {
+                    $oct .= $str[$i];
+                } else {
+                    --$i;
+                }
+            } else {
+                --$i;
+            }
+            $n = intval($oct, 8);
+            $ret .= chr($n);
+        }
+    }
+    return $ret;
 }
 
 $cr_invalid_id = -1;
@@ -119,14 +310,25 @@ class CR_TypedValue {
     function assign($value, $size) {
         $this->m_value = $value;
         $this->m_size = $size;
+    	$this->m_text = strval($value);
     }
-    
+
     function __construct($type_id, $value = NULL, $size = 0) {
         $this->m_type_id = $type_id;
         $this->m_value = $value;
         $this->m_size = $size;
         $this->m_text = "";
         $this->m_extra = "";
+    }
+
+    function clone() {
+        $typed_value = new CR_TypedValue($this->m_type_id);
+        $typed_value->m_value = $this->m_value;
+        $typed_value->m_size = $this->m_size;
+        $typed_value->m_type_id = $this->m_type_id;
+        $typed_value->m_text = $this->m_text;
+        $typed_value->m_extra = $this->m_extra;
+        return $typed_value;
     }
 }
 
@@ -135,7 +337,6 @@ class CR_LogType {
     var $m_sub_id;
     // m_sub_id means...
     // For TF_ALIAS:                A type ID (CR_TypeID).
-    // For TF_ALIAS | TF_FUNCTION:  A type ID (CR_TypeID).
     // For TF_POINTER:              A type ID (CR_TypeID).
     // For TF_ARRAY:                A type ID (CR_TypeID).
     // For TF_CONST:                A type ID (CR_TypeID).
@@ -145,13 +346,14 @@ class CR_LogType {
     // For TF_STRUCT:               A struct ID (CR_StructID).
     // For TF_ENUM:                 An enum ID (CR_EnumID).
     // For TF_UNION:                A struct ID (CR_StructID).
-    // otherwise: zero
+    // Otherwise:                   Zero.
     var $m_count;
     var $m_size;
     var $m_align;
     var $m_alignas;
     var $m_alignas_explicit;
     var $m_location;
+    var $m_is_macro;
 
     function __construct() {
         $this->m_count = 0;
@@ -160,6 +362,21 @@ class CR_LogType {
         $this->m_alignas = 0;
         $this->m_alignas_explicit = 0;
         $this->m_location = array("", 0);
+        $this->m_is_macro = false;
+    }
+
+    function clone() {
+        $type = new CR_LogType();
+        $type->m_flags = $this->m_flags;
+        $type->m_sub_id = $this->m_sub_id;
+        $type->m_count = $this->m_count;
+        $type->m_size = $this->m_size;
+        $type->m_align = $this->m_align;
+        $type->m_alignas = $this->m_alignas;
+        $type->m_alignas_explicit = $this->m_alignas_explicit;
+        $type->m_location = $this->m_location;
+        $type->m_is_macro = $this->m_is_macro;
+        return $type;
     }
 }
 
@@ -170,6 +387,11 @@ class CR_FuncParam {
     function __construct($tid, $name) {
         $this->m_type_id = tid;
         $this->m_name = name;
+    }
+    
+    function clone() {
+        $fp = new CR_FuncParam($this->m_type_id, $this->m_name);
+        return $fp;
     }
 }
 
@@ -190,6 +412,15 @@ class CR_LogFunc {
         $this->m_convention = FT_CDECL;
         $this->m_params = array();
     }
+
+    function clone() {
+        $func = new CR_LogFunc();
+        $func->m_ellipsis = $this->m_ellipsis;
+        $func->m_return_type = $this->m_return_type;
+        $func->m_convention = $this->m_convention;
+        $func->m_params = $this->m_params;
+        return $func;
+    }
 }
 
 class CR_StructMember {
@@ -203,6 +434,13 @@ class CR_StructMember {
         $this->m_name = $name;
         $this->m_bit_offset = $bit_offset;
         $this->m_bits = $bits;
+    }
+    
+    function clone() {
+        $sm = new CR_StructMember($this->m_type_id, $this->m_name);
+        $sm->m_bit_offset = $this->m_bit_offset;
+        $sm->m_bits = $this->m_bits;
+        return $sm;
     }
 }
 
@@ -226,26 +464,114 @@ class CR_LogStruct {
         $this->m_is_complete = false;
         $this->m_members = array();
     }
+    
+    function empty() {
+        return count($this->m_members) == 0;
+    }
+
+    function size() {
+        return count($this->m_members);
+    }
+    
+    function clone() {
+        $ls = new CR_LogStruct($this->m_is_struct);
+        $ls->m_tid = $this->m_tid;
+        $ls->m_pack = $this->m_pack;
+        $ls->m_align = $this->m_align;
+        $ls->m_alignas = $this->m_alignas;
+        $ls->m_alignas_explicit = $this->m_alignas_explicit;
+        $ls->m_is_complete = $this->m_is_complete;
+        $ls->m_members = $this->m_members;
+        return $ls;
+    }
 }
 
 class CR_LogEnum {
     var $m_mNameToValue;
     var $m_mValueToName;
+
     function __construct() {
         $this->m_mNameToValue = array();
         $this->m_mValueToName = array();
+    }
+    
+    function empty() {
+        return count($this->m_mNameToValue) == 0 && count($this->m_mValueToName) == 0;
+    }
+    
+    function clone() {
+        $le = new CR_LogEnum();
+        $le->m_mNameToValue = $this->m_mNameToValue;
+        $le->m_mValueToName = $this->m_mValueToName;
+        return $le;
     }
 }
 
 class CR_LogVar {
     var $m_typed_value;
     var $m_location;
+    var $m_is_macro;
 
     function __construct($type_id, $value = NULL, $size = 0) {
         $this->m_typed_value = new CR_TypedValue($type_id, $value, $size);
         $this->m_location = array("", 0);
+        $this->m_is_macro = false;
     }
-}; // struct CR_LogVar
+    
+    function clone() {
+        $var = new CR_LogVar($this->m_typed_value->m_type_id);
+        $var->m_typed_value = $this->m_typed_value->clone();
+        $var->m_location = $this->m_location;
+        $var->m_is_macro = $this->m_is_macro;
+        return $var;
+    }
+} // struct CR_LogVar
+
+class CR_Name2Name {
+    var $m_from;
+    var $m_to;
+    var $m_location;
+    
+    function __construct() {
+        $this->m_from = "";
+        $this->m_to = "";
+        $this->m_location = array("", 0);
+    }
+
+    function clone() {
+        $n2n = new CR_Name2Name();
+        $n2n->m_from = $this->m_from;
+        $n2n->m_to = $this->m_to;
+        $n2n->m_location = $this->m_location;
+        return $n2n;
+    }
+}
+
+class CR_Macro {
+    var $m_num_params;
+    var $m_params;
+    var $m_contents;
+    var $m_location;
+    var $m_ellipsis;
+    
+    function __construct() {
+        $this->m_num_params = 0;
+        $this->m_params = "";
+        $this->m_contents = "";
+        $this->m_location = array("", 0);
+        $this->m_ellipsis = false;
+    }
+    
+    function clone() {
+        $macro = new CR_Macro();
+        $macro->m_num_params = $this->m_num_params;
+        $macro->m_params = $this->m_params;
+        $macro->m_contents = $this->m_contents;
+        $macro->m_location = $this->m_location;
+        $macro->m_ellipsis = $this->m_ellipsis;
+        return $macro;
+    }
+}
 
 class CR_NameScope {
     var $m_is_64bit;
@@ -259,6 +585,8 @@ class CR_NameScope {
     var $m_structs;
     var $m_enums;
     var $m_vars;
+    var $m_mNameToName;
+    var $m_macros;
 
     function __construct($is_64bit = false) {
         $this->m_is_64bit = $is_64bit;
@@ -272,6 +600,25 @@ class CR_NameScope {
         $this->m_structs = array();
         $this->m_enums = array();
         $this->m_vars = array();
+        $this->m_mNameToName = array();
+        $this->m_macros = array();
+    }
+    
+    function clone() {
+        $ns = new CR_NameScope($this->m_is_64bit);
+        $ns->m_mNameToTypeID = $this->m_mNameToTypeID;
+        $ns->m_mTypeIDToName = $this->m_mTypeIDToName;
+        $ns->m_mNameToVarID = $this->m_mNameToVarID;
+        $ns->m_mVarIDToName = $this->m_mVarIDToName;
+        $ns->m_mNameToFuncTypeID = $this->m_mNameToFuncTypeID;
+        $ns->m_types = $this->m_types;
+        $ns->m_funcs = $this->m_funcs;
+        $ns->m_structs = $this->m_structs;
+        $ns->m_enums = $this->m_enums;
+        $ns->m_vars = $this->m_vars;
+        $ns->m_mNameToName = $this->m_mNameToName;
+        $ns->m_macros = $this->m_macros;
+        return $ns;
     }
 
     function Is64Bit() {
@@ -287,16 +634,33 @@ class CR_NameScope {
         $this->m_mTypeIDToName = array();
         $this->m_mNameToVarID = array();
         $this->m_mVarIDToName = array();
+        $this->m_mNameToName = array();
 
-        $fp = fopen($prefix . "types" . $suffix, "r");
+        $fname = $prefix . "types" . $suffix;
+        $fp = fopen($fname, "r");
         if ($fp) {
-            fgets($fp); // skip header
+            // version check
+            $line = fgets($fp);
+            $version = intval($line, 0);
+            if ($version != cr_data_version) {
+                user_error("File '" . $fname . "' has different format version. Failed.");
+                return false;
+            }
+            // skip header
+            fgets($fp);
+            // load body
             while ($line = fgets($fp)) {
                 $line = chop($line);
                 $fields = explode("\t", $line);
+
+                if (count($fields) != 12) {
+                    user_error("File '" . $fname . "' is invalid.");
+                    return false;
+                }
+
                 list($type_id, $name, $flags, $sub_id, $count, $size,
                      $align, $alignas_, $alignas_explicit,
-                     $file, $line) = $fields;
+                     $is_macro, $file, $line) = $fields;
 
                 if (strlen($name) > 0) {
                     $this->m_mNameToTypeID[$name] = $type_id;
@@ -313,24 +677,49 @@ class CR_NameScope {
                 $type->m_align = intval($align, 0);
                 $type->m_alignas = intval($alignas_, 0);
                 $type->m_alignas_explicit = intval($alignas_explicit, 0);
+                $type->m_is_macro = intval($is_macro);
                 $type->m_location = array($file, intval($line, 0));
 
                 $this->m_types[$type_id] = $type;
             }
             fclose($fp);
         } else {
+            user_error("Cannot load file '" . $fname . "'");
             return false;
         }
 
-        $fp = fopen($prefix . "structures" . $suffix, "r");
+        $fname = $prefix . "structures" . $suffix;
+        $fp = fopen($fname, "r");
         if ($fp) {
-            fgets($fp); // skip header
+            // version check
+            $line = fgets($fp);
+            $version = intval($line, 0);
+            if ($version != cr_data_version) {
+                user_error("File '" . $fname . "' has different format version. Failed.");
+                return false;
+            }
+            // skip header
+            fgets($fp);
+            // load body
             while ($line = fgets($fp)) {
                 $line = chop($line);
                 $fields = explode("\t", $line);
+                
+                if (count($fields) < 13) {
+                    user_error("File '" . $fname . "' is invalid.");
+                    return false;
+                }
+                
                 list($struct_id, $name, $type_id, $flags, $is_struct,
                      $size, $count, $pack, $align, $alignas_,
                      $alignas_explicit, $file, $line) = $fields;
+                
+                $count = intval($count, 0);
+
+                if (count($fields) != 13 + 4 * $count) {
+                    user_error("File '" . $fname . "' is invalid.");
+                    return false;
+                }
 
                 $structure = new CR_LogStruct($is_struct);
                 $structure->m_tid = intval($type_id, 0);
@@ -341,7 +730,7 @@ class CR_NameScope {
                 $structure->m_is_complete = !($flags & TF_INCOMPLETE);
 
                 for ($i = 0; $i < $count; ++$i) {
-                    $j = 12 + $i * 3;
+                    $j = 13 + $i * 4;
 
                     $name = $fields[$j + 0];
                     $type_id = intval($fields[$j + 1], 0);
@@ -354,19 +743,41 @@ class CR_NameScope {
             }
             fclose($fp);
         } else {
+            user_error("Cannot load file '" . $fname . "'");
             return false;
         }
 
-        $fp = fopen($prefix . "enum" . $suffix, "r");
+        $fname = $prefix . "enums" . $suffix;
+        $fp = fopen($fname, "r");
         if ($fp) {
-            fgets($fp); // skip header
+            // version check
+            $line = fgets($fp);
+            $version = intval($line, 0);
+            if ($version != cr_data_version) {
+                user_error("File '" . $fname . "' has different format version. Failed.");
+                return false;
+            }
+            // skip header
+            fgets($fp);
+            // load body
             while ($line = fgets($fp)) {
                 $line = chop($line);
                 $fields = explode("\t", $line);
+
+                if (count($fields) < 2) {
+                    user_error("File '" . $fname . "' is invalid.");
+                    return false;
+                }
+
                 list($enum_id, $num_items) = $fields;
 
                 $enum_id = intval($enum_id, 0);
                 $num_items = intval($num_items, 0);
+
+                if (count(fields) != 2 + $num_items * 2) {
+                    user_error("File '" . $fname . "' is invalid.");
+                    return false;
+                }
 
                 $enum = new CR_LogEnum();
                 for ($i = 0; $i < $num_items; ++$i) {
@@ -380,24 +791,47 @@ class CR_NameScope {
             }
             fclose($fp);
         } else {
+            user_error("Cannot load file '" . $fname . "'");
             return false;
         }
 
-        $fp = fopen($prefix . "func_types" . $suffix, "r");
+        $fname = $prefix . "func_types" . $suffix;
+        $fp = fopen($fname, "r");
         if ($fp) {
-            fgets($fp); // skip header
+            // version check
+            $line = fgets($fp);
+            $version = intval($line, 0);
+            if ($version != cr_data_version) {
+                user_error("File '" . $fname . "' has different format version. Failed.");
+                return false;
+            }
+            // skip header
+            fgets($fp);
+            // load body
             while ($line = fgets($fp)) {
                 $line = chop($line);
                 $fields = explode("\t", $line);
+
+                if (count($fields) < 5) {
+                    user_error("File '" . $fname . "' is invalid.");
+                    return false;
+                }
+
                 list($func_id, $return_type, $func_type, $ellipsis,
                      $param_count) = $fields;
+
+                $param_count = intval($param_count, 0);
+
+                if (count(fields) != 5 + $param_count * 2) {
+                    user_error("File '" . $fname . "' is invalid.");
+                    return false;
+                }
 
                 $function = new CR_LogFunc();
                 $function->m_ellipsis = !!intval($ellipsis, 0);
                 $function->m_return_type = intval($return_type, 0);
                 $function->m_convention = intval($func_type, 0);
 
-                $param_count = intval($param_count, 0);
                 for ($i = 0; $i < $param_count; ++$i) {
                     $j = 5 + $i * 2;
 
@@ -411,15 +845,32 @@ class CR_NameScope {
             }
             fclose($fp);
         } else {
+            user_error("Cannot load file '" . $fname . "'");
             return false;
         }
 
-        $fp = fopen($prefix . "vars" . $suffix, "r");
+        $fname = $prefix . "vars" . $suffix;
+        $fp = fopen($fname, "r");
         if ($fp) {
-            fgets($fp); // skip header
+            // version check
+            $line = fgets($fp);
+            $version = intval($line, 0);
+            if ($version != cr_data_version) {
+                user_error("File '" . $fname . "' has different format version. Failed.");
+                return false;
+            }
+            // skip header
+            fgets($fp);
+            // load body
             while ($line = fgets($fp)) {
                 $line = chop($line);
                 $fields = explode("\t", $line);
+                
+                if (count($fields) != 9) {
+                    user_error("File '" . $fname . "' is invalid.");
+                    return false;
+                }
+
                 list($var_id, $name, $type_id, $text, 
                      $extra, $value_type, $file, $lineno) = $fields;
 
@@ -454,17 +905,329 @@ class CR_NameScope {
             }
             fclose($fp);
         } else {
+            user_error("Cannot load file '" . $fname . "'");
+            return false;
+        }
+
+        $fname = $prefix . "name2name" . $suffix;
+        $fp = fopen($fname, "r");
+        if ($fp) {
+            // version check
+            $line = fgets($fp);
+            $version = intval($line, 0);
+            if ($version != cr_data_version) {
+                user_error("File '" . $fname . "' has different format version. Failed.");
+                return false;
+            }
+            // skip header
+            fgets($fp);
+            // load body
+            while ($line = fgets($fp)) {
+                $line = chop($line);
+                $fields = explode("\t", $line);
+
+                if (count($fields) != 4) {
+                    user_error("File '" . $fname . "' is invalid.");
+                    return false;
+                }
+
+                list($name1, $name2, $file, $lineno) = $fields;
+
+                $n2n = new CR_Name2Name();
+                $n2n->m_from = $name1;
+                $n2n->m_to = $name2;
+                $n2n->m_location = array($file, intval($lineno, 0));
+
+                $this->m_mNameToName[$name1] = $n2n;
+            }
+            fclose($fp);
+        } else {
+            user_error("Cannot load file '" . $fname . "'");
             return false;
         }
 
         return true;
     }
+    
+    function LoadMacros($prefix = "", $suffix = ".dat") {
+        $this->m_macros = array();
+        
+        $fname = $prefix . "macros" . $suffix;
+        $fp = fopen($fname, "r");
+        if ($fp) {
+            // version check
+            $line = fgets($fp);
+            $version = intval($line, 0);
+            if ($version != cr_data_version) {
+                user_error("File '" . $fname . "' has different format version. Failed.");
+                return false;
+            }
+            // skip header
+            fgets($fp);
+            // load body
+            while ($line = fgets($fp)) {
+                $line = chop($line);
+                $fields = explode("\t", $line);
 
-    function SaveToFiles() {
+                if (count($fields) < 6) {
+                    user_error("File '" . $fname . "' is invalid.");
+                    return false;
+                }
+
+                list($name, $num_params, $params, $contents,
+                     $file, $lineno) = $fields;
+                
+                $num_params = intval($num_params, 0);
+
+                $macro = new CR_Macro();
+
+                if (strpos($params, "...") !== FALSE) {
+                    --$num_params;
+                    $macro->m_ellipsis = true;
+                }
+
+                $macro->m_num_params = $num_params;
+                $macro->m_params = explode(",", $params);
+                $macro->m_contents = $contents;
+                $macro->m_location = array($file, intval($lineno, 0));
+
+                $this->m_macros[$name] = $macro;
+            }
+            fclose($fp);
+        } else {
+            user_error("Cannot load file '" . $fname . "'");
+            return false;
+        }
+        
+        return true;
+    }
+
+    function SaveToFiles($prefix = "", $suffix = ".dat") {
         return false;   // NIY
     }
 
+    function IntZero(&$value1) {
+        $value1->m_type_id = TypeIDFromFlags(TF_INT);
+    	$value1->assign(0, 4);
+        $value1->m_extra = "";
+    }
+
+    function IntOne(&$value1) {
+        $value1->m_type_id = TypeIDFromFlags(TF_INT);
+        $value1->assign(1, 4);
+        $value1->m_extra = "";
+    }
+
+    function IsZero($value1) {
+        if (!HasValue($value1)) {
+            return false;
+        }
+        if (IsIntegralType($value1->m_type_id)) {
+            $ull = GetULongLongValue($value1);
+            return $ull == 0;
+        } else if (IsFloatingType($value1->m_type_id)) {
+            $ld = GetLongDoubleValue($value1);
+            return $ld == 0;
+        } else if (IsPointerType($value1->m_type_id)) {
+            $ull = GetULongLongValue($value1);
+            return $ull == 0;
+        }
+        return false;
+    }
+
+    function IsNonZero($value1) {
+        return !IsZero($value1);
+    }
+    
+    function Cast($tid, $value) {
+    	$ret = CR_TypedValue(cr_invalid_id);
+    	if ($tid == cr_invalid_id || $value->m_type_id == cr_invalid_id) {
+    		$ret->m_type_id = cr_invalid_id;
+    		return $ret;
+    	}
+    	$type1 = LogType($tid);
+    	$type2 = LogType($value->m_type_id);
+    	if (IsPointerType($tid)) {
+    		$pointer_size = $type1->m_size;
+    		if (IsPointerType($value->m_type_id)) {
+    			$ret = ReinterpretCast($tid, $value);
+    		} else {
+    			if ($pointer_size == 8) {
+    				$ulong_long_type = TypeIDFromFlags(TF_UNSIGNED | TF_LONGLONG);
+    				$ret = StaticCast($ulong_long_type, $value);
+    			} else if ($pointer_size == 4) {
+    				$uint_type = TypeIDFromFlags(TF_UNSIGNED | TF_INT);
+    				$ret = StaticCast($uint_type, $value);
+    			}
+    		}
+    	} else if (IsPointerType($value->m_type_id)) {
+    		if ($type1->m_size == 4) {
+				$int_type = TypeIDFromFlags(TF_INT);
+    			$ret = StaticCast($int_type, $value);
+    			$ret->m_extra = "";
+    		} else if ($type1->m_size == 1) {
+				$char_type = TypeIDFromFlags(TF_CHAR);
+    			$ret = StaticCast($char_type, $value);
+    			$ret->m_extra = "i8";
+    		} else if ($type1->m_size == 2) {
+				$short_type = TypeIDFromFlags(TF_SHORT);
+    			$ret = StaticCast($short_type, $value);
+    			$ret->m_extra = "i16";
+    		} else if ($type1->m_size == 4) {
+				$long_type = TypeIDFromFlags(TF_LONG);
+    			$ret = StaticCast($long_type, $value);
+    			$ret->m_extra = "L";
+    		} else if ($type1->m_size == 8) {
+				$long_long_type = TypeIDFromFlags(TF_LONGLONG);
+    			$ret = StaticCast($long_long_type, $value);
+    			$ret->m_extra = "LL";
+    		}
+    	} else {
+    		return StaticCast($tid, $value);
+    	}
+    	return $ret;
+    }
+
+    function StaticCast($tid, $value) {
+    	if ($tid == value->m_type_id) {
+    		return $value;
+    	}
+    	$ret = new CR_TypedValue($tid);
+    	$ret->m_size = SizeOfType($tid);
+    	$type = LogType($tid);
+    	if (HasValue($value)) {
+    		$tid2 = $value->m_type_id;
+    		$type2 = LogType($tid2);
+    		if (IsIntegralType($tid)) {
+    			if (IsUnsignedType($tid)) {
+	                // tid is unsigned
+    				if (IsUnsignedType($tid2)) {
+    					$u2 = GetULongLongValue($value);
+    					SetULongLongValue($ret, $u2);
+    				} else {
+    					$n2 = GetLongLongValue($value);
+    					SetULongLongValue($ret, $n2);
+    				}
+    			} else {
+	                // tid is signed
+    				if (IsUnsignedType($tid2)) {
+    					$u2 = GetULongLongValue($value);
+    					SetLongLongValue($ret, $u2);
+    				} else {
+    					$n2 = GetLongLongValue($value);
+    					SetLongLongValue($ret, $n2);
+    				}
+    			}
+    		} else if (IsFloatingType($tid)) {
+    			$ld2 = GetLongDoubleValue($value);
+    			SetLongDoubleValue($ret, $ld2);
+    		} else if (IsPointerType($tid)) {
+    			$u2 = GetULongLongValue($value);
+    			SetULongLongValue($ret, $u2);
+    		}
+    	}
+    	return $ret;
+    }
+
+    function ReinterpretCast($tid, $value) {
+    	if ($value->m_type_id == $tid) {
+    		return $value;
+    	}
+    	$ret = $value->clone();
+    	$ret->m_type_id = $tid;
+    	return $ret;
+    }
+
+    function MakeSigned($tid) {
+    	$tid = ResolveAlias($tid);
+    	if (IsIntegralType($tid)) {
+    		$type = LogType($tid);
+    		if ($type->m_flags & TF_CONST) {
+    			if ($type->m_size == 4) {
+    				$tid = TypeIDFromFlags(TF_INT);
+    				return MakeConst($tid);
+    			} else if ($type->m_size == 1) {
+    				$tid = TypeIDFromFlags(TF_CHAR);
+    				return MakeConst($tid);
+    			} else if ($type->m_size == 2) {
+    				$tid = TypeIDFromFlags(TF_SHORT);
+    				return MakeConst($tid);
+    			} else if ($type->m_size == 4) {
+    				$tid = TypeIDFromFlags(TF_LONG);
+    				return MakeConst($tid);
+    			} else if ($type->m_size == 8) {
+    				$tid = TypeIDFromFlags(TF_LONGLONG);
+    				return MakeConst($tid);
+    			}
+    		} else {
+    			if ($type->m_size == 4) {
+    				$tid = TypeIDFromFlags(TF_INT);
+    				return $tid;
+    			} else if ($type->m_size == 1) {
+    				$tid = TypeIDFromFlags(TF_CHAR);
+    				return $tid;
+    			} else if ($type->m_size == 2) {
+    				$tid = TypeIDFromFlags(TF_SHORT);
+    				return $tid;
+    			} else if ($type->m_size == 4) {
+    				$tid = TypeIDFromFlags(TF_LONG);
+    				return $tid;
+    			} else if ($type->m_size == 8) {
+    				$tid = TypeIDFromFlags(TF_LONGLONG);
+    				return $tid;
+    			}
+    		}
+    	}
+    	return cr_invalid_id;
+    }
+
+    function MakeUnsigned($tid) {
+    	$tid = ResolveAlias($tid);
+    	if (IsIntegralType($tid)) {
+    		$type = LogType($tid);
+    		if ($type->m_flags & TF_CONST) {
+    			if ($type->m_size == 4) {
+    				$tid = TypeIDFromFlags(TF_UNSIGNED | TF_INT);
+    				return MakeConst($tid);
+    			} else if ($type->m_size == 1) {
+    				$tid = TypeIDFromFlags(TF_UNSIGNED | TF_CHAR);
+    				return MakeConst($tid);
+    			} else if ($type->m_size == 2) {
+    				$tid = TypeIDFromFlags(TF_UNSIGNED | TF_SHORT);
+    				return MakeConst($tid);
+    			} else if ($type->m_size == 4) {
+    				$tid = TypeIDFromFlags(TF_UNSIGNED | TF_LONG);
+    				return MakeConst($tid);
+    			} else if ($type->m_size == 8) {
+    				$tid = TypeIDFromFlags(TF_UNSIGNED | TF_LONGLONG);
+    				return MakeConst($tid);
+    			}
+    		} else {
+    			if ($type->m_size == 4) {
+    				$tid = TypeIDFromFlags(TF_UNSIGNED | TF_INT);
+    				return $tid;
+    			} else if ($type->m_size == 1) {
+    				$tid = TypeIDFromFlags(TF_UNSIGNED | TF_CHAR);
+    				return $tid;
+    			} else if ($type->m_size == 2) {
+    				$tid = TypeIDFromFlags(TF_UNSIGNED | TF_SHORT);
+    				return $tid;
+    			} else if ($type->m_size == 4) {
+    				$tid = TypeIDFromFlags(TF_UNSIGNED | TF_LONG);
+    				return $tid;
+    			} else if ($type->m_size == 8) {
+    				$tid = TypeIDFromFlags(TF_UNSIGNED | TF_LONGLONG);
+    				return $tid;
+    			}
+    		}
+    	}
+    	return cr_invalid_id;
+    }
+    
     function SizeOfType($tid) {
+        if ($tid == cr_invalid_id) {
+            return 0;
+        }
         return LogType($tid)->m_size;
     }
 
@@ -673,6 +1436,27 @@ class CR_NameScope {
         return $str;
     }
 
+    function GetStructMemberList($sid, &$members) {
+        $members = array();
+        $ls = LogStruct($sid);
+        foreach ($ls->m_members as $mem) {
+            if (strlen($mem->m_name) > 0) {
+                $members[] = $mem;
+            } else {
+                $tid = ResolveAlias($mem->m_type_id);
+                $type = LogType($tid);
+                if ($type->m_flags & (TF_STRUCT | TF_UNION)) {
+                    $children = array();
+                    GetStructMemberList($type->m_sub_id, $children);
+                    foreach ($children as $child) {
+                        $child->m_bit_offset += $mem->m_bit_offset;
+                    }
+                    $members = array_merge($members, $children);
+                }
+            }
+        }
+    }
+
     function AddConstCharType() {
         $tid = TypeIDFromFlags(TF_CHAR);
         return AddConstType($tid);
@@ -754,6 +1538,32 @@ class CR_NameScope {
         return true;
     }
     
+    function HasValue($value) {
+	    if (!isset($value->m_value) || $value->m_type_id == cr_invalid_id) {
+	        return false;
+	    }
+    	$type = LogType($value->m_type_id);
+    	return $value->m_size >= $type->m_size;
+    }
+    
+    function GetLongLongValue($value) {
+    }
+
+    function GetULongLongValue($value) {
+    }
+
+    function GetLongDoubleValue($value) {
+    }
+
+    function SetLongLongValue(&$value, $n) {
+    }
+
+    function SetULongLongValue(&$value, $u) {
+    }
+
+    function SetLongDoubleValue(&$value, $ld) {
+    }
+
     function IsStringType($tid) {
         $tid = ResolveAlias($tid);
         $type1 = LogType($tid);
@@ -879,31 +1689,52 @@ class CR_NameScope {
         }
         return false;
     }
-
-    function ResolveAlias($tid) {
-        if ($tid == $cr_invalid_id) {
-            return $tid;
-        }
-        return _ResolveAliasRecurse($tid);
+    
+    function IsConstantType($tid) {
+    	while ($tid != cr_invalid_id) {
+    		$tid = ResolveAlias($tid);
+    		if ($tid == cr_invalid_id) {
+    			break;
+    		}
+    		$type = LogType($tid);
+    		if ($type->m_flags & TF_CONST) {
+    			return true;
+    		}
+    		if ($type->m_flags & (TF_ARRAY | TF_VECTOR)) {
+    			$tid = $type->m_sub_id;
+    		} else {
+    			break;
+    		}
+    	}
+    	return false;
     }
 
-    function _ResolveAliasRecurse($tid) {
-        while ($this->m_types[$tid]->m_flags & TF_ALIAS) {
-            $tid = $this->m_types[$tid]->m_sub_id;
-        }
-        return $tid;
+    function ResolveAlias($tid) {
+	    while ($tid != cr_invalid_id) {
+	        $type = LogType(tid);
+	        if ($type->m_flags & TF_ALIAS) {
+	            $tid = $type->m_sub_id;
+	        } else {
+	            break;
+	        }
+	    }
+	    return $tid;
     }
 
     function ResolveAliasAndCV($tid) {
-        $tid = ResolveAlias($tid);
-        if ($tid == $cr_invalid_id) {
-            return $tid;
-        }
-        $type = LogType($tid);
-        if (($type->m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
-            return ResolveAliasAndCV($type->m_sub_id);
-        }
-        return $tid;
+	    while ($tid != cr_invalid_id) {
+	        $tid = ResolveAlias($tid);
+	        if ($tid == cr_invalid_id) {
+	            break;
+	        }
+	        $type = LogType($tid);
+	        if (($type->m_flags & (TF_CONST | TF_POINTER)) == TF_CONST) {
+	            $tid = $type->m_sub_id;
+	        } else if (!($type->m_flags & TF_ALIAS)) {
+	            break;
+	        }
+	    }
+	    return $tid;
     }
 
     function TypeIDFromFlags($flags) {
@@ -925,33 +1756,12 @@ class CR_NameScope {
         return isset($this->m_mTypeIDToName[$tid]) ? 
             $this->m_mTypeIDToName[$tid] : "";
     }
-    
-    function GetStructMemberList($sid, &$members) {
-        $members = array();
-        $ls = LogStruct($sid);
-        foreach ($ls->m_members as $mem) {
-            if (strlen($mem->m_name) > 0) {
-                $members[] = $mem;
-            } else {
-                $tid = ResolveAlias($mem->m_type_id);
-                $type = LogType($tid);
-                if ($type->m_flags & (TF_STRUCT | TF_UNION)) {
-                    $children = array();
-                    GetStructMemberList($type->m_sub_id, $children);
-                    foreach ($children as $child) {
-                        $child->m_bit_offset += $mem->m_bit_offset;
-                    }
-                    $members = array_merge($members, $children);
-                }
-            }
-        }
-    }
 
     function LogType($tid) {
         assert($tid < count($this->m_types));
         return $this->m_types[$tid];
     }
-
+    
     function LogVar($vid) {
         assert($vid < count($this->m_vars));
         return $this->m_vars[$vid];
@@ -973,8 +1783,8 @@ class CR_NameScope {
         return $this->m_mVarIDToName;
     }
 
-    function LogVars() {
-        return $this->m_vars;
+    function MapNameToName() {
+        return $this->m_mNameToName;
     }
 
     function LogStruct($sid) {
@@ -995,8 +1805,24 @@ class CR_NameScope {
     function LogTypes() {
         return $this->m_types;
     }
-
+    
     function LogStructs() {
         return $this->m_structs;
+    }
+    
+    function LogFuncs() {
+        return $this->m_funcs;
+    }
+    
+    function LogEnums() {
+        return $this->m_enums;
+    }
+
+    function LogVars() {
+        return $this->m_vars;
+    }
+
+    function Macros() {
+        return $this->m_macros;
     }
 }
