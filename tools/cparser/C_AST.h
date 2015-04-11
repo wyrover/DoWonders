@@ -222,7 +222,7 @@ namespace cparser
 
     struct Initer : Node {
         enum {
-            SIMPLE, COMPLEX
+            SIMPLE, COMPOUND
         } m_initer_type;
         shared_ptr<AssignExpr> m_assign_expr;
         shared_ptr<IniterList> m_initer_list;

@@ -1648,7 +1648,7 @@ namespace cparser
                 printf("DoIniter2\n");
             #endif
             Initer *i = new Initer;
-            i->m_initer_type = Initer::COMPLEX;
+            i->m_initer_type = Initer::COMPOUND;
             i->m_initer_list = il;
             return shared_ptr<Initer>(i);
         }
@@ -1658,7 +1658,7 @@ namespace cparser
                 printf("DoIniter3\n");
             #endif
             Initer *i = new Initer;
-            i->m_initer_type = Initer::COMPLEX;
+            i->m_initer_type = Initer::COMPOUND;
             i->m_initer_list = il;
             return shared_ptr<Initer>(i);
         }

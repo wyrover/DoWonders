@@ -30,7 +30,7 @@ void IwShowVersion(void) {
         "iwon --- Won32 interactive for 32-bit cl (VC++)\n"
 # endif
 #endif
-        "Version 0.3" << std::endl;
+        "Version 0.4" << std::endl;
 }
 
 bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
@@ -50,7 +50,7 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
                 // type
                 if (rtype.m_flags & TF_STRUCT) {
                     // struct type
-                    std::cout << target << " is a struct type, defined in " <<
+                    std::cout << target << " is a struct type, defined at " <<
                                  type.m_location.str() << "." << std::endl;
                     if (tid != rtid) {
                         std::cout << "typedef " << ns.StringOfType(tid, target, true) << ";" << std::endl;
@@ -59,7 +59,7 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
                     }
                 } else if (rtype.m_flags & TF_UNION) {
                     // union type
-                    std::cout << target << " is a union type, defined in " <<
+                    std::cout << target << " is a union type, defined at " <<
                                  type.m_location.str() << "." << std::endl;
                     if (tid != rtid) {
                         std::cout << "typedef " << ns.StringOfType(tid, target, true) << ";" << std::endl;
@@ -68,33 +68,33 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
                     }
                 } else if (rtype.m_flags & TF_POINTER) {
                     // pointer type
-                    std::cout << target << " is a pointer type, defined in " <<
+                    std::cout << target << " is a pointer type, defined at " <<
                                  type.m_location.str() << "." << std::endl;
                     std::cout << "typedef " << ns.StringOfType(tid, target, true) << ";" << std::endl;
                 } else if (rtype.m_flags & TF_FUNCTION) {
                     // function type
-                    std::cout << target << " is a function type, defined in " <<
+                    std::cout << target << " is a function type, defined at " <<
                                  type.m_location.str() << "." << std::endl;
                     std::cout << "typedef " << ns.StringOfType(tid, target, true) << ";" << std::endl;
                 } else {
                     if (ns.IsIntegralType(rtid)) {
                         // integral type
                         if (ns.IsUnsignedType(rtid)) {
-                            std::cout << target << " is an unsigned integral type, defined in " <<
+                            std::cout << target << " is an unsigned integral type, defined at " <<
                                          type.m_location.str() << "." << std::endl;
                             std::cout << "typedef " << ns.StringOfType(tid, target, true) << ";" << std::endl;
                         } else {
-                            std::cout << target << " is a signed integral type, defined in " <<
+                            std::cout << target << " is a signed integral type, defined at " <<
                                          type.m_location.str() << "." << std::endl;
                             std::cout << "typedef " << ns.StringOfType(tid, target, true) << ";" << std::endl;
                         }
                     } else if (ns.IsFloatingType(rtid)) {
-                        std::cout << target << " is a floating-point type, defined in " <<
+                        std::cout << target << " is a floating-point type, defined at " <<
                                      type.m_location.str() << "." << std::endl;
                         std::cout << "typedef " << ns.StringOfType(tid, target, true) << ";" << std::endl;
                     } else {
                         // other type
-                        std::cout << target << " is a type, defined in " <<
+                        std::cout << target << " is a type, defined at " <<
                                      type.m_location.str() << "." << std::endl;
                         std::cout << "typedef " << ns.StringOfType(rtid, target, true) << ";" << std::endl;
                     }
@@ -118,11 +118,10 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
             }
             if (ns.IsFuncType(rtid)) {
                 // function
-                std::cout << target << " is a function, defined in " <<
+                std::cout << target << " is a function, defined at " <<
                     var.m_location.str() << "." << std::endl;
                 std::cout << ns.StringOfType(rtid, target, true) << ";" << std::endl;
-            }
-            else {
+            } else {
                 if (var.m_is_macro) {
                     assert(rtid != cr_invalid_id);
                     if (var.m_location.m_file == "(predefined)") {
@@ -133,28 +132,43 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
                     }
                     else {
                         // macro constant
-                        std::cout << target << " is a macro constant, defined in " <<
+                        std::cout << target << " is a macro constant, defined at " <<
                             var.m_location.str() << "." << std::endl;
                         std::cout << ns.StringOfType(tid, target, true) << " = " <<
                             value.m_text << value.m_extra << ";" << std::endl;
                     }
                     auto& type = ns.LogType(rtid);
                     std::cout << "size: " << type.m_size << std::endl;
-                }
-                else {
+                } else {
                     if (rtid != cr_invalid_id) {
                         // variable with value
-                        std::cout << target << " is a variable, defined in " <<
+                        std::cout << target << " is a variable, defined at " <<
                             var.m_location.str() << "." << std::endl;
-                        std::cout << ns.StringOfType(tid, target, true) <<
-                            " = " << value.m_text << value.m_extra <<
-                            ";" << std::endl;
+                        if (value.m_text.size() && value.m_text[0] == '{') {
+                            // compound
+                            std::cout << ns.StringOfType(tid, target, true) <<
+                                " = " << value.m_text << ";" << std::endl;
+                        } else if (value.m_text.size() && value.m_text[0] == '\"') {
+                            if (value.m_extra == "L") {
+                                // wstring
+                                std::cout << ns.StringOfType(tid, target, true) <<
+                                    " = L" << value.m_text << ";" << std::endl;
+                            } else {
+                                // string
+                                std::cout << ns.StringOfType(tid, target, true) <<
+                                    " = " << value.m_text << ";" << std::endl;
+                            }
+                        } else {
+                            // other
+                            std::cout << ns.StringOfType(tid, target, true) <<
+                                " = " << value.m_text << value.m_extra <<
+                                ";" << std::endl;
+                        }
                         auto& type = ns.LogType(rtid);
                         std::cout << "size: " << type.m_size << std::endl;
-                    }
-                    else {
+                    } else {
                         // variable without value
-                        std::cout << target << " is a variable without value, defined in " <<
+                        std::cout << target << " is a variable without value, defined at " <<
                             var.m_location.str() << "." << std::endl;
                         std::cout << ns.StringOfType(tid, target, true) << ";" << std::endl;
                         auto& type = ns.LogType(rtid);
@@ -171,7 +185,7 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
         if (it != ns.MapNameToName().end()) {
             auto name2name = it->second;
             std::cout << target << " is an alias macro of " << 
-                name2name.m_to << ", defined in " <<
+                name2name.m_to << ", defined at " <<
                 name2name.m_location.str() << "." << std::endl;
             ret = true;
         }

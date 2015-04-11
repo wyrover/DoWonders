@@ -21,7 +21,7 @@ void WsShowVersion(void) {
         "won32_sanitizer --- Won32 sanitizer for 32-bit cl (VC++)\n"
 # endif
 #endif
-        "Version 0.3" << std::endl;
+        "Version 0.4" << std::endl;
 }
 
 bool WsJustDoIt(
@@ -60,12 +60,14 @@ bool WsJustDoIt(
     out <<
         "#include \"win32.h\"\n" << 
         "#include <stdio.h>\n" << 
+        "#include <string.h>\n" << 
         "\n" << 
         "static const char fcsz[] = \"%s: size mismatched, real size is %d\\n\";\n" << 
         "static const char fcv[] = \"%s: value mismatched, real value is %lld\\n\";\n" << 
         "static const char fca[] = \"%s: alignment mismatched, real value is %d\\n\";\n" << 
         "static const char fcs[] = \"%s: value mismatched, real value is %s\\n\";\n" <<
         "static const char fcws[] = \"%ls: value mismatched, real value is %ls\\n\";\n" <<
+        "static const char fcc[] = \"%ls: value mismatched\\n\";\n" <<
         "\n" << 
         "#define check_size(name,size) do { \\\n" << 
         "\tif (sizeof(name) != (size)) { \\\n" << 
@@ -99,6 +101,13 @@ bool WsJustDoIt(
         "\tif (lstrcmpW(name, wstring) != 0) { \\\n" << 
         "\t\tprintf(fcws, #name, name); \\\n" << 
         "\t\treturn 5; \\\n" << 
+        "\t} \\\n" << 
+        "} while (0) \n" << 
+        "\n" <<
+        "#define check_compound(name,str,size) do { \\\n" << 
+        "\tif (memcmp((name), (str), (size)) != 0) { \\\n" << 
+        "\t\tprintf(fcc, #name); \\\n" << 
+        "\t\treturn 6; \\\n" << 
         "\t} \\\n" << 
         "} while (0) \n" << 
         "\n" <<
@@ -194,6 +203,10 @@ bool WsJustDoIt(
             out << "\tcheck_value(" << name << ", (" <<
                 ns.StringOfType(type_id, "") << ")" << 
                 value.m_text << ");" << std::endl;
+        } else if (value.m_text[0] == '{') {
+            out << "\tcheck_compound(" << name << ", " <<
+                value.m_extra << ", " << 
+                ns.SizeOfType(type_id) << ");" << std::endl;
         }
     }
 

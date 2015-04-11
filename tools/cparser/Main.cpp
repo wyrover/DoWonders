@@ -1895,7 +1895,7 @@ std::string CrStringOnIniter(CR_NameScope& namescope, Initer *i) {
         ret = CrStringOnAssignExpr(namescope, i->m_assign_expr.get());
         break;
 
-    case Initer::COMPLEX:
+    case Initer::COMPOUND:
         ret = CrStringOnIniterList(namescope, i->m_initer_list.get());
         break;
 
@@ -2046,7 +2046,7 @@ CrValueOnIniter(CR_NameScope& namescope, CR_TypeID tid, Initer *initer) {
         ret = CrValueOnAssignExpr(namescope, initer->m_assign_expr.get());
         break;
 
-    case Initer::COMPLEX:
+    case Initer::COMPOUND:
         ret = CrValueOnIniterList(namescope, tid, initer->m_initer_list.get());
         break;
 
