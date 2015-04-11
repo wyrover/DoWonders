@@ -35,22 +35,22 @@ MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi) : m_wide(NULL), m_size(0)
     #endif
 }
 
-MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi, int count) :
+MZC_INLINE MAnsiToWide::MAnsiToWide(const char *ansi, size_t count) :
     m_wide(NULL), m_size(0)
 {
     assert(ansi);
     #ifdef _WIN32
-        const int len = ::MultiByteToWideChar(CP_ACP, 0, ansi, count, NULL, 0);
+        const size_t len = ::MultiByteToWideChar(CP_ACP, 0, ansi, int(count), NULL, 0);
         const size_t siz = len * sizeof(wchar_t);
         wchar_t *psz = reinterpret_cast<wchar_t *>(malloc(siz));
         if (psz) {
-            ::MultiByteToWideChar(CP_ACP, 0, ansi, count, psz, len);
+            ::MultiByteToWideChar(CP_ACP, 0, ansi, int(count), psz, int(len));
             m_wide = psz;
             m_size = len;
         }
     #else
         std::mbstate_t mb;
-        const int len = 1 + std::mbsrtowcs(NULL, &ansi, count, &mb);
+        const size_t len = 1 + std::mbsrtowcs(NULL, &ansi, count, &mb);
         const size_t siz = len * sizeof(wchar_t);
         wchar_t *psz = reinterpret_cast<wchar_t *>(malloc(siz));
         if (psz) {
@@ -154,17 +154,17 @@ MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide) :
     #endif
 }
 
-MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide, int count) :
+MZC_INLINE MWideToAnsi::MWideToAnsi(const wchar_t *wide, size_t count) :
     m_ansi(NULL), m_size(0)
 {
     assert(wide);
     #ifdef _WIN32
-        const int len =
-            ::WideCharToMultiByte(CP_ACP, 0, wide, count, NULL, 0, NULL, NULL);
+        const size_t len =
+            ::WideCharToMultiByte(CP_ACP, 0, wide, int(count), NULL, 0, NULL, NULL);
         const size_t siz = len * sizeof(char);
         char *psz = reinterpret_cast<char *>(malloc(siz));
         if (psz) {
-            ::WideCharToMultiByte(CP_ACP, 0, wide, count, psz, len, NULL, NULL);
+            ::WideCharToMultiByte(CP_ACP, 0, wide, int(count), psz, int(len), NULL, NULL);
             m_ansi = psz;
             m_size = len;
         }

@@ -1,3 +1,18 @@
+typedef struct _GUID {
+    unsigned long  Data1;
+    unsigned short Data2;
+    unsigned short Data3;
+    unsigned char  Data4[ 8 ];
+} GUID;
+
+#define EXTERN_C    extern
+
+#define DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+        EXTERN_C const GUID name \
+                = { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
+
+DEFINE_GUID(WinUSB_TestGuid, 0xda812bff, 0x12c3, 0x46a2, 0x8e, 0x2b, 0xdb, 0xd3, 0xb7, 0x83, 0x4c, 0x43);
+
 #if 0
     #define MAX_LANA       254
 
@@ -64,7 +79,10 @@
     const int * const constant_pointer = NULL;
 
     typedef const int * const constant_pointer_type;
-#endif
 
-unsigned short wstr[10] = {1, 2, 3, 4, 5, 7};
-const int const_int_array[2] = {1, 2};
+    unsigned short wstr[10] = {1, 2, 3, 4, 5, 7};
+    const int const_int_array[2] = {1, 2};
+    const unsigned short *pwsz = L"1234";
+    const char *psz = L"1234";
+    const char sz[] = "123";
+#endif

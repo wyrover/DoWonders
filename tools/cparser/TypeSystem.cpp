@@ -1036,7 +1036,11 @@ CR_TypeID CR_NameScope::AddArrayType(
     type1.m_sub_id = tid;
     type1.m_count = count;
     type1.m_location = location;
-    tid = m_types.AddUnique(type1);
+    if (count) {
+        tid = m_types.AddUnique(type1);
+    } else {
+        tid = m_types.insert(type1);
+    }
     m_mTypeIDToName[tid] = "";
     return tid;
 } // AddArrayType

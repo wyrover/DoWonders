@@ -14,7 +14,7 @@ class MAnsiToWide EXTENDS_MOBJECT
 public:
     MAnsiToWide();
     MAnsiToWide(const char *ansi);
-    MAnsiToWide(const char *ansi, int count);
+    MAnsiToWide(const char *ansi, size_t count);
     MAnsiToWide(const MAnsiToWide& a2w);
     MAnsiToWide& operator=(const MAnsiToWide& a2w);
     #ifdef MODERN_CXX
@@ -42,7 +42,7 @@ class MWideToAnsi EXTENDS_MOBJECT
 public:
     MWideToAnsi();
     MWideToAnsi(const wchar_t *wide);
-    MWideToAnsi(const wchar_t *wide, int count);
+    MWideToAnsi(const wchar_t *wide, size_t count);
     MWideToAnsi(const MWideToAnsi& w2a);
     MWideToAnsi& operator=(const MWideToAnsi& w2a);
     #ifdef MODERN_CXX

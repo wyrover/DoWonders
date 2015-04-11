@@ -102,61 +102,6 @@ std::string CrGutsOctal3(const char *& it) {
     return ret;
 } // CrGutsOctal3
 
-std::string CrGutsEscapeSequence(const char *& it) {
-    std::string ret;
-    if (*it == 0) {
-        return ret;
-    }
-    switch (*it) {
-    case '\'': case '\"': case '?': case '\\':
-        ret += *it;
-        ++it;
-        break;
-
-    //case '0': ret += '\0'; break;
-    case 'a': ret += '\a'; ++it; break;
-    case 'b': ret += '\b'; ++it; break;
-    case 'f': ret += '\f'; ++it; break;
-    case 'n': ret += '\n'; ++it; break;
-    case 'r': ret += '\r'; ++it; break;
-    case 't': ret += '\t'; ++it; break;
-    case 'v': ret += '\v'; ++it; break;
-
-    case 'x':
-        {
-            ++it;
-            if (*it) {
-                auto hex = CrGutsHex2(it);
-                if (hex.size()) {
-                    unsigned long value = std::stoul(hex, NULL, 16);
-                    ret += static_cast<char>(value);
-                }
-            }
-        }
-        break;
-
-    case 'u':
-    case 'U':
-        {
-            ++it;
-            auto hex = CrGutsHex(it);
-            ret += '?';  // FIXME & TODO
-        }
-        break;
-
-    default:
-        if ('0' <= *it && *it <= '7') {
-            auto octal = CrGutsOctal3(it);
-            long value = std::stol(octal, NULL, 8);
-            ret += static_cast<char>(value);
-        } else {
-            ret += *it;
-            ++it;
-        }
-    }
-    return ret;
-} // CrGutsEscapeSequence
-
 std::string CrGutsChar(const char *& it) {
     std::string ret;
     assert(*it && *it == '\'');
@@ -180,7 +125,10 @@ std::string CrGutsChar(const char *& it) {
             if (it[0] == '?' && it[1] == '?' && it[2] == '/') {
                 ret += '\\';
                 it += 3;
-                if (*it) {
+                if (it[0] == '?' && it[1] == '?' && it[2] == '/') {
+                    ret += '\\';
+                    it += 3;
+                } else if (*it) {
                     ret += *it++;
                 }
             } else {
@@ -223,7 +171,10 @@ std::string CrGutsString(const char *& it) {
             if (it[0] == '?' && it[1] == '?' && it[2] == '/') {
                 ret += '\\';
                 it += 3;
-                if (*it) {
+                if (it[0] == '?' && it[1] == '?' && it[2] == '/') {
+                    ret += '\\';
+                    it += 3;
+                } else if (*it) {
                     ret += *it++;
                 }
             } else {
@@ -2020,7 +1971,7 @@ CrValueOnIniterList(CR_NameScope& namescope, CR_TypeID tid, IniterList *il) {
 
             // TODO: bitfield
             assert(bit_offset % 8 == 0);
-            byte_offset += bit_offset / 8;
+            byte_offset += type3.m_size;
         }
     } else if (type2.m_flags & TF_UNION) {
         // union type
@@ -3375,6 +3326,11 @@ void CrAnalyseDeclorList(CR_NameScope& namescope, CR_TypeID tid,
                 if (d->m_initer.get()) {
                     value = CrValueOnIniter(namescope, tid2, d->m_initer.get());
                     value = CrFixValue(namescope, value);
+                    auto& type2 = namescope.LogType(tid2);
+                    if (type2.m_count == 0) {
+                        auto& type3 = namescope.LogType(type2.m_sub_id);
+                        type2.m_count = value.m_size / type3.m_size;
+                    }
                 }
                 d = d->m_declor.get();
                 continue;
