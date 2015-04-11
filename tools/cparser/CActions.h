@@ -221,7 +221,7 @@ namespace cparser
             decl->m_decl_type = Decl::TYPEDEF;
             decl->m_decl_specs = ds;
             decl->m_declor_list = dl;
-            decl->m_constant = constant->m_text;
+            decl->m_constant = constant->m_str;
             return shared_ptr<Decl>(decl);
         }
 
@@ -665,7 +665,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ALIAS;
-            ts->m_name = info->m_text;
+            ts->m_name = info->m_str;
             return shared_ptr<TypeSpec>(ts);
         }
 
@@ -763,7 +763,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_decl_list = decl_list;
             ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
@@ -780,7 +780,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_decl_list = decl_list;
             ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
@@ -829,7 +829,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             ts->m_align_spec = align_spec;
@@ -845,7 +845,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_STRUCT;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
             assert(ts->m_pack >= 1);
@@ -861,7 +861,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_decl_list = decl_list;
             ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
@@ -877,7 +877,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_decl_list = decl_list;
             ts->m_location = keyword->m_location;
             ts->m_pack = keyword->m_pack;
@@ -923,7 +923,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_location = keyword->m_location;
             ts->m_align_spec = align_spec;
             return shared_ptr<TypeSpec>(ts);
@@ -937,7 +937,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_UNION;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_location = keyword->m_location;
             return shared_ptr<TypeSpec>(ts);
         }
@@ -1184,7 +1184,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_enumor_list = el;
             ts->m_location = keyword->m_location;
             return shared_ptr<TypeSpec>(ts);
@@ -1198,7 +1198,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_enumor_list = el;
             ts->m_location = keyword->m_location;
             return shared_ptr<TypeSpec>(ts);
@@ -1238,7 +1238,7 @@ namespace cparser
             #endif
             TypeSpec *ts = new TypeSpec;
             ts->m_flag = TF_ENUM;
-            ts->m_name = tag->m_text;
+            ts->m_name = tag->m_str;
             ts->m_location = keyword->m_location;
             return shared_ptr<TypeSpec>(ts);
         }
@@ -1269,7 +1269,7 @@ namespace cparser
                 printf("DoEnumor1\n");
             #endif
             Enumor *e = new Enumor;
-            e->m_name = info->m_text;
+            e->m_name = info->m_str;
             e->m_const_expr = ce;
             return shared_ptr<Enumor>(e);
         }
@@ -1279,7 +1279,7 @@ namespace cparser
                 printf("DoEnumor2\n");
             #endif
             Enumor *e = new Enumor;
-            e->m_name = info->m_text;
+            e->m_name = info->m_str;
             return shared_ptr<Enumor>(e);
         }
 
@@ -1331,7 +1331,7 @@ namespace cparser
             #endif
             Declor *d = new Declor;
             d->m_declor_type = Declor::TYPEDEF_TAG;
-            d->m_name = token->m_text;
+            d->m_name = token->m_str;
             d->m_location = token->m_location;
             return shared_ptr<Declor>(d);
         }
@@ -1399,7 +1399,7 @@ namespace cparser
             #endif
             Declor *d = new Declor;
             d->m_declor_type = Declor::IDENTIFIER;
-            d->m_name = token->m_text;
+            d->m_name = token->m_str;
             d->m_flags = token->m_flags;
             d->m_location = token->m_location;
             return shared_ptr<Declor>(d);
@@ -1911,7 +1911,7 @@ namespace cparser
             #endif
             LabeledStmt *ls = new LabeledStmt;
             ls->m_labeled_type = LabeledStmt::LABEL;
-            ls->m_label = id->m_text.data();
+            ls->m_label = id->m_str.data();
             ls->m_stmt = s;
             return shared_ptr<LabeledStmt>(ls);
         }
@@ -2173,7 +2173,7 @@ namespace cparser
             #endif
             JumpStmt *js = new JumpStmt;
             js->m_jump_type = JumpStmt::GOTO;
-            js->m_label = id->m_text;
+            js->m_label = id->m_str;
             return shared_ptr<JumpStmt>(js);
         }
 
@@ -2954,7 +2954,7 @@ namespace cparser
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::DOT;
             newpe->m_postfix_expr = pe;
-            newpe->m_text = id->m_text;
+            newpe->m_text = id->m_str;
             return shared_ptr<PostfixExpr>(newpe);
         }
 
@@ -2967,7 +2967,7 @@ namespace cparser
             PostfixExpr *newpe = new PostfixExpr;
             newpe->m_postfix_type = PostfixExpr::ARROW;
             newpe->m_postfix_expr = pe;
-            newpe->m_text = id->m_text;
+            newpe->m_text = id->m_str;
             return shared_ptr<PostfixExpr>(newpe);
         }
 
@@ -2997,7 +2997,7 @@ namespace cparser
             #endif
             PrimExpr *newpe = new PrimExpr;
             newpe->m_prim_type = PrimExpr::IDENTIFIER;
-            newpe->m_text = token->m_text;
+            newpe->m_text = token->m_str;
             return shared_ptr<PrimExpr>(newpe);
         }
 
@@ -3011,7 +3011,7 @@ namespace cparser
                 newpe->m_prim_type = PrimExpr::F_CONSTANT;
             else
                 newpe->m_prim_type = PrimExpr::I_CONSTANT;
-            newpe->m_text = token->m_text;
+            newpe->m_text = token->m_str;
             newpe->m_extra = token->m_extra;
             return shared_ptr<PrimExpr>(newpe);
         }
@@ -3022,7 +3022,7 @@ namespace cparser
             #endif
             PrimExpr *newpe = new PrimExpr;
             newpe->m_prim_type = PrimExpr::STRING;
-            newpe->m_text = token->m_text;
+            newpe->m_text = token->m_str;
             newpe->m_extra = token->m_extra;
             return shared_ptr<PrimExpr>(newpe);
         }
@@ -3175,7 +3175,7 @@ namespace cparser
             #endif
             StaticAssertDecl *sad = new StaticAssertDecl;
             sad->m_const_expr = ce;
-            sad->m_str = str->m_text;
+            sad->m_str = str->m_str;
             sad->m_location = str->m_location;
             return shared_ptr<StaticAssertDecl>(sad);
         }
@@ -3254,7 +3254,7 @@ namespace cparser
             #endif
             AsmOperand *ao = new AsmOperand;
             ao->m_operand_type = AsmOperand::STRING;
-            ao->m_text = value->m_text;
+            ao->m_text = value->m_str;
             return shared_ptr<AsmOperand>(ao);
         }
 
@@ -3265,7 +3265,7 @@ namespace cparser
             #endif
             AsmOperand *ao = new AsmOperand;
             ao->m_operand_type = AsmOperand::IDENTIFIER;
-            ao->m_text = value->m_text;
+            ao->m_text = value->m_str;
             return shared_ptr<AsmOperand>(ao);
         }
 

@@ -155,8 +155,8 @@ std::string CrEscapeStringW2A(const std::wstring& wstr) {
     return "\"" + ret + "\"";
 }
 
-bool CrUnscapeStringA2A(std::string& ret, const std::string& str) {
-    ret.clear();
+std::string CrUnescapeStringA2A(const std::string& str) {
+    std::string ret;
     size_t siz = str.size();
     bool inside = false, is_valid = true;
     for (size_t i = 0; i < siz; ++i) {
@@ -185,7 +185,7 @@ bool CrUnscapeStringA2A(std::string& ret, const std::string& str) {
             continue;
         }
         if (++i >= siz) {
-            return false;
+            return ret;
         }
         ch = str[i];
         switch (ch) {
@@ -236,11 +236,11 @@ bool CrUnscapeStringA2A(std::string& ret, const std::string& str) {
             }
         }
     }
-    return is_valid;
+    return ret;
 }
 
-bool CrUnscapeStringA2W(std::wstring& ret, const std::string& str) {
-    ret.clear();
+std::wstring CrUnescapeStringA2W(const std::string& str) {
+    std::wstring ret;
     size_t siz = str.size();
     bool inside = false, is_valid = true;
     for (size_t i = 0; i < siz; ++i) {
@@ -269,7 +269,7 @@ bool CrUnscapeStringA2W(std::wstring& ret, const std::string& str) {
             continue;
         }
         if (++i >= siz) {
-            return false;
+            return ret;
         }
         ch = str[i];
         switch (ch) {
@@ -345,93 +345,168 @@ bool CrUnscapeStringA2W(std::wstring& ret, const std::string& str) {
             }
         }
     }
-    return is_valid;
-}
-
-std::string CrEscapeChar(const std::string& str) {
-    std::string ret;
-    ret += '\'';
-    for (size_t i = 0; i < str.size(); ++i) {
-        char ch = str[i];
-        switch (ch) {
-        case '\'': case '\"': case '\?': case '\\':
-            ret += '\\';
-            ret += ch;
-            break;
-        case '\a': ret += '\\'; ret += 'a'; break;
-        case '\b': ret += '\\'; ret += 'b'; break;
-        case '\f': ret += '\\'; ret += 'f'; break;
-        case '\r': ret += '\\'; ret += 'r'; break;
-        case '\t': ret += '\\'; ret += 't'; break;
-        case '\v': ret += '\\'; ret += 'v'; break;
-        default:
-            if (ch < 0x20) {
-                int n = static_cast<int>(ch);
-                std::stringstream ss;
-                ss << "\\x" << std::hex <<
-                    std::setfill('0') << std::setw(2) << n;
-                ret += ss.str();
-            } else {
-                ret += ch;
-            }
-        }
-    }
-    ret += '\'';
     return ret;
 }
 
-std::string CrUnescapeChar(const std::string& str) {
+std::string CrUnescapeCharA2A(const std::string& str) {
     std::string ret;
-    size_t i = 1;
-    char ch = str[1];
-    switch (ch) {
-    case '\'': case '\"': case '\?': case '\\':
-        ret += ch;
-        break;
-    case 'a': ret += '\a'; break;
-    case 'b': ret += '\b'; break;
-    case 'f': ret += '\f'; break;
-    case 'n': ret += '\n'; break;
-    case 'r': ret += '\r'; break;
-    case 't': ret += '\t'; break;
-    case 'v': ret += '\v'; break;
-    case 'x':
-        {
-            std::string hex;
-            ++i;
-            if (str[i] && isxdigit(str[i])) {
-                hex += str[i];
-                ++i;
-                if (str[i] && isxdigit(str[i])) {
-                    hex += str[i];
-                } else {
-                    --i;
-                }
-            } else {
-                --i;
-            }
-            auto n = std::stoul(hex, NULL, 16);
-            ret += static_cast<char>(n);
+    size_t siz = str.size();
+    assert(siz && str[0] == '\'');
+    for (size_t i = 1; i < siz; ++i) {
+        char ch = str[i];
+        if (ch == '\'') {
+            break;
         }
-        break;
-    default:
-        if ('0' <= ch && ch <= '7') {
-            std::string oct;
-            oct += ch;
-            ++i;
-            if (str[i] && '0' <= str[i] && str[i] <= '7') {
-                oct += str[i];
-                ++i;
-                if (str[i] && '0' <= str[i] && str[i] <= '7') {
-                    oct += str[i];
-                } else {
-                    --i;
-                }
-            } else {
-                --i;
+        if (ch == '\\') {
+            ch = str[++i];
+            if (i == siz) {
+                break;
             }
-            auto n = std::stoul(oct, NULL, 8);
-            ret += static_cast<char>(n);
+            switch (ch) {
+            case '\'': case '\"': case '\?': case '\\':
+                ret += wchar_t(ch);
+                break;
+            case 'a': ret += '\a'; break;
+            case 'b': ret += '\b'; break;
+            case 'f': ret += '\f'; break;
+            case 'n': ret += '\n'; break;
+            case 'r': ret += '\r'; break;
+            case 't': ret += '\t'; break;
+            case 'v': ret += '\v'; break;
+            case 'x':
+                {
+                    std::string hex;
+                    if (++i < siz && isxdigit(str[i])) {
+                        hex += str[i];
+                        if (++i < siz && isxdigit(str[i])) {
+                            hex += str[i];
+                        } else {
+                            --i;
+                        }
+                    } else {
+                        --i;
+                    }
+                    auto n = std::stoul(hex, NULL, 16);
+                    ret += static_cast<char>(n);
+                }
+                break;
+
+            default:
+                if ('0' <= ch && ch <= '7') {
+                    std::string oct;
+                    oct += ch;
+                    if (++i < siz && '0' <= str[i] && str[i] <= '7') {
+                        oct += str[i];
+                        if (++i < siz && '0' <= str[i] && str[i] <= '7') {
+                            oct += str[i];
+                        } else {
+                            --i;
+                        }
+                    } else {
+                        --i;
+                    }
+                    auto n = std::stoul(oct, NULL, 8);
+                    ret += static_cast<char>(n);
+                }
+            }
+        } else {
+            ret += ch;
+        }
+    }
+    return ret;
+}
+
+std::wstring CrUnescapeCharL2W(const std::string& str) {
+    MAnsiToWide a2w(str.data(), str.size());
+    std::wstring wstr(a2w.data(), a2w.size());
+
+    std::wstring ret;
+    size_t siz = wstr.size();
+    assert(siz && wstr[0] == '\'');
+    for (size_t i = 1; i < siz; ++i) {
+        wchar_t ch = wstr[i];
+        if (ch == L'\'') {
+            break;
+        }
+        if (ch == L'\\') {
+            ch = wstr[++i];
+            if (i == siz) {
+                break;
+            }
+            switch (ch) {
+            case L'\'': case L'\"': case L'\?': case L'\\':
+                ret += wchar_t(ch);
+                break;
+            case L'a': ret += L'\a'; break;
+            case L'b': ret += L'\b'; break;
+            case L'f': ret += L'\f'; break;
+            case L'n': ret += L'\n'; break;
+            case L'r': ret += L'\r'; break;
+            case L't': ret += L'\t'; break;
+            case L'v': ret += L'\v'; break;
+            case L'x':
+                {
+                    std::wstring hex;
+                    if (++i < siz && iswxdigit(str[i])) {
+                        hex += str[i];
+                        if (++i < siz && iswxdigit(str[i])) {
+                            hex += str[i];
+                            if (++i < siz && iswxdigit(str[i])) {
+                                hex += str[i];
+                                if (++i < siz && iswxdigit(str[i])) {
+                                    hex += str[i];
+                                } else {
+                                    --i;
+                                }
+                            } else {
+                                --i;
+                            }
+                        } else {
+                            --i;
+                        }
+                    } else {
+                        --i;
+                    }
+                    auto n = std::stoul(hex, NULL, 16);
+                    ret += static_cast<wchar_t>(n);
+                }
+                break;
+
+            default:
+                if (L'0' <= ch && ch <= L'7') {
+                    std::wstring oct;
+                    oct += ch;
+                    if (++i < siz && L'0' <= str[i] && str[i] <= L'7') {
+                        oct += str[i];
+                        if (++i < siz && L'0' <= str[i] && str[i] <= L'7') {
+                            oct += str[i];
+                            if (++i < siz && L'0' <= str[i] && str[i] <= L'7') {
+                                oct += str[i];
+                                if (++i < siz && L'0' <= str[i] && str[i] <= L'7') {
+                                    oct += str[i];
+                                    if (++i < siz && L'0' <= str[i] && str[i] <= L'7') {
+                                        oct += str[i];
+                                    } else {
+                                        --i;
+                                    }
+                                } else {
+                                    --i;
+                                }
+                            } else {
+                                --i;
+                            }
+                        } else {
+                            --i;
+                        }
+                    } else {
+                        --i;
+                    }
+                    auto n = std::stoul(oct, NULL, 8);
+                    ret += static_cast<wchar_t>(n);
+                }
+            }
+        } else {
+            ret += ch;
         }
     }
     return ret;
@@ -3628,18 +3703,18 @@ CR_NameScope::FConstant(CR_TypeID tid, const std::string& text, const std::strin
 CR_TypedValue
 CR_NameScope::SConstant(const std::string& text, const std::string& extra) {
     CR_TypedValue ret;
-
-    ret.m_text = CrEscapeStringA2A(text);
+    ret.m_text = text;
     ret.m_extra = extra;
     if (extra.find("L") != std::string::npos ||
         extra.find("l") != std::string::npos)
     {
-        auto wstr = MAnsiToWide(text.data(), int(text.size()));
+        std::wstring wstr = CrUnescapeStringA2W(text);
         ret.m_type_id = AddConstWCharArray(wstr.size() + 1);
         ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
     } else {
-        ret.m_type_id = AddConstCharArray(text.size() + 1);
-        ret.assign(text.data(), text.size() + 1);
+        std::string str = CrUnescapeStringA2A(text);
+        ret.m_type_id = AddConstCharArray(str.size() + 1);
+        ret.assign(str.data(), str.size() + 1);
     }
     return ret;
 }
@@ -3647,39 +3722,19 @@ CR_NameScope::SConstant(const std::string& text, const std::string& extra) {
 CR_TypedValue
 CR_NameScope::SConstant(CR_TypeID tid, const std::string& text, const std::string& extra) {
     CR_TypedValue ret;
-
-    ret.m_text = CrEscapeStringA2A(text);
+    ret.m_text = text;
     ret.m_extra = extra;
     ret.m_type_id = tid;
+
     if (extra.find("L") != std::string::npos ||
         extra.find("l") != std::string::npos)
     {
-        auto wstr = MAnsiToWide(text.data(), int(text.size()));
+        std::wstring wstr = CrUnescapeStringA2W(text);
         ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
+    } else {
+        std::string str = CrUnescapeStringA2A(text);
+        ret.assign(str.data(), str.size() + 1);
     }
-    else {
-        ret.assign(text.data(), text.size() + 1);
-    }
-    return ret;
-}
-
-CR_TypedValue
-CR_NameScope::SConstant(const std::wstring& text) {
-    CR_TypedValue ret;
-    ret.m_text = CrEscapeStringW2A(text);
-    ret.m_extra = "L";
-    ret.m_type_id = AddConstWCharArray(text.size() + 1);
-    ret.assign(text.data(), (text.size() + 1) * sizeof(WCHAR));
-    return ret;
-}
-
-CR_TypedValue
-CR_NameScope::SConstant(CR_TypeID tid, const std::wstring& text) {
-    CR_TypedValue ret;
-    ret.m_text = CrEscapeStringW2A(text);
-    ret.m_extra = "L";
-    ret.m_type_id = tid;
-    ret.assign(text.data(), (text.size() + 1) * sizeof(WCHAR));
     return ret;
 }
 
@@ -4110,28 +4165,15 @@ bool CR_NameScope::LoadFromFiles(
             } else if (text.size() && value_type == "f" && IsFloatingType(type_id)) {
                 var.m_typed_value = FConstant(text, extra);
             } else if (text.size() && value_type == "s" && IsStringType(type_id)) {
-                std::string unescaped;
-                if (CrUnscapeStringA2A(unescaped, text)) {
-                    text = unescaped;
-                } else {
-                    ErrorInfo()->add_error("invalid string: '" + text + "'");
-                }
                 var.m_typed_value = SConstant(type_id, text, extra);
             } else if (text.size() && value_type == "S" && IsWStringType(type_id)) {
-                std::wstring unescaped;
-                if (CrUnscapeStringA2W(unescaped, text)) {
-                    ;
-                } else {
-                    ErrorInfo()->add_error("invalid string: '" + text + "'");
-                }
-                var.m_typed_value = SConstant(type_id, unescaped);
+                var.m_typed_value = SConstant(type_id, text, extra);
             } else if (text.size() && value_type == "p" && IsPointerType(type_id)) {
                 var.m_typed_value = PConstant(type_id, text, extra);
             } else if (text.size() && value_type == "c") {
                 var.m_typed_value.m_text = text;
-                std::string unescaped;
-                CrUnscapeStringA2A(unescaped, extra);
-				var.m_typed_value.assign(unescaped.data(), unescaped.size());
+                auto unescaped = CrUnescapeStringA2A(extra);
+                var.m_typed_value.assign(unescaped.data(), unescaped.size());
             } else {
                 var.m_typed_value.m_type_id = type_id;
             }

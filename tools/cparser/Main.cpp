@@ -157,17 +157,51 @@ std::string CrGutsEscapeSequence(const char *& it) {
     return ret;
 } // CrGutsEscapeSequence
 
+std::string CrGutsChar(const char *& it) {
+    std::string ret;
+    assert(*it && *it == '\'');
+    ret += '\'';
+    for (++it; *it; ) {
+        switch (*it) {
+        case '\'':
+            ret += *it++;
+            return ret;
+
+        case '\\':
+            ret += *it++;
+            if (*it == 0) {
+                break;
+            }
+            ret += *it++;
+            break;
+
+        default:
+            // trigraph "??/"
+            if (it[0] == '?' && it[1] == '?' && it[2] == '/') {
+                ret += '\\';
+                it += 3;
+                if (*it) {
+                    ret += *it++;
+                }
+            } else {
+                ret += *it++;
+            }
+        }
+    }
+    return ret;
+} // CrGutsCharA
+
 std::string CrGutsString(const char *& it) {
     std::string ret;
     assert(*it && *it == '\"');
+    ret += '"';
     for (++it; *it; ) {
         switch (*it) {
         case '\"':
-            ++it;
+            ret += *it++;
             if (*it) {
                 if (*it == '\"') {
-                    ret += '\"';
-                    ++it;
+                    ret += *it++;
                 } else {
                     return ret;
                 }
@@ -177,67 +211,43 @@ std::string CrGutsString(const char *& it) {
             break;
 
         case '\\':
-            {
-                ++it;
-                auto text = CrGutsEscapeSequence(it);
-                ret += text;
-                if (*it == 0) {
-                    return ret;
-                }
+            ret += *it++;
+            if (*it == 0) {
+                return ret;
             }
+            ret += *it++;
             break;
 
         default:
             // trigraph "??/"
             if (it[0] == '?' && it[1] == '?' && it[2] == '/') {
+                ret += '\\';
                 it += 3;
-                auto text = CrGutsEscapeSequence(it);
-                ret += text;
-                if (*it == 0) {
-                    return ret;
+                if (*it) {
+                    ret += *it++;
                 }
             } else {
-                ret += *it;
-                ++it;
+                ret += *it++;
             }
         }
     }
     return ret;
 } // CrGutsString
 
-std::string CrGutsChar(const char *& it) {
-    std::string ret;
-    assert(*it && *it == '\'');
-    for (++it; *it; ++it) {
-        switch (*it) {
-        case '\'':
-            ++it;
-            return ret;
-
-        case '\\':
-            {
-                ++it;
-                auto text = CrGutsEscapeSequence(it);
-                ret += text;
-                if (*it == 0) {
-                    break;
-                }
-                --it;
-            }
-            break;
-
-        default:
-            ret += *it;
-        }
-    }
-    return ret;
-} // CrGutsChar
-
-int CrCharToInt(const std::string& str) {
+int CrCharToIntA(const std::string& str) {
     int n = 0;
     for (char ch : str) {
         n *= 0x100;
         n += ch;
+    }
+    return n;
+}
+
+int CrCharToIntW(const std::wstring& wstr) {
+    int n = 0;
+    for (wchar_t wch : wstr) {
+        n *= 0x10000;
+        n += wch;
     }
     return n;
 }
@@ -394,9 +404,9 @@ bool CrLexeme(const char *& it, const std::string& str) {
 
 std::string cparser::Lexer::node_to_string(const node_type& node) const {
     std::string str = token_label(node.m_token);
-    if (node.m_text.size()) {
+    if (node.m_str.size()) {
         str += '(';
-        str += node.m_text;
+        str += node.m_str;
         str += ')';
     }
     return str;
@@ -658,7 +668,10 @@ void cparser::Lexer::do_line(
                 infos.emplace_back(T_STRING, text, extra);
             } else if (*it == '\'') {
                 auto text = CrGutsChar(it);
-                auto n = CrCharToInt(text);
+                // FIXME & TODO: support UTF-8
+                assert(0);
+                text = CrUnescapeCharA2A(text);
+                auto n = CrCharToIntA(text);
                 text = std::to_string(n);
                 infos.emplace_back(T_CONSTANT, text, extra);
             } else {
@@ -679,7 +692,8 @@ void cparser::Lexer::do_line(
                 infos.emplace_back(T_STRING, text, extra);
             } else if (*it == '\'') {
                 auto text = CrGutsChar(it);
-                auto n = CrCharToInt(text);
+                auto wtext = CrUnescapeCharL2W(text);
+                auto n = CrCharToIntW(wtext);
                 text = std::to_string(n);
                 infos.emplace_back(T_CONSTANT, text, extra);
             } else {
@@ -698,7 +712,8 @@ void cparser::Lexer::do_line(
         case '\'':
             {
                 auto text = CrGutsChar(it);
-                auto n = CrCharToInt(text);
+                text = CrUnescapeCharA2A(text);
+                auto n = CrCharToIntA(text);
                 text = std::to_string(n);
                 infos.emplace_back(T_CONSTANT, text);
             }
@@ -1074,7 +1089,7 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
         // invalid character
         if (it->m_token == T_INVALID_CHAR) {
             std::string text = "unexpected character '";
-            text += it->m_text + "'";
+            text += it->m_str + "'";
             add_error(base.m_location, text);
             continue;
         }
@@ -1099,15 +1114,16 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
             // #lineno
             // #line lineno "file"
             // #line lineno
-            if (it != end && it->m_text == "line") {
+            if (it != end && it->m_str == "line") {
                 ++it;
                 is_lineno_directive = true;
             }
             if (it != end && it->m_token == T_CONSTANT) {
-                int lineno = std::atoi(it->m_text.data()) - 1;
+                int lineno = std::atoi(it->m_str.data()) - 1;
                 ++it;
                 if (it != end && it->m_token == T_STRING) {
-                    base.m_location.set(it->m_text, lineno);
+                    auto file = CrUnescapeStringA2A(it->m_str);
+                    base.m_location.set(file, lineno);
                 } else {
                     --it;
                     base.m_location.m_line = lineno;
@@ -1115,7 +1131,7 @@ void cparser::Lexer::resynth1(LexerBase& base, node_container& c) {
                 is_lineno_directive = true;
             }
 
-            if (!is_lineno_directive && it != end && it->m_text == "pragma") {
+            if (!is_lineno_directive && it != end && it->m_str == "pragma") {
                 // #pragma name("...")
                 ++it;
                 parse_pragma(base, it, end);
@@ -1165,7 +1181,7 @@ void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
         flag = token_pattern_match(base, it, end,
             {T_DECLSPEC, T_L_PAREN, eof, T_L_PAREN, eof, T_R_PAREN, T_R_PAREN}
         );
-        if (flag && (it + 2)->m_text == "align") {
+        if (flag && (it + 2)->m_str == "align") {
             it += 2;
             it->m_token = T_ALIGNAS;
             newc.push_back(*it);    // _Alignas
@@ -1186,9 +1202,9 @@ void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
                 T_R_PAREN, T_R_PAREN
             }
         );
-        if (flag && ((it + 3)->m_text == "__aligned__" ||
-                     (it + 3)->m_text == "__aligned" ||
-                     (it + 3)->m_text == "aligned"))
+        if (flag && ((it + 3)->m_str == "__aligned__" ||
+                     (it + 3)->m_str == "__aligned" ||
+                     (it + 3)->m_str == "aligned"))
         {
             // __attribute__((__aligned__(#)))
             it += 3;
@@ -1203,9 +1219,9 @@ void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
             it += 2;
             continue;
         }
-        if (flag && ((it + 3)->m_text == "__vector_size__" ||
-                     (it + 3)->m_text == "__vector_size" ||
-                     (it + 3)->m_text == "vector_size"))
+        if (flag && ((it + 3)->m_str == "__vector_size__" ||
+                     (it + 3)->m_str == "__vector_size" ||
+                     (it + 3)->m_str == "vector_size"))
         {
             // __attribute__((__vector_size__(#)))
             it += 3;
@@ -1228,12 +1244,12 @@ void cparser::Lexer::resynth2(LexerBase& base, node_container& c) {
                 T_R_PAREN, T_R_PAREN
             }
         );
-        if (flag && ((it + 3)->m_text == "__vector_size__" ||
-                     (it + 3)->m_text == "__vector_size" ||
-                     (it + 3)->m_text == "vector_size") &&
-                    ((it + 8)->m_text == "__may_alias__" ||
-                     (it + 8)->m_text == "__may_alias" ||
-                     (it + 8)->m_text == "may_alias"))
+        if (flag && ((it + 3)->m_str == "__vector_size__" ||
+                     (it + 3)->m_str == "__vector_size" ||
+                     (it + 3)->m_str == "vector_size") &&
+                    ((it + 8)->m_str == "__may_alias__" ||
+                     (it + 8)->m_str == "__may_alias" ||
+                     (it + 8)->m_str == "may_alias"))
         {
             // __attribute__((__vector_size__(#), __may_alias__))
             it += 3;
@@ -1265,7 +1281,8 @@ void cparser::Lexer::resynth3(node_container& c) {
             for (;;) {
                 ++it;
                 if (it != end && it->m_token == T_STRING) {
-                    it0->m_text += it->m_text;
+                    it0->m_str += " ";
+                    it0->m_str += it->m_str;
                 } else {
                     --it;
                     break;
@@ -1338,7 +1355,7 @@ void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
                     (it + 1)->m_token == T_VECTOR_SIZE)
                 {
                     // struct tag_name; fixup
-                    m_type_names->emplace(it->m_text);
+                    m_type_names->emplace(it->m_str);
                 }
             }
         }
@@ -1348,7 +1365,7 @@ void cparser::Lexer::resynth5(node_iterator begin, node_iterator end) {
         if (it->m_token == T_TYPEDEF) {
             it = resynth_typedef(++it, end);
         } else if (it->m_token == T_IDENTIFIER) {
-            if (m_type_names->count(it->m_text)) {
+            if (m_type_names->count(it->m_str)) {
                 it->set_token(T_TYPEDEF_NAME);
             }
         }
@@ -1388,7 +1405,7 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
             }
         } else if (it->m_token == T_IDENTIFIER) {
             if (brace_nest == 0 && bracket_nest == 0) {
-                if (m_type_names->count(it->m_text)) {
+                if (m_type_names->count(it->m_str)) {
                     ++it;
                     if (it->m_token == T_SEMICOLON || it->m_token == T_VECTOR_SIZE ||
                         it->m_token == T_R_PAREN ||
@@ -1403,7 +1420,7 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
                     }
                 } else {
                     it->set_token(T_TYPEDEF_TAG);
-                    m_type_names->emplace(it->m_text);
+                    m_type_names->emplace(it->m_str);
 
                     ++it;
                     if (it->m_token == T_L_PAREN) {
@@ -1412,7 +1429,7 @@ cparser::Lexer::resynth_typedef(node_iterator begin, node_iterator end) {
                         --it;
                     }
                 }
-            } else if (m_type_names->count(it->m_text)) {
+            } else if (m_type_names->count(it->m_str)) {
                 // found a type name not in brace or bracket
                 it->set_token(T_TYPEDEF_NAME);
             }
@@ -1450,7 +1467,7 @@ cparser::Lexer::resynth_parameter_list(
             } else
                 --it;
         } else if (it->m_token == T_IDENTIFIER) {
-            if (m_type_names->count(it->m_text)) {
+            if (m_type_names->count(it->m_str)) {
                 ++it;
                 if (fresh) {
                     --it;
@@ -1526,11 +1543,11 @@ void cparser::Lexer::resynth6(node_container& c) {
             {
                 // a SAL marker?
                 bool f =
-                    (it2->m_text == "returnvalue") ||
-                    (it2->m_text == "SA_Pre") ||
-                    (it2->m_text == "SA_Post") ||
-                    (it2->m_text == "SA_FormatString") ||
-                    (it2->m_text == "source_annotation_attribute");
+                    (it2->m_str == "returnvalue") ||
+                    (it2->m_str == "SA_Pre") ||
+                    (it2->m_str == "SA_Post") ||
+                    (it2->m_str == "SA_FormatString") ||
+                    (it2->m_str == "source_annotation_attribute");
                 if (f) {
                     f = false;
                     ++it2;
@@ -1714,14 +1731,14 @@ cparser::Lexer::parse_pack(
     // #pragma pack(...)
     flag = token_pattern_match(base, it, end, { T_L_PAREN, eof, T_R_PAREN });
     if (flag) {
-        if ((it + 1)->m_text == "pop") {
+        if ((it + 1)->m_str == "pop") {
             // #pragma pack(pop)
             if (c_show_pack) {
                 std::cerr << base.m_location.str() <<
                     ": pragma pack(pop)" << std::endl;
             }
             base.packing().pop();
-        } else if ((it + 1)->m_text == "push"){
+        } else if ((it + 1)->m_str == "push"){
             // #pragma pack(push)
             if (c_show_pack) {
                 std::cerr << base.m_location.str() <<
@@ -1730,7 +1747,7 @@ cparser::Lexer::parse_pack(
             base.packing().push(base.packing());
         } else {
             // #pragma pack(#)
-            int pack = std::stoi((it + 1)->m_text, NULL, 0);
+            int pack = std::stoi((it + 1)->m_str, NULL, 0);
             if (c_show_pack) {
                 std::cerr << base.m_location.str() <<
                     ": pragma pack(" << pack << ")" << std::endl;
@@ -1745,10 +1762,10 @@ cparser::Lexer::parse_pack(
         {T_L_PAREN, eof, T_COMMA, eof, T_R_PAREN}
     );
     if (flag) {
-        auto param = (it + 3)->m_text;
+        auto param = (it + 3)->m_str;
         if (param.size() && (isalpha(param[0]) || param[0] == '_')) {
             // #pragma pack(..., ident)
-            if ((it + 1)->m_text == "pop") {
+            if ((it + 1)->m_str == "pop") {
                 // #pragma pack(pop, ident)
                 if (c_show_pack) {
                     std::cerr << base.m_location.str() <<
@@ -1756,7 +1773,7 @@ cparser::Lexer::parse_pack(
                 }
                 base.packing().pop(param);
                 return CR_ErrorInfo::NOTHING;
-            } else if ((it + 1)->m_text == "push") {
+            } else if ((it + 1)->m_str == "push") {
                 // #pragma pack(push, ident)
                 if (c_show_pack) {
                     std::cerr << base.m_location.str() <<
@@ -1767,7 +1784,7 @@ cparser::Lexer::parse_pack(
             }
         } else if (param.size() && isdigit(param[0])) {
             // #pragma pack(..., #)
-            if ((it + 1)->m_text == "pop") {
+            if ((it + 1)->m_str == "pop") {
                 // #pragma pack(pop, #)
                 int pack = std::stoi(param, NULL, 0);
                 if (c_show_pack) {
@@ -1776,7 +1793,7 @@ cparser::Lexer::parse_pack(
                 }
                 base.packing().pop(pack);
                 return CR_ErrorInfo::NOTHING;
-            } else if ((it + 1)->m_text == "push") {
+            } else if ((it + 1)->m_str == "push") {
                 // #pragma pack(push, #)
                 int pack = std::stoi(param, NULL, 0);
                 if (c_show_pack) {
@@ -1796,9 +1813,9 @@ cparser::Lexer::parse_pack(
     );
     if (flag) {
         // #pragma pack(push, ...   , #)
-        auto op = (it + 1)->m_text;
-        auto ident = (it + 3)->m_text;
-        auto param = (it + 5)->m_text;
+        auto op = (it + 1)->m_str;
+        auto ident = (it + 3)->m_str;
+        auto param = (it + 5)->m_str;
         if (op == "push") {
             if (c_show_pack) {
                 std::cerr << base.m_location.str() <<
@@ -1836,7 +1853,7 @@ cparser::Lexer::parse_pragma(
     }
     // #pragma name...
     bool flag;
-    auto name = it->m_text;
+    auto name = it->m_str;
     ++it;
     if (name == "message") {
         // #pragma message("...")
@@ -1844,7 +1861,8 @@ cparser::Lexer::parse_pragma(
             { T_L_PAREN, T_STRING, T_R_PAREN }
         );
         if (flag) {
-            message(base.m_location, (it + 1)->m_text);
+            auto text = CrUnescapeCharA2A((it + 1)->m_str);
+            message(base.m_location, text);
             it += 3;
         }
         return CR_ErrorInfo::NOTHING;
@@ -1854,15 +1872,17 @@ cparser::Lexer::parse_pragma(
     }
     if (name == "comment") {
         flag = token_pattern_match(base, it, end,
-            {T_L_PAREN, eof, T_COMMA, eof, T_R_PAREN}
+            {T_L_PAREN, eof, T_COMMA, T_STRING, T_R_PAREN}
         );
         if (flag) {
-            if ((it + 1)->m_text == "lib") {
+            if ((it + 1)->m_str == "lib") {
                 // #pragma comment(lib, "...")
-                lib((it + 3)->m_text);
-            } else if ((it + 1)->m_text == "linker") {
+                auto text = CrUnescapeStringA2A((it + 3)->m_str);
+                lib(text);
+            } else if ((it + 1)->m_str == "linker") {
                 // #pragma comment(linker, "...")
-                linker((it + 3)->m_text);
+                auto text = CrUnescapeStringA2A((it + 3)->m_str);
+                linker(text);
             }
             it += 5;
             return CR_ErrorInfo::NOTHING;
@@ -1899,8 +1919,8 @@ std::string CrStringOnIniter(CR_NameScope& namescope, Initer *i) {
         ret = CrStringOnIniterList(namescope, i->m_initer_list.get());
         break;
 
-	default:
-		assert(0);
+    default:
+        assert(0);
     }
     return ret;
 }
@@ -1980,7 +2000,7 @@ CrValueOnIniterList(CR_NameScope& namescope, CR_TypeID tid, IniterList *il) {
         auto& type3 = namescope.LogType(tid3);
         for (int i = 0; i < count; ++i) {
             CR_TypedValue value = 
-				CrValueOnIniter(namescope, type2.m_sub_id, (*il)[i].get());
+                CrValueOnIniter(namescope, type2.m_sub_id, (*il)[i].get());
             memcpy(&data[i * type3.m_size], value.m_ptr, type3.m_size);
         }
     } else if (type2.m_flags & TF_STRUCT) {
@@ -1991,11 +2011,11 @@ CrValueOnIniterList(CR_NameScope& namescope, CR_TypeID tid, IniterList *il) {
         for (int i = 0; i < count; ++i) {
             auto& m = members[i];
             auto tid3 = m.m_type_id;
-			auto& type3 = namescope.LogType(tid3);
+            auto& type3 = namescope.LogType(tid3);
             auto bit_offset = m.m_bit_offset;
 
             CR_TypedValue value = 
-				CrValueOnIniter(namescope, tid3, (*il)[i].get());
+                CrValueOnIniter(namescope, tid3, (*il)[i].get());
             memcpy(&data[byte_offset], value.m_ptr, type3.m_size);
 
             // TODO: bitfield
@@ -2009,10 +2029,10 @@ CrValueOnIniterList(CR_NameScope& namescope, CR_TypeID tid, IniterList *il) {
         if (count) {
             auto& m = members[0];
             auto tid3 = m.m_type_id;
-			auto& type3 = namescope.LogType(tid3);
-			auto bit_offset = m.m_bit_offset;
+            auto& type3 = namescope.LogType(tid3);
+            auto bit_offset = m.m_bit_offset;
             CR_TypedValue value = 
-				CrValueOnIniter(namescope, tid3, (*il)[0].get());
+                CrValueOnIniter(namescope, tid3, (*il)[0].get());
             memcpy(data.data(), value.m_ptr, type3.m_size);
         }
     } else {
@@ -3484,9 +3504,11 @@ void CrAnalyseDeclList(CR_NameScope& namescope, DeclList *dl) {
                     decl->m_static_assert_decl->m_const_expr;
                 value = CrValueOnCondExpr(namescope, const_expr.get());
                 if (namescope.GetIntValue(value) == 0) {
+                    auto text = CrUnescapeStringA2A(
+                        decl->m_static_assert_decl->m_str);
                     namescope.ErrorInfo()->add_error(
                         decl->m_location,
-                        "static assertion failed");
+                        "static assertion failed --- " + text);
                 }
             }
             break;
@@ -4110,14 +4132,12 @@ void CrLexMacro(
         case '"':
             {
                 auto text = CrGutsString(it);
-                text = CrEscapeStringA2A(text);
                 nodes.emplace_back(cmacro::MT_STRING, text);
             }
             break;
         case '\'':
             {
                 auto text = CrGutsChar(it);
-                text = CrEscapeChar(text);
                 nodes.emplace_back(cmacro::MT_CHARACTER, text);
             }
             break;
@@ -4125,11 +4145,11 @@ void CrLexMacro(
             ++it;
             if (*it == '"') {
                 auto text = CrGutsString(it);
-                text = "L" + CrEscapeStringA2A(text);
+                text = "L" + text;
                 nodes.emplace_back(cmacro::MT_STRING, text);
             } else if (*it == '\'') {
                 auto text = CrGutsChar(it);
-                text = "L" + CrEscapeChar(text);
+                text = "L" + text;
                 nodes.emplace_back(cmacro::MT_CHARACTER, text);
             } else {
                 --it;

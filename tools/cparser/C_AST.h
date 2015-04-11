@@ -457,7 +457,7 @@ namespace cparser
         typedef TokenType token_type;
 
         token_type      m_token;
-        std::string     m_text;
+        std::string     m_str;
         std::string     m_extra;
         int             m_pack;
         CR_TypeFlags    m_flags;
@@ -468,17 +468,17 @@ namespace cparser
         TokenNode(token_type token) :
             m_token(token), m_pack(8), m_flags(0) { }
 
-        TokenNode(token_type token, const std::string& text) :
-            m_token(token), m_text(text), m_pack(8), m_flags(0) { }
+        TokenNode(token_type token, const std::string& str) :
+            m_token(token), m_str(str), m_pack(8), m_flags(0) { }
 
         TokenNode(token_type token, 
-                  const std::string& text, const std::string& extra) :
-            m_token(token), m_text(text),
+                  const std::string& str, const std::string& extra) :
+            m_token(token), m_str(str),
             m_extra(extra), m_pack(8), m_flags(0) { }
 
-        TokenNode(token_type token,  const std::string& text,
+        TokenNode(token_type token,  const std::string& str,
                   const std::string& extra, CR_TypeFlags flags) :
-            m_token(token), m_text(text), m_extra(extra),
+            m_token(token), m_str(str), m_extra(extra),
             m_pack(8), m_flags(flags) { }
 
         void set_token(token_type token) {

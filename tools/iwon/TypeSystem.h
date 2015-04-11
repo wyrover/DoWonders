@@ -56,11 +56,12 @@ CR_TypeFlags CrNormalizeTypeFlags(CR_TypeFlags flags);
 
 std::string CrEscapeStringA2A(const std::string& str);
 std::string CrEscapeStringW2A(const std::wstring& wstr);
-bool CrUnscapeStringA2A(std::string& ret, const std::string& str);
-bool CrUnscapeStringA2W(std::wstring& ret, const std::string& str);
 
-std::string CrEscapeChar(const std::string& str);
-std::string CrUnescapeChar(const std::string& str);
+std::string CrUnescapeStringA2A(const std::string& str);
+std::wstring CrUnescapeStringA2W(const std::string& str);
+
+std::string CrUnescapeCharA2A(const std::string& str);
+std::wstring CrUnescapeCharL2W(const std::string& str);
 
 ////////////////////////////////////////////////////////////////////////////
 // IDs
@@ -529,9 +530,6 @@ public:
     CR_TypedValue FConstant(CR_TypeID tid, const std::string& text, const std::string& extra);
     CR_TypedValue SConstant(CR_TypeID tid, const std::string& text, const std::string& extra);
     CR_TypedValue IConstant(CR_TypeID tid, const std::string& text, const std::string& extra);
-
-    CR_TypedValue SConstant(const std::wstring& text);
-    CR_TypedValue SConstant(CR_TypeID tid, const std::wstring& text);
 
     CR_TypedValue BiOp(CR_TypedValue& v1, CR_TypedValue& v2) const;
     CR_TypedValue BiOpInt(CR_TypedValue& v1, CR_TypedValue& v2) const;
