@@ -77,7 +77,7 @@ std::string CrEscapeStringA2A(const std::string& str) {
             break;
         default:
             if (ch < 0x20) {
-                int n = static_cast<int>(ch);
+                int n = static_cast<unsigned char>(ch);
                 std::stringstream ss;
                 ss << "\\x" << std::hex <<
                     std::setfill('0') << std::setw(2) << n;
@@ -138,7 +138,7 @@ std::string CrEscapeStringW2A(const std::wstring& wstr) {
             break;
         default:
             if (ch < 0x20 || ch >= 0x100) {
-                int n = static_cast<int>(ch);
+                int n = static_cast<unsigned char>(ch);
                 std::stringstream ss;
                 ss << "\\x" << std::hex <<
                     std::setfill('0') << std::setw(4) << n;
@@ -572,7 +572,7 @@ void CR_TypedValue::assign(const void *ptr, size_t size) {
         m_size = size;
     } else if (ptr == m_ptr) {
         if (m_size < size) {
-            m_ptr = realloc(m_ptr, size);
+            m_ptr = realloc(m_ptr, size + 1);
             if (m_ptr == NULL) {
                 m_size = 0;
                 throw std::bad_alloc();
@@ -580,7 +580,7 @@ void CR_TypedValue::assign(const void *ptr, size_t size) {
         }
         m_size = size;
     } else {
-        m_ptr = realloc(m_ptr, size);
+        m_ptr = realloc(m_ptr, size + 1);
         if (m_ptr) {
             memmove(m_ptr, ptr, size);
             m_size = size;
@@ -2954,7 +2954,7 @@ CR_NameScope::Add(const CR_TypedValue& value1,
             std::swap(v1, v2);
         }
         if (IsPointerType(v1.m_type_id) && IsIntegralType(v2.m_type_id)) {
-            v1.m_type_id = ResolveAlias(v1.m_type_id);
+            v1.m_type_id = ResolveAliasAndCV(v1.m_type_id);
             auto& type1 = LogType(v1.m_type_id);
             auto& type2 = LogType(type1.m_sub_id);
             ret.m_type_id = v1.m_type_id;
@@ -2999,10 +2999,10 @@ CR_NameScope::Sub(const CR_TypedValue& value1,
         }
     } else {
         if (IsPointerType(v1.m_type_id) && IsPointerType(v2.m_type_id)) {
-            v1.m_type_id = ResolveAlias(v1.m_type_id);
+            v1.m_type_id = ResolveAliasAndCV(v1.m_type_id);
             auto& type1_1 = LogType(v1.m_type_id);
             auto& type1_2 = LogType(type1_1.m_sub_id);
-            v2.m_type_id = ResolveAlias(v2.m_type_id);
+            v2.m_type_id = ResolveAliasAndCV(v2.m_type_id);
             auto& type2_1 = LogType(v2.m_type_id);
             auto& type2_2 = LogType(type2_1.m_sub_id);
             if (type1_2.m_size == type2_2.m_size) {
@@ -3735,9 +3735,11 @@ CR_NameScope::SConstant(CR_TypeID tid, const std::string& text, const std::strin
     {
         std::wstring wstr = CrUnescapeStringA2W(text);
         ret.assign(wstr.data(), (wstr.size() + 1) * sizeof(WCHAR));
+        ret.m_size = SizeOfType(tid);
     } else {
         std::string str = CrUnescapeStringA2A(text);
         ret.assign(str.data(), str.size() + 1);
+        ret.m_size = SizeOfType(tid);
     }
     return ret;
 }
@@ -3879,7 +3881,7 @@ CR_NameScope::IConstant(CR_TypeID tid, const std::string& text, const std::strin
 ////////////////////////////////////////////////////////////////////////////
 
 // Wonders API data format version
-int cr_data_version = 1;
+int cr_data_version = 2;
 
 bool CR_NameScope::LoadFromFiles(
     const std::string& prefix/* = ""*/,
@@ -4148,7 +4150,7 @@ bool CR_NameScope::LoadFromFiles(
             std::vector<std::string> fields;
             katahiromz::split_by_char(fields, line, '\t');
 
-            if (fields.size() != 9) {
+            if (fields.size() != 10) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
@@ -4160,8 +4162,9 @@ bool CR_NameScope::LoadFromFiles(
             std::string extra = fields[4];
             std::string value_type = fields[5];
             bool is_macro = !!std::stol(fields[6], NULL, 0);
-            std::string file = fields[7];
-            int lineno = std::stol(fields[8], NULL, 0);
+            std::string data = fields[7];
+            std::string file = fields[8];
+            int lineno = std::stol(fields[9], NULL, 0);
 
             CR_LogVar var;
             if (text.size() && value_type == "i" && IsIntegralType(type_id)) {
@@ -4176,11 +4179,10 @@ bool CR_NameScope::LoadFromFiles(
                 var.m_typed_value = PConstant(type_id, text, extra);
             } else if (text.size() && value_type == "c") {
                 var.m_typed_value.m_text = text;
-                auto unescaped = CrUnescapeStringA2A(extra);
+                auto unescaped = CrUnescapeStringA2A(data);
                 var.m_typed_value.assign(unescaped.data(), unescaped.size());
-            } else {
-                var.m_typed_value.m_type_id = type_id;
             }
+            var.m_typed_value.m_type_id = type_id;
             var.m_typed_value.m_extra = extra;
             var.m_location.set(file, lineno);
             var.m_is_macro = is_macro;
@@ -4465,7 +4467,7 @@ bool CR_NameScope::SaveToFiles(
     std::ofstream out5(fname);
     if (out5) {
         out5 << cr_data_version << std::endl;
-        out5 << "(var_id)\t(name)\t(type_id)\t(text)\t(extra)\t(value_type)\t(is_macro)\t(file)\t(line)" <<
+        out5 << "(var_id)\t(name)\t(type_id)\t(text)\t(extra)\t(value_type)\t(is_macro)\t(data)\t(file)\t(line)" <<
             std::endl;
         for (size_t vid = 0; vid < LogVars().size(); ++vid) {
             auto& var = LogVar(vid);
@@ -4480,23 +4482,43 @@ bool CR_NameScope::SaveToFiles(
 
             std::string text = var.m_typed_value.m_text;
 
-            std::string value_type;
-            auto tid = var.m_typed_value.m_type_id;
+            std::string value_type, data;
+            auto& typed_value = var.m_typed_value;
+            auto tid = typed_value.m_type_id;
+            auto& type = LogType(tid);
+            const char *ptr = reinterpret_cast<const char *>(typed_value.m_ptr);
             if (text.size()) {
                 if (IsIntegralType(tid)) {
                     value_type = "i";
+                    data.assign(ptr, typed_value.m_size);
+                    data = CrEscapeStringA2A(data);
                 } else if (IsFloatingType(tid)) {
                     value_type = "f";
+                    data.assign(ptr, typed_value.m_size);
+                    data = CrEscapeStringA2A(data);
                 } else if (IsStringType(tid) && text[0] == '\"') {
                     value_type = "s";
+                    data.assign(ptr, typed_value.m_size);
+                    data = CrEscapeStringA2A(data);
                 } else if (IsWStringType(tid) && text[0] == '\"') {
                     value_type = "S";
+                    data.assign(ptr, typed_value.m_size);
+                    data = CrEscapeStringA2A(data);
                 } else if (text[0] == '{') {
                     value_type = "c";
+                    data.assign(ptr, typed_value.m_size);
+                    data = CrEscapeStringA2A(data);
                 } else if (IsPointerType(tid)) {
                     unsigned long long n = std::stoull(text, NULL, 0);
                     if (n != cr_invalid_address) {
                         value_type = "p";
+                        ptr = reinterpret_cast<const char *>(&n);
+                        if (type.m_size == 8) {
+                            data.assign(ptr, 8);
+                        } else {
+                            data.assign(ptr, 4);
+                        }
+                        data = CrEscapeStringA2A(data);
                     } else {
                         text = "";
                     }
@@ -4518,6 +4540,7 @@ bool CR_NameScope::SaveToFiles(
                 var.m_typed_value.m_extra << "\t" <<
                 value_type << "\t" <<
                 var.m_is_macro << "\t" <<
+                data << "\t" <<
                 file << "\t" <<
                 location.m_line << std::endl;
         }

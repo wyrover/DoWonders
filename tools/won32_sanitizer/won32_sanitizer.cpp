@@ -105,7 +105,7 @@ bool WsJustDoIt(
         "} while (0) \n" << 
         "\n" <<
         "#define check_compound(name,str,size) do { \\\n" << 
-        "\tif (memcmp((name), (str), (size)) != 0) { \\\n" << 
+        "\tif (memcmp(&(name), (str), (size)) != 0) { \\\n" << 
         "\t\tprintf(fcc, #name); \\\n" << 
         "\t\treturn 6; \\\n" << 
         "\t} \\\n" << 
@@ -130,7 +130,7 @@ bool WsJustDoIt(
         if (size && name.size() && name.find("*") == std::string::npos) {
             const long excl_flags =
                 (TF_ENUM | TF_FUNCTION | TF_INCOMPLETE | TF_INACCURATE);
-            if (!(flags & excl_flags)) {
+            if (!(flags & excl_flags) && !ns.IsFuncType(type_id)) {
                 out << "\tcheck_align(" << name << ", " << align << ");" <<
                        std::endl;
                 out << "\tcheck_size(" << name << ", " << size << ");" <<
@@ -204,9 +204,11 @@ bool WsJustDoIt(
                 ns.StringOfType(type_id, "") << ")" << 
                 value.m_text << ");" << std::endl;
         } else if (value.m_text[0] == '{') {
+			const char *ptr = reinterpret_cast<const char *>(value.m_ptr);
+			std::string data(ptr, value.m_size);
+			data = CrEscapeStringA2A(data);
             out << "\tcheck_compound(" << name << ", " <<
-                value.m_extra << ", " << 
-                ns.SizeOfType(type_id) << ");" << std::endl;
+                data << ", " << ns.SizeOfType(type_id) << ");" << std::endl;
         }
     }
 

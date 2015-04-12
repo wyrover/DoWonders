@@ -101,6 +101,7 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
                 }
             }
             std::cout << "size: " << type.m_size << std::endl;
+            std::cout << "alignment requirement: " << type.m_align << std::endl;
             ret = true;
         }
     }
@@ -127,52 +128,42 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
                     if (var.m_location.m_file == "(predefined)") {
                         // predefined macro constant
                         std::cout << target << " is a predefined macro constant." << std::endl;
-                        std::cout << ns.StringOfType(tid, target, true) << " = " <<
+                        std::cout << ns.StringOfType(tid, target, false) << " = " <<
                             value.m_text << value.m_extra << ";" << std::endl;
-                    }
-                    else {
+                    } else {
                         // macro constant
                         std::cout << target << " is a macro constant, defined at " <<
                             var.m_location.str() << "." << std::endl;
-                        std::cout << ns.StringOfType(tid, target, true) << " = " <<
-                            value.m_text << value.m_extra << ";" << std::endl;
+						if (ns.IsPointerType(tid) && value.m_text.size() && value.m_text[0] != '\"') {
+							std::cout << ns.StringOfType(tid, target, false) << " = (" <<
+								ns.StringOfType(tid, "") << ")" <<
+								ns.StringFromValue(value) << ";" << std::endl;
+						} else {
+							std::cout << ns.StringOfType(tid, target, false) << " = " <<
+								ns.StringFromValue(value) << ";" << std::endl;
+						}
                     }
                     auto& type = ns.LogType(rtid);
                     std::cout << "size: " << type.m_size << std::endl;
+                    std::cout << "alignment requirement: " << type.m_align << std::endl;
                 } else {
                     if (rtid != cr_invalid_id) {
                         // variable with value
                         std::cout << target << " is a variable, defined at " <<
                             var.m_location.str() << "." << std::endl;
-                        if (value.m_text.size() && value.m_text[0] == '{') {
-                            // compound
-                            std::cout << ns.StringOfType(tid, target, true) <<
-                                " = " << value.m_text << ";" << std::endl;
-                        } else if (value.m_text.size() && value.m_text[0] == '\"') {
-                            if (value.m_extra == "L") {
-                                // wstring
-                                std::cout << ns.StringOfType(tid, target, true) <<
-                                    " = L" << value.m_text << ";" << std::endl;
-                            } else {
-                                // string
-                                std::cout << ns.StringOfType(tid, target, true) <<
-                                    " = " << value.m_text << ";" << std::endl;
-                            }
-                        } else {
-                            // other
-                            std::cout << ns.StringOfType(tid, target, true) <<
-                                " = " << value.m_text << value.m_extra <<
-                                ";" << std::endl;
-                        }
+                        std::cout << ns.StringOfType(tid, target, false) << " = " <<
+                                     ns.StringFromValue(value) << ";" << std::endl;
                         auto& type = ns.LogType(rtid);
                         std::cout << "size: " << type.m_size << std::endl;
+                        std::cout << "alignment requirement: " << type.m_align << std::endl;
                     } else {
                         // variable without value
                         std::cout << target << " is a variable without value, defined at " <<
                             var.m_location.str() << "." << std::endl;
-                        std::cout << ns.StringOfType(tid, target, true) << ";" << std::endl;
+                        std::cout << ns.StringOfType(tid, target, false) << ";" << std::endl;
                         auto& type = ns.LogType(rtid);
                         std::cout << "size: " << type.m_size << std::endl;
+                        std::cout << "alignment requirement: " << type.m_align << std::endl;
                     }
                 }
             }

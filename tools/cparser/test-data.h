@@ -1,19 +1,17 @@
-typedef struct _GUID {
-    unsigned long  Data1;
-    unsigned short Data2;
-    unsigned short Data3;
-    unsigned char  Data4[ 8 ];
-} GUID;
-
-#define EXTERN_C    extern
-
-#define DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
-        EXTERN_C const GUID name \
-                = { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
-
-DEFINE_GUID(WinUSB_TestGuid, 0xda812bff, 0x12c3, 0x46a2, 0x8e, 0x2b, 0xdb, 0xd3, 0xb7, 0x83, 0x4c, 0x43);
-
 #if 0
+    #define MAX_LINKID_TEXT     48
+    #define L_MAX_URL_LENGTH    (2048 + 32 + sizeof("://"))
+
+    typedef struct tagLITEM
+    {
+        int         mask ;
+        int         iLink ;
+        int         state ;
+        int         stateMask ;
+        unsigned short szID[MAX_LINKID_TEXT] ;
+        unsigned short szUrl[L_MAX_URL_LENGTH] ;
+    } LITEM, * PLITEM ;
+
     #define MAX_LANA       254
 
     typedef struct _LANA_ENUM {
@@ -76,8 +74,6 @@ DEFINE_GUID(WinUSB_TestGuid, 0xda812bff, 0x12c3, 0x46a2, 0x8e, 0x2b, 0xdb, 0xd3,
 
     #define LONG_CONSTANT 123456L
 
-    const int * const constant_pointer = NULL;
-
     typedef const int * const constant_pointer_type;
 
     unsigned short wstr[10] = {1, 2, 3, 4, 5, 7};
@@ -85,4 +81,28 @@ DEFINE_GUID(WinUSB_TestGuid, 0xda812bff, 0x12c3, 0x46a2, 0x8e, 0x2b, 0xdb, 0xd3,
     const unsigned short *pwsz = L"1234";
     const char *psz = L"1234";
     const char sz[] = "123";
+
+    const int * const constant_pointer = (void *)0;
+
+    typedef struct _GUID {
+        unsigned long  Data1;
+        unsigned short Data2;
+        unsigned short Data3;
+        unsigned char  Data4[ 8 ];
+    } GUID;
+
+    #define EXTERN_C    extern
+
+    #define DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+            EXTERN_C const GUID name \
+                    = { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
+
+    DEFINE_GUID(WinUSB_TestGuid, 0xda812bff, 0x12c3, 0x46a2, 0x8e, 0x2b, 0xdb, 0xd3, 0xb7, 0x83, 0x4c, 0x43);
 #endif
+
+typedef const char *LPCSTR;
+
+#define CERT_RETRIEVE_BIOMETRIC_PREDEFINED_BASE_TYPE    ((LPCSTR) 1000)
+#define CERT_BIOMETRIC_SIGNATURE_TYPE           1
+#define CERT_RETRIEVE_BIOMETRIC_SIGNATURE_TYPE          \
+    (CERT_RETRIEVE_BIOMETRIC_PREDEFINED_BASE_TYPE + CERT_BIOMETRIC_SIGNATURE_TYPE)

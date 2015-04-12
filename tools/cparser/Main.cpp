@@ -142,7 +142,7 @@ std::string CrGutsChar(const char *& it) {
 std::string CrGutsString(const char *& it) {
     std::string ret;
     assert(*it && *it == '\"');
-    ret += '"';
+    ret += '\"';
     for (++it; *it; ) {
         switch (*it) {
         case '\"':
@@ -1942,7 +1942,7 @@ CrValueOnIniterList(CR_NameScope& namescope, CR_TypeID tid, IniterList *il) {
 
     int count = int(il->size());
     if (int(type2.m_count) < count) {
-        count = type2.m_count;
+        count = int(type2.m_count);
     }
 
     if (type2.m_flags & TF_ARRAY) {
@@ -1997,7 +1997,6 @@ CrValueOnIniterList(CR_NameScope& namescope, CR_TypeID tid, IniterList *il) {
 
     // set extra
     std::string str(data.data(), data.size());
-    ret.m_extra = CrEscapeStringA2A(str);
 
     #ifdef DEEPDEBUG
         printf("CrValueOnIniterList: \"%s\"\n", ret.m_text.data());
@@ -2311,11 +2310,13 @@ CR_TypedValue CrCalcSizeOfPrimExpr(CR_NameScope& namescope, PrimExpr *pe) {
 
     case PrimExpr::STRING:
         if (pe->m_extra.find('L') != std::string::npos) {
+            auto text = CrUnescapeStringA2W(pe->m_text);
             return CrSize_tValue(namescope, 
-                (pe->m_text.size() + 1) * sizeof(wchar_t));
+                                 (text.size() + 1) * sizeof(wchar_t));
         } else {
+            auto text = CrUnescapeStringA2A(pe->m_text);
             return CrSize_tValue(namescope, 
-                (pe->m_text.size() + 1) * sizeof(char));
+                                 (text.size() + 1) * sizeof(char));
         }
 
     case PrimExpr::PAREN:
@@ -3743,6 +3744,9 @@ CR_TypeID CrAnalyseDeclSpecs(CR_NameScope& namescope, DeclSpecs *ds) {
                 tid = namescope.TypeIDFromName(name);
                 if (tid == 0 || tid == cr_invalid_id) {
                     return 0;
+                }
+                if (flags & TF_CONST) {
+                    tid = namescope.AddConstType(tid);
                 }
                 return tid;
 

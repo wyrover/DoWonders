@@ -1,5 +1,7 @@
 @echo off
 
+if exist dll-info-32.dat del dll-info-32.dat
+if exist dll-info-64.dat del dll-info-64.dat
 if exist *.log del *.log
 if exist *.tmp del *.tmp
 
