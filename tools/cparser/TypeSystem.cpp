@@ -512,6 +512,48 @@ std::wstring CrUnescapeCharL2W(const std::string& str) {
     return ret;
 }
 
+std::string CrFormatBinary(const std::string& binary) {
+    std::string ret("0x");
+    const size_t siz = binary.size();
+    for (size_t i = 0; i < siz; ++i) {
+        static const char hex[] = "0123456789ABCDEF";
+        unsigned char b = binary[i];
+        ret += hex[(b >> 4) & 0xF];
+        ret += hex[b & 0xF];
+    }
+    return ret;
+}
+
+std::string CrParseBinary(const std::string& code) {
+    std::string ret;
+    assert(code.size() % 2 == 0);
+    if (code.find("0x") == 0) {
+        char ch;
+        const size_t siz = code.size();
+        for (size_t i = 2; i < siz; ) {
+            if (isdigit(code[i])) {
+                ch = code[i] - '0';
+            } else if (isupper(code[i])) {
+                ch = code[i] - ('A' - 10);
+            } else {
+                ch = code[i] - ('a' - 10);
+            }
+            ++i;
+            ch <<= 4;
+            if (isdigit(code[i])) {
+                ch |= code[i] - '0';
+            } else if (isupper(code[i])) {
+                ch |= code[i] - ('A' - 10);
+            } else {
+                ch |= code[i] - ('a' - 10);
+            }
+            ++i;
+            ret += ch;
+        }
+    }
+    return ret;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypedValue
 
@@ -3881,7 +3923,7 @@ CR_NameScope::IConstant(CR_TypeID tid, const std::string& text, const std::strin
 ////////////////////////////////////////////////////////////////////////////
 
 // Wonders API data format version
-int cr_data_version = 2;
+int cr_data_version = 3;
 
 bool CR_NameScope::LoadFromFiles(
     const std::string& prefix/* = ""*/,
@@ -4162,7 +4204,7 @@ bool CR_NameScope::LoadFromFiles(
             std::string extra = fields[4];
             std::string value_type = fields[5];
             bool is_macro = !!std::stol(fields[6], NULL, 0);
-            std::string data = fields[7];
+            std::string binary = fields[7];
             std::string file = fields[8];
             int lineno = std::stol(fields[9], NULL, 0);
 
@@ -4179,8 +4221,10 @@ bool CR_NameScope::LoadFromFiles(
                 var.m_typed_value = PConstant(type_id, text, extra);
             } else if (text.size() && value_type == "c") {
                 var.m_typed_value.m_text = text;
-                auto unescaped = CrUnescapeStringA2A(data);
-                var.m_typed_value.assign(unescaped.data(), unescaped.size());
+            }
+            if (binary.size()) {
+                binary = CrParseBinary(binary);
+                var.m_typed_value.assign(binary.data(), binary.size());
             }
             var.m_typed_value.m_type_id = type_id;
             var.m_typed_value.m_extra = extra;
@@ -4467,7 +4511,7 @@ bool CR_NameScope::SaveToFiles(
     std::ofstream out5(fname);
     if (out5) {
         out5 << cr_data_version << std::endl;
-        out5 << "(var_id)\t(name)\t(type_id)\t(text)\t(extra)\t(value_type)\t(is_macro)\t(data)\t(file)\t(line)" <<
+        out5 << "(var_id)\t(name)\t(type_id)\t(text)\t(extra)\t(value_type)\t(is_macro)\t(binary)\t(file)\t(line)" <<
             std::endl;
         for (size_t vid = 0; vid < LogVars().size(); ++vid) {
             auto& var = LogVar(vid);
@@ -4482,7 +4526,7 @@ bool CR_NameScope::SaveToFiles(
 
             std::string text = var.m_typed_value.m_text;
 
-            std::string value_type, data;
+            std::string value_type, binary;
             auto& typed_value = var.m_typed_value;
             auto tid = typed_value.m_type_id;
             auto& type = LogType(tid);
@@ -4490,35 +4534,35 @@ bool CR_NameScope::SaveToFiles(
             if (text.size()) {
                 if (IsIntegralType(tid)) {
                     value_type = "i";
-                    data.assign(ptr, typed_value.m_size);
-                    data = CrEscapeStringA2A(data);
+                    binary.assign(ptr, typed_value.m_size);
+                    binary = CrFormatBinary(binary);
                 } else if (IsFloatingType(tid)) {
                     value_type = "f";
-                    data.assign(ptr, typed_value.m_size);
-                    data = CrEscapeStringA2A(data);
+                    binary.assign(ptr, typed_value.m_size);
+                    binary = CrFormatBinary(binary);
                 } else if (IsStringType(tid) && text[0] == '\"') {
                     value_type = "s";
-                    data.assign(ptr, typed_value.m_size);
-                    data = CrEscapeStringA2A(data);
+                    binary.assign(ptr, typed_value.m_size);
+                    binary = CrFormatBinary(binary);
                 } else if (IsWStringType(tid) && text[0] == '\"') {
                     value_type = "S";
-                    data.assign(ptr, typed_value.m_size);
-                    data = CrEscapeStringA2A(data);
+                    binary.assign(ptr, typed_value.m_size);
+                    binary = CrFormatBinary(binary);
                 } else if (text[0] == '{') {
                     value_type = "c";
-                    data.assign(ptr, typed_value.m_size);
-                    data = CrEscapeStringA2A(data);
+                    binary.assign(ptr, typed_value.m_size);
+                    binary = CrFormatBinary(binary);
                 } else if (IsPointerType(tid)) {
                     unsigned long long n = std::stoull(text, NULL, 0);
                     if (n != cr_invalid_address) {
                         value_type = "p";
                         ptr = reinterpret_cast<const char *>(&n);
                         if (type.m_size == 8) {
-                            data.assign(ptr, 8);
+                            binary.assign(ptr, 8);
                         } else {
-                            data.assign(ptr, 4);
+                            binary.assign(ptr, 4);
                         }
-                        data = CrEscapeStringA2A(data);
+                        binary = CrFormatBinary(binary);
                     } else {
                         text = "";
                     }
@@ -4540,7 +4584,7 @@ bool CR_NameScope::SaveToFiles(
                 var.m_typed_value.m_extra << "\t" <<
                 value_type << "\t" <<
                 var.m_is_macro << "\t" <<
-                data << "\t" <<
+                binary << "\t" <<
                 file << "\t" <<
                 location.m_line << std::endl;
         }

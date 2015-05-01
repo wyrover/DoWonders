@@ -21,7 +21,7 @@ void WsShowVersion(void) {
         "won32_sanitizer --- Won32 sanitizer for 32-bit cl (VC++)\n"
 # endif
 #endif
-        "Version 0.4" << std::endl;
+        "Version 0.5" << std::endl;
 }
 
 bool WsJustDoIt(
@@ -204,9 +204,9 @@ bool WsJustDoIt(
                 ns.StringOfType(type_id, "") << ")" << 
                 value.m_text << ");" << std::endl;
         } else if (value.m_text[0] == '{') {
-			const char *ptr = reinterpret_cast<const char *>(value.m_ptr);
-			std::string data(ptr, value.m_size);
-			data = CrEscapeStringA2A(data);
+            const char *ptr = reinterpret_cast<const char *>(value.m_ptr);
+            std::string data(ptr, value.m_size);
+            data = CrEscapeStringA2A(data);
             out << "\tcheck_compound(" << name << ", " <<
                 data << ", " << ns.SizeOfType(type_id) << ");" << std::endl;
         }

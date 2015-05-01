@@ -835,7 +835,7 @@ plus:
             option_flags.p = TRUE;  /* No output of #line           */
             no_output = 1;
             /* data format version */
-            printf("2\n");
+            printf("3\n");
             /* header */
             printf("(name)\t(num_params)\t(params)\t(contents)\t(file)\t(line)\n");
             break;

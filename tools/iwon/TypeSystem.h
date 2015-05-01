@@ -63,6 +63,9 @@ std::wstring CrUnescapeStringA2W(const std::string& str);
 std::string CrUnescapeCharA2A(const std::string& str);
 std::wstring CrUnescapeCharL2W(const std::string& str);
 
+std::string CrFormatBinary(const std::string& binary);
+std::string CrParseBinary(const std::string& code);
+
 ////////////////////////////////////////////////////////////////////////////
 // IDs
 

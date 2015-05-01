@@ -30,7 +30,7 @@ void IwShowVersion(void) {
         "iwon --- Won32 interactive for 32-bit cl (VC++)\n"
 # endif
 #endif
-        "Version 0.4" << std::endl;
+        "Version 0.5" << std::endl;
 }
 
 bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
@@ -134,14 +134,14 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
                         // macro constant
                         std::cout << target << " is a macro constant, defined at " <<
                             var.m_location.str() << "." << std::endl;
-						if (ns.IsPointerType(tid) && value.m_text.size() && value.m_text[0] != '\"') {
-							std::cout << ns.StringOfType(tid, target, false) << " = (" <<
-								ns.StringOfType(tid, "") << ")" <<
-								ns.StringFromValue(value) << ";" << std::endl;
-						} else {
-							std::cout << ns.StringOfType(tid, target, false) << " = " <<
-								ns.StringFromValue(value) << ";" << std::endl;
-						}
+                        if (ns.IsPointerType(tid) && value.m_text.size() && value.m_text[0] != '\"') {
+                            std::cout << ns.StringOfType(tid, target, false) << " = (" <<
+                                ns.StringOfType(tid, "") << ")" <<
+                                ns.StringFromValue(value) << ";" << std::endl;
+                        } else {
+                            std::cout << ns.StringOfType(tid, target, false) << " = " <<
+                                ns.StringFromValue(value) << ";" << std::endl;
+                        }
                     }
                     auto& type = ns.LogType(rtid);
                     std::cout << "size: " << type.m_size << std::endl;
