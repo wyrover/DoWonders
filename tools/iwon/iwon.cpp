@@ -148,6 +148,72 @@ bool IwDoType(CR_NameScope& ns, CR_TypeID tid, const std::string& target, const 
     return true;
 }
 
+bool IwDoVarOrFunc(CR_NameScope& ns, const std::string& target) {
+    auto it = ns.MapNameToVarID().find(target);
+    if (it != ns.MapNameToVarID().end()) {
+        auto vid = it->second;
+        auto& var = ns.LogVar(vid);
+        auto& value = var.m_typed_value;
+        auto tid = value.m_type_id;
+        auto rtid = tid;
+        if (tid != cr_invalid_id) {
+            rtid = ns.ResolveAlias(tid);
+        }
+        if (ns.IsFuncType(rtid)) {
+            // function
+            std::cout << target << " is a function, defined at " <<
+                var.m_location.str() << "." << std::endl;
+            std::cout << ns.StringOfType(rtid, target, true) << ";" << std::endl;
+        } else {
+            if (var.m_is_macro) {
+                assert(rtid != cr_invalid_id);
+                if (var.m_location.m_file == "(predefined)") {
+                    // predefined macro constant
+                    std::cout << target << " is a predefined macro constant." << std::endl;
+                    std::cout << ns.StringOfType(tid, target, false) << " = " <<
+                        value.m_text << value.m_extra << ";" << std::endl;
+                } else {
+                    // macro constant
+                    std::cout << target << " is a macro constant, defined at " <<
+                        var.m_location.str() << "." << std::endl;
+                    if (ns.IsPointerType(tid) && value.m_text.size() && value.m_text[0] != '\"') {
+                        std::cout << ns.StringOfType(tid, target, false) << " = (" <<
+                            ns.StringOfType(tid, "") << ")" <<
+                            ns.StringFromValue(value) << ";" << std::endl;
+                    } else {
+                        std::cout << ns.StringOfType(tid, target, false) << " = " <<
+                            ns.StringFromValue(value) << ";" << std::endl;
+                    }
+                }
+                auto& type = ns.LogType(rtid);
+                std::cout << "size: " << type.m_size << std::endl;
+                std::cout << "alignment requirement: " << type.m_align << std::endl;
+            } else {
+                if (rtid != cr_invalid_id) {
+                    // variable with value
+                    std::cout << target << " is a variable, defined at " <<
+                        var.m_location.str() << "." << std::endl;
+                    std::cout << ns.StringOfType(tid, target, false) << " = " <<
+                                 ns.StringFromValue(value) << ";" << std::endl;
+                    auto& type = ns.LogType(rtid);
+                    std::cout << "size: " << type.m_size << std::endl;
+                    std::cout << "alignment requirement: " << type.m_align << std::endl;
+                } else {
+                    // variable without value
+                    std::cout << target << " is a variable without value, defined at " <<
+                        var.m_location.str() << "." << std::endl;
+                    std::cout << ns.StringOfType(tid, target, false) << ";" << std::endl;
+                    auto& type = ns.LogType(rtid);
+                    std::cout << "size: " << type.m_size << std::endl;
+                    std::cout << "alignment requirement: " << type.m_align << std::endl;
+                }
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
 bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
     bool ret = false;
     // #type_id
@@ -167,68 +233,7 @@ bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
     }
     // variable or function
     {
-        auto it = ns.MapNameToVarID().find(target);
-        if (it != ns.MapNameToVarID().end()) {
-            auto vid = it->second;
-            auto& var = ns.LogVar(vid);
-            auto& value = var.m_typed_value;
-            auto tid = value.m_type_id;
-            auto rtid = tid;
-            if (tid != cr_invalid_id) {
-                rtid = ns.ResolveAlias(tid);
-            }
-            if (ns.IsFuncType(rtid)) {
-                // function
-                std::cout << target << " is a function, defined at " <<
-                    var.m_location.str() << "." << std::endl;
-                std::cout << ns.StringOfType(rtid, target, true) << ";" << std::endl;
-            } else {
-                if (var.m_is_macro) {
-                    assert(rtid != cr_invalid_id);
-                    if (var.m_location.m_file == "(predefined)") {
-                        // predefined macro constant
-                        std::cout << target << " is a predefined macro constant." << std::endl;
-                        std::cout << ns.StringOfType(tid, target, false) << " = " <<
-                            value.m_text << value.m_extra << ";" << std::endl;
-                    } else {
-                        // macro constant
-                        std::cout << target << " is a macro constant, defined at " <<
-                            var.m_location.str() << "." << std::endl;
-                        if (ns.IsPointerType(tid) && value.m_text.size() && value.m_text[0] != '\"') {
-                            std::cout << ns.StringOfType(tid, target, false) << " = (" <<
-                                ns.StringOfType(tid, "") << ")" <<
-                                ns.StringFromValue(value) << ";" << std::endl;
-                        } else {
-                            std::cout << ns.StringOfType(tid, target, false) << " = " <<
-                                ns.StringFromValue(value) << ";" << std::endl;
-                        }
-                    }
-                    auto& type = ns.LogType(rtid);
-                    std::cout << "size: " << type.m_size << std::endl;
-                    std::cout << "alignment requirement: " << type.m_align << std::endl;
-                } else {
-                    if (rtid != cr_invalid_id) {
-                        // variable with value
-                        std::cout << target << " is a variable, defined at " <<
-                            var.m_location.str() << "." << std::endl;
-                        std::cout << ns.StringOfType(tid, target, false) << " = " <<
-                                     ns.StringFromValue(value) << ";" << std::endl;
-                        auto& type = ns.LogType(rtid);
-                        std::cout << "size: " << type.m_size << std::endl;
-                        std::cout << "alignment requirement: " << type.m_align << std::endl;
-                    } else {
-                        // variable without value
-                        std::cout << target << " is a variable without value, defined at " <<
-                            var.m_location.str() << "." << std::endl;
-                        std::cout << ns.StringOfType(tid, target, false) << ";" << std::endl;
-                        auto& type = ns.LogType(rtid);
-                        std::cout << "size: " << type.m_size << std::endl;
-                        std::cout << "alignment requirement: " << type.m_align << std::endl;
-                    }
-                }
-            }
-            ret = true;
-        }
+        ret = ret || IwDoVarOrFunc(ns, target);
     }
     // name alias
     {
