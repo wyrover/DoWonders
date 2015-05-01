@@ -66,6 +66,9 @@ std::wstring CrUnescapeCharL2W(const std::string& str);
 std::string CrFormatBinary(const std::string& binary);
 std::string CrParseBinary(const std::string& code);
 
+std::string CrIndent(const std::string& str);
+std::string CrTabToSpace(const std::string& str, size_t tabstop = 4);
+
 ////////////////////////////////////////////////////////////////////////////
 // IDs
 

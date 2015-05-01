@@ -554,6 +554,22 @@ std::string CrParseBinary(const std::string& code) {
     return ret;
 }
 
+std::string CrIndent(const std::string& str) {
+    std::string text(str);
+    katahiromz::replace_string(text, "\n", "\n\t");
+    if (text.rfind("\n\t") == text.size() - 2) {
+        text.resize(text.size() - 1);
+	}
+    return "\t" + text;
+}
+
+std::string CrTabToSpace(const std::string& str, size_t tabstop/* = 4*/) {
+	std::string tab(tabstop, ' ');
+	std::string text(str);
+	katahiromz::replace_string(text, std::string("\t"), tab);
+	return text;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypedValue
 
@@ -1642,13 +1658,13 @@ std::string CR_NameScope::StringOfEnum(
     auto& e = m_enums[eid];
     std::string str = StringOfEnumTag(name);
     if (!e.empty()) {
-        str += "{ ";
+        str += "{\n";
         std::vector<std::string> array;
         for (auto it : e.m_mNameToValue) {
             array.emplace_back(it.first + " = " + std::to_string(it.second));
         }
-        str += katahiromz::join(array, ", ");
-        str += "} ";
+        str += CrIndent(katahiromz::join(array, ", "));
+        str += "}";
     }
     return str;
 } // StringOfEnum
@@ -1690,17 +1706,19 @@ std::string CR_NameScope::StringOfStruct(
     auto& s = LogStruct(sid);
     std::string str = StringOfStructTag(name, s);
     if (!s.empty()) {
-        str += "{ ";
+        str += "{\n";
+        std::string inner;
         const std::size_t siz = s.m_members.size();
         for (std::size_t i = 0; i < siz; i++) {
-            str += StringOfType(s.m_members[i].m_type_id, s.m_members[i].m_name, false);
+            inner += StringOfType(s.m_members[i].m_type_id, s.m_members[i].m_name, false);
             if (s.m_members[i].m_bits != -1) {
-                str += " : ";
-                str += std::to_string(s.m_members[i].m_bits);
+                inner += " : ";
+                inner += std::to_string(s.m_members[i].m_bits);
             }
-            str += "; ";
+            inner += ";\n";
         }
-        str += "} ";
+        str += CrIndent(inner);
+        str += "}";
     }
     return str;
 } // StringOfStruct
@@ -1722,7 +1740,7 @@ std::string CR_NameScope::StringOfType(
     if (type.m_flags & (TF_STRUCT | TF_UNION)) {
         // if type was struct or union
         if (expand || type_name.empty()) {
-            return StringOfStruct(type_name, type.m_sub_id) + name;
+            return StringOfStruct(type_name, type.m_sub_id) + " " + name;
         } else {
             return type_name + " " + name;
         }
@@ -1730,7 +1748,7 @@ std::string CR_NameScope::StringOfType(
     if (type.m_flags & TF_ENUM) {
         // if type was enum
         if (expand || type_name.empty()) {
-            return StringOfEnum(type_name, type.m_sub_id) + name;
+            return StringOfEnum(type_name, type.m_sub_id) + " " + name;
         } else {
             return type_name + " " + name;
         }
