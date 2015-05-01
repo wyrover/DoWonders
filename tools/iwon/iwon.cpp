@@ -33,119 +33,136 @@ void IwShowVersion(void) {
         "Version 0.5" << std::endl;
 }
 
+bool IwDoType(CR_NameScope& ns, CR_TypeID tid, const std::string& target, const std::string& name) {
+    auto rtid = ns.ResolveAlias(tid);
+    auto& type = ns.LogType(tid);
+    auto& rtype = ns.LogType(rtid);
+
+    if (type.m_location.m_file == "(predefined)") {
+        if (target != name) {
+            std::cout << name << " (" << target << ") is a predefined type." << std::endl;
+        } else {
+            std::cout << target << " is a predefined type." << std::endl;
+        }
+    } else {
+        // type
+        if (rtype.m_flags & TF_STRUCT) {
+            // struct type
+            std::cout << target << " is a struct type, defined at " <<
+                         type.m_location.str() << "." << std::endl;
+            if (tid != rtid) {
+                std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, name, true)) << ";" << std::endl;
+            } else {
+                std::cout << CrTabToSpace(ns.StringOfType(tid, "", true)) << ";" << std::endl;
+            }
+            std::cout << "[MEMBERS]" << std::endl;
+            std::cout << "NAME / OFFSET / SIZE / #TYPE_ID / BIT_OFFSET / BITS" << std::endl;
+            std::cout << "-----------------------------------------------------------" << std::endl;
+            auto& ls = ns.LogStruct(rtype.m_sub_id);
+            for (auto& member : ls.m_members) {
+                auto name = member.m_name;
+                if (name.empty()) {
+                    name = "(no name)";
+                }
+                auto tid = member.m_type_id;
+                auto bit_offset = member.m_bit_offset;
+                auto byte_offset = (member.m_bit_offset / 8);
+                auto bits = member.m_bits;
+                size_t size;
+                if (bits != -1) {
+                    size = member.m_bits / 8;
+                } else {
+                    size = ns.SizeOfType(tid);
+                }
+                std::cout << name << " / " <<
+                    byte_offset << " / " <<
+                    size << " / #" <<
+                    tid << " / " <<
+                    bit_offset << " / " <<
+                    bits << std::endl;
+            }
+            std::cout << "-----------------------------------------------------------" << std::endl;
+        }
+        else if (rtype.m_flags & TF_UNION) {
+            // union type
+            std::cout << target << " is a union type, defined at " <<
+                         type.m_location.str() << "." << std::endl;
+            if (tid != rtid) {
+                std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, name, true)) << ";" << std::endl;
+            } else {
+                std::cout << CrTabToSpace(ns.StringOfType(tid, "", true)) << ";" << std::endl;
+            }
+            std::cout << "[MEMBERS]" << std::endl;
+            std::cout << "NAME / SIZE / #TYPE_ID" << std::endl;
+            std::cout << "--------------------------------------------" << std::endl;
+            auto& ls = ns.LogStruct(rtype.m_sub_id);
+            for (auto& member : ls.m_members) {
+                auto name = member.m_name;
+                if (name.empty()) {
+                    name = "(no name)";
+                }
+                auto tid = member.m_type_id;
+                size_t size = ns.SizeOfType(tid);
+                std::cout << name << " / " <<
+                    size << " / #" <<
+                    tid << std::endl;
+            }
+            std::cout << "--------------------------------------------" << std::endl;
+        }
+        else if (rtype.m_flags & TF_POINTER) {
+            // pointer type
+            std::cout << target << " is a pointer type, defined at " <<
+                         type.m_location.str() << "." << std::endl;
+            std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, name, true)) << ";" << std::endl;
+        } else if (rtype.m_flags & TF_FUNCTION) {
+            // function type
+            std::cout << target << " is a function type, defined at " <<
+                         type.m_location.str() << "." << std::endl;
+            std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, name, true)) << ";" << std::endl;
+        } else {
+            if (ns.IsIntegralType(rtid)) {
+                // integral type
+                if (ns.IsUnsignedType(rtid)) {
+                    std::cout << target << " is an unsigned integral type, defined at " <<
+                                 type.m_location.str() << "." << std::endl;
+                    std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, name, true)) << ";" << std::endl;
+                } else {
+                    std::cout << target << " is a signed integral type, defined at " <<
+                                 type.m_location.str() << "." << std::endl;
+                    std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, name, true)) << ";" << std::endl;
+                }
+            } else if (ns.IsFloatingType(rtid)) {
+                std::cout << target << " is a floating-point type, defined at " <<
+                             type.m_location.str() << "." << std::endl;
+                std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, name, true)) << ";" << std::endl;
+            } else {
+                // other type
+                std::cout << target << " is a type, defined at " <<
+                             type.m_location.str() << "." << std::endl;
+                std::cout << "typedef " << CrTabToSpace(ns.StringOfType(rtid, name, true)) << ";" << std::endl;
+            }
+        }
+    }
+    std::cout << "size: " << type.m_size << std::endl;
+    std::cout << "alignment requirement: " << type.m_align << std::endl;
+    return true;
+}
+
 bool IwJustDoIt(CR_NameScope& ns, const std::string& target) {
     bool ret = false;
+    // #type_id
+    if (target[0] == '#') {
+        auto number = target.substr(1);
+        auto tid = std::stoul(number);
+        auto name = ns.NameFromTypeID(tid);
+        return IwDoType(ns, tid, target, name);
+    }
     // type
     {
         auto it = ns.MapNameToTypeID().find(target);
         if (it != ns.MapNameToTypeID().end()) {
             auto tid = it->second;
-            auto rtid = ns.ResolveAlias(tid);
-            auto& type = ns.LogType(tid);
-            auto& rtype = ns.LogType(rtid);
-
-            if (type.m_location.m_file == "(predefined)") {
-                std::cout << target << " is a predefined type." << std::endl;
-            } else {
-                // type
-                if (rtype.m_flags & TF_STRUCT) {
-                    // struct type
-                    std::cout << target << " is a struct type, defined at " <<
-                                 type.m_location.str() << "." << std::endl;
-                    if (tid != rtid) {
-                        std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, target, true)) << ";" << std::endl;
-                    } else {
-                        std::cout << CrTabToSpace(ns.StringOfType(tid, "", true)) << ";" << std::endl;
-                    }
-                    std::cout << "[MEMBERS]" << std::endl;
-                    std::cout << "name / offset / size / bit_offset / bits" << std::endl;
-                    std::cout << "-----------------------------------------------------------" << std::endl;
-                    auto& ls = ns.LogStruct(rtype.m_sub_id);
-                    for (auto& member : ls.m_members) {
-                        auto name = member.m_name;
-                        if (name.empty()) {
-                            name = "(no name)";
-                        }
-                        auto tid = member.m_type_id;
-                        auto bit_offset = member.m_bit_offset;
-                        auto byte_offset = (member.m_bit_offset / 8);
-                        auto bits = member.m_bits;
-                        size_t size;
-                        if (bits != -1) {
-                            size = member.m_bits / 8;
-                        } else {
-                            size = ns.SizeOfType(tid);
-                        }
-                        std::cout << name << " / " <<
-                            byte_offset << " / " <<
-                            size << " / " <<
-                            bit_offset << " / " <<
-                            bits << std::endl;
-                    }
-                    std::cout << "-----------------------------------------------------------" << std::endl;
-                }
-                else if (rtype.m_flags & TF_UNION) {
-                    // union type
-                    std::cout << target << " is a union type, defined at " <<
-                                 type.m_location.str() << "." << std::endl;
-                    if (tid != rtid) {
-                        std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, target, true)) << ";" << std::endl;
-                    } else {
-                        std::cout << CrTabToSpace(ns.StringOfType(tid, "", true)) << ";" << std::endl;
-                    }
-                    std::cout << "[MEMBERS]" << std::endl;
-                    std::cout << "NAME / SIZE" << std::endl;
-                    std::cout << "--------------------------------------------" << std::endl;
-                    auto& ls = ns.LogStruct(rtype.m_sub_id);
-                    for (auto& member : ls.m_members) {
-                        auto name = member.m_name;
-                        if (name.empty()) {
-                            name = "(no name)";
-                        }
-                        auto tid = member.m_type_id;
-                        size_t size = ns.SizeOfType(tid);
-                        std::cout << name << " / " <<
-                            size << std::endl;
-                    }
-                    std::cout << "--------------------------------------------" << std::endl;
-                }
-                else if (rtype.m_flags & TF_POINTER) {
-                    // pointer type
-                    std::cout << target << " is a pointer type, defined at " <<
-                                 type.m_location.str() << "." << std::endl;
-                    std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, target, true)) << ";" << std::endl;
-                } else if (rtype.m_flags & TF_FUNCTION) {
-                    // function type
-                    std::cout << target << " is a function type, defined at " <<
-                                 type.m_location.str() << "." << std::endl;
-                    std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, target, true)) << ";" << std::endl;
-                } else {
-                    if (ns.IsIntegralType(rtid)) {
-                        // integral type
-                        if (ns.IsUnsignedType(rtid)) {
-                            std::cout << target << " is an unsigned integral type, defined at " <<
-                                         type.m_location.str() << "." << std::endl;
-                            std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, target, true)) << ";" << std::endl;
-                        } else {
-                            std::cout << target << " is a signed integral type, defined at " <<
-                                         type.m_location.str() << "." << std::endl;
-                            std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, target, true)) << ";" << std::endl;
-                        }
-                    } else if (ns.IsFloatingType(rtid)) {
-                        std::cout << target << " is a floating-point type, defined at " <<
-                                     type.m_location.str() << "." << std::endl;
-                        std::cout << "typedef " << CrTabToSpace(ns.StringOfType(tid, target, true)) << ";" << std::endl;
-                    } else {
-                        // other type
-                        std::cout << target << " is a type, defined at " <<
-                                     type.m_location.str() << "." << std::endl;
-                        std::cout << "typedef " << CrTabToSpace(ns.StringOfType(rtid, target, true)) << ";" << std::endl;
-                    }
-                }
-            }
-            std::cout << "size: " << type.m_size << std::endl;
-            std::cout << "alignment requirement: " << type.m_align << std::endl;
-            ret = true;
+            ret = ret || IwDoType(ns, tid, target, target);
         }
     }
     // variable or function
