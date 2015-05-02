@@ -164,6 +164,29 @@ bool IwDoVarOrFunc(CR_NameScope& ns, const std::string& target) {
             std::cout << target << " is a function, defined at " <<
                 var.m_location.str() << "." << std::endl;
             std::cout << ns.StringOfType(rtid, target, true) << ";" << std::endl;
+
+            auto& rtype = ns.LogType(rtid);
+            auto& func = ns.LogFunc(rtype.m_sub_id);
+            switch (func.m_convention) {
+            case CR_LogFunc::FT_CDECL:
+                std::cout << "Convention: __cdecl" << std::endl;
+                break;
+            case CR_LogFunc::FT_STDCALL:
+                std::cout << "Convention: __stdcall" << std::endl;
+                break;
+            case CR_LogFunc::FT_FASTCALL:
+                std::cout << "Convention: __fastcall" << std::endl;
+                break;
+            }
+            std::cout << "The type ID of return value: #" << func.m_return_type << std::endl;
+            std::cout << "[PARAMETERS]" << std::endl;
+            std::cout << "ORDINAL / NAME / #TYPE_ID" << std::endl;
+            std::cout << "--------------------------------------------" << std::endl;
+            int i = 1;
+            for (auto& param : func.m_params) {
+                std::cout << i << " / " << param.m_name << " / #" << param.m_type_id << std::endl;
+                ++i;
+            }
         } else {
             if (var.m_is_macro) {
                 assert(rtid != cr_invalid_id);
