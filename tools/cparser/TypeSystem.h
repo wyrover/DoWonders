@@ -11,43 +11,42 @@
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypeFlags --- type flags
 
-enum {
-    TF_VOID         = 0x00000001,
-    TF_CHAR         = 0x00000002,
-    TF_SHORT        = 0x00000004,
-    TF_LONG         = 0x00000008,
-    TF_LONGLONG     = 0x00000010,
-    TF_INT          = 0x00000020,
-    //
-    TF_FLOAT        = 0x00000080,
-    TF_DOUBLE       = 0x00000100,
-    TF_SIGNED       = 0,
-    TF_UNSIGNED     = 0x00000200,
-    TF_PTR64        = 0x00000400,
-    TF_STRUCT       = 0x00000800,
-    TF_UNION        = 0x00001000,
-    TF_ENUM         = 0x00002000,
-    TF_POINTER      = 0x00004000,
-    TF_ARRAY        = 0x00008000,
-    TF_FUNCTION     = 0x00010000,
-    TF_INCOMPLETE   = 0x00020000,
-    TF_CDECL        = 0,
-    TF_STDCALL      = 0x00040000,
-    TF_FASTCALL     = 0x00080000,
-    TF_CONST        = 0x00100000,
-    //
-    TF_COMPLEX      = 0x00400000,
-    TF_IMAGINARY    = 0x00800000,
-    TF_ATOMIC       = 0x01000000,
-    TF_PTR32        = 0x02000000,
-    TF_INACCURATE   = 0x04000000,   // size and/or alignment is not accurate
-    TF_VECTOR       = 0x08000000,
-    TF_BITFIELD     = 0x10000000,
-    TF_ALIAS        = 0x20000000,
-    //
-    TF_INT128       = 0x80000000
-};
 typedef unsigned long CR_TypeFlags;
+
+static const CR_TypeFlags TF_VOID         = 0x00000001;
+static const CR_TypeFlags TF_CHAR         = 0x00000002;
+static const CR_TypeFlags TF_SHORT        = 0x00000004;
+static const CR_TypeFlags TF_LONG         = 0x00000008;
+static const CR_TypeFlags TF_LONGLONG     = 0x00000010;
+static const CR_TypeFlags TF_INT          = 0x00000020;
+//
+static const CR_TypeFlags TF_FLOAT        = 0x00000080;
+static const CR_TypeFlags TF_DOUBLE       = 0x00000100;
+static const CR_TypeFlags TF_SIGNED       = 0;
+static const CR_TypeFlags TF_UNSIGNED     = 0x00000200;
+static const CR_TypeFlags TF_PTR64        = 0x00000400;
+static const CR_TypeFlags TF_STRUCT       = 0x00000800;
+static const CR_TypeFlags TF_UNION        = 0x00001000;
+static const CR_TypeFlags TF_ENUM         = 0x00002000;
+static const CR_TypeFlags TF_POINTER      = 0x00004000;
+static const CR_TypeFlags TF_ARRAY        = 0x00008000;
+static const CR_TypeFlags TF_FUNCTION     = 0x00010000;
+static const CR_TypeFlags TF_INCOMPLETE   = 0x00020000;
+static const CR_TypeFlags TF_CDECL        = 0;
+static const CR_TypeFlags TF_STDCALL      = 0x00040000;
+static const CR_TypeFlags TF_FASTCALL     = 0x00080000;
+static const CR_TypeFlags TF_CONST        = 0x00100000;
+//
+static const CR_TypeFlags TF_COMPLEX      = 0x00400000;
+static const CR_TypeFlags TF_IMAGINARY    = 0x00800000;
+static const CR_TypeFlags TF_ATOMIC       = 0x01000000;
+static const CR_TypeFlags TF_PTR32        = 0x02000000;
+static const CR_TypeFlags TF_INACCURATE   = 0x04000000;
+static const CR_TypeFlags TF_VECTOR       = 0x08000000;
+static const CR_TypeFlags TF_BITFIELD     = 0x10000000;
+static const CR_TypeFlags TF_ALIAS        = 0x20000000;
+//
+static const CR_TypeFlags TF_INT128       = 0x80000000;
 
 ////////////////////////////////////////////////////////////////////////////
 // functions
