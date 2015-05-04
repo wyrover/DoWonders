@@ -4172,7 +4172,7 @@ bool CR_NameScope::LoadFromFiles(
             }
 
             for (int i = 0; i < param_count; ++i) {
-                int j = 5 + i * 2;
+                int j = 4 + i * 2;
                 CR_TypeID tid = std::stol(fields[j + 0], NULL, 0);
                 std::string name = fields[j + 1];
                 func.m_params.emplace_back(tid, name);
