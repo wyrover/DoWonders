@@ -372,8 +372,8 @@ public:
     // is 64-bit mode or not?
     bool Is64Bit() const { return m_is_64bit; }
 
-    // initialize
-    void Init();
+    void Init();    // initialize
+    void clear();
 
     bool LoadFromFiles(
         const std::string& prefix = "",

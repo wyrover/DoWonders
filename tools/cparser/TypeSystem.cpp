@@ -3938,15 +3938,7 @@ CR_NameScope::IConstant(CR_TypeID tid, const std::string& text, const std::strin
     return ret;
 }
 
-////////////////////////////////////////////////////////////////////////////
-
-// Wonders API data format version
-int cr_data_version = 3;
-
-bool CR_NameScope::LoadFromFiles(
-    const std::string& prefix/* = ""*/,
-    const std::string& suffix/* = ".dat"*/)
-{
+void CR_NameScope::clear() {
     m_types.clear();
     m_structs.clear();
     m_enums.clear();
@@ -3956,9 +3948,20 @@ bool CR_NameScope::LoadFromFiles(
     m_mNameToVarID.clear();
     m_mVarIDToName.clear();
     m_mNameToName.clear();
+}
 
-    std::string fname;
-    std::string line;
+////////////////////////////////////////////////////////////////////////////
+
+// Wonders API data format version
+int cr_data_version = 3;
+
+bool CR_NameScope::LoadFromFiles(
+    const std::string& prefix/* = ""*/,
+    const std::string& suffix/* = ".dat"*/)
+{
+    clear();
+
+    std::string fname, line;
 
     fname = prefix + "types" + suffix;
     std::ifstream in1(fname);
