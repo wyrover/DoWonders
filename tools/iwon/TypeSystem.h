@@ -35,8 +35,8 @@ static const CR_TypeFlags TF_INCOMPLETE   = 0x00020000;
 static const CR_TypeFlags TF_CDECL        = 0;
 static const CR_TypeFlags TF_STDCALL      = 0x00040000;
 static const CR_TypeFlags TF_FASTCALL     = 0x00080000;
-static const CR_TypeFlags TF_CONST        = 0x00100000;
 //
+static const CR_TypeFlags TF_CONST        = 0x00200000;
 static const CR_TypeFlags TF_COMPLEX      = 0x00400000;
 static const CR_TypeFlags TF_IMAGINARY    = 0x00800000;
 static const CR_TypeFlags TF_ATOMIC       = 0x01000000;
@@ -257,17 +257,12 @@ struct CR_FuncParam {
 // CR_LogFunc --- logical function
 
 struct CR_LogFunc {
-    enum Convention {
-        FT_CDECL, FT_STDCALL, FT_FASTCALL
-    };
-
     bool                        m_ellipsis;
     CR_TypeID                   m_return_type;
-    Convention                  m_convention;  // calling convention
     std::vector<CR_FuncParam>   m_params;
 
     CR_LogFunc() :
-        m_ellipsis(false), m_return_type(0), m_convention(FT_CDECL) { }
+        m_ellipsis(false), m_return_type(0) { }
 }; // struct CR_LogFunc
 
 ////////////////////////////////////////////////////////////////////////////

@@ -30,7 +30,7 @@ void IwShowVersion(void) {
         "iwon --- Won32 interactive for 32-bit cl (VC++)\n"
 # endif
 #endif
-        "Version 0.5" << std::endl;
+        "Version 0.6" << std::endl;
 }
 
 bool IwDoType(CR_NameScope& ns, CR_TypeID tid, const std::string& target, const std::string& name) {
@@ -167,17 +167,14 @@ bool IwDoVarOrFunc(CR_NameScope& ns, const std::string& target) {
 
             auto& rtype = ns.LogType(rtid);
             auto& func = ns.LogFunc(rtype.m_sub_id);
-            switch (func.m_convention) {
-            case CR_LogFunc::FT_CDECL:
+            if (rtype.m_flags & TF_CDECL) {
                 std::cout << "Convention: __cdecl" << std::endl;
-                break;
-            case CR_LogFunc::FT_STDCALL:
+            } else if (rtype.m_flags & TF_STDCALL) {
                 std::cout << "Convention: __stdcall" << std::endl;
-                break;
-            case CR_LogFunc::FT_FASTCALL:
+            } else if (rtype.m_flags & TF_FASTCALL) {
                 std::cout << "Convention: __fastcall" << std::endl;
-                break;
             }
+
             std::cout << "The type ID of return value: #" << func.m_return_type << std::endl;
             std::cout << "[PARAMETERS]" << std::endl;
             std::cout << "ORDINAL / NAME / #TYPE_ID" << std::endl;

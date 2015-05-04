@@ -4152,28 +4152,21 @@ bool CR_NameScope::LoadFromFiles(
             std::vector<std::string> fields;
             katahiromz::split_by_char(fields, line, '\t');
 
-            if (fields.size() < 5) {
+            if (fields.size() < 4) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
 
             //CR_FuncID fid = std::stol(fields[0], NULL, 0);
             int return_type = std::stol(fields[1], NULL, 0);
-            int func_type = std::stol(fields[2], NULL, 0);
-            bool ellipsis = !!std::stol(fields[3], NULL, 0);
-            int param_count = std::stol(fields[4], NULL, 0);
+            bool ellipsis = !!std::stol(fields[2], NULL, 0);
+            int param_count = std::stol(fields[3], NULL, 0);
 
             CR_LogFunc func;
             func.m_ellipsis = ellipsis;
             func.m_return_type = return_type;
-            switch (func_type) {
-            case 0: func.m_convention = CR_LogFunc::FT_CDECL; break;
-            case 1: func.m_convention = CR_LogFunc::FT_STDCALL; break;
-            case 2: func.m_convention = CR_LogFunc::FT_FASTCALL; break;
-            default: assert(0);
-            }
 
-            if (int(fields.size()) != 5 + param_count * 2) {
+            if (int(fields.size()) != 4 + param_count * 2) {
                 ErrorInfo()->add_error("File '" + fname + "' is invalid.");
                 return false;
             }
@@ -4501,7 +4494,7 @@ bool CR_NameScope::SaveToFiles(
     std::ofstream out4(fname);
     if (out4) {
         out4 << cr_data_version << std::endl;
-        out4 << "(func_id)\t(return_type)\t(convention)\t(ellipsis)\t(param_count)\t(param_1_typeid)\t(param_1_name)\t(param_2_typeid)\t..." <<
+        out4 << "(func_id)\t(return_type)\t(ellipsis)\t(param_count)\t(param_1_typeid)\t(param_1_name)\t(param_2_typeid)\t..." <<
             std::endl;
         for (size_t fid = 0; fid < LogFuncs().size(); ++fid) {
             auto& func = LogFunc(fid);
@@ -4509,7 +4502,6 @@ bool CR_NameScope::SaveToFiles(
             out4 <<
                 fid << "\t" <<
                 func.m_return_type << "\t" <<
-                func.m_convention << "\t" <<
                 func.m_ellipsis << "\t" <<
                 func.m_params.size();
             const size_t siz = func.m_params.size();
