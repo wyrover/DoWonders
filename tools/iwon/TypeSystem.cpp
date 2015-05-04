@@ -3948,6 +3948,7 @@ void CR_NameScope::clear() {
     m_mNameToVarID.clear();
     m_mVarIDToName.clear();
     m_mNameToName.clear();
+    m_error_info->clear();
 }
 
 ////////////////////////////////////////////////////////////////////////////
