@@ -158,7 +158,7 @@ std::string CrEscapeStringW2A(const std::wstring& wstr) {
 std::string CrUnescapeStringA2A(const std::string& str) {
     std::string ret;
     size_t siz = str.size();
-    bool inside = false, is_valid = true;
+    bool inside = false;
     for (size_t i = 0; i < siz; ++i) {
         char ch = str[i];
         if (ch == '\"') {
@@ -176,7 +176,7 @@ std::string CrUnescapeStringA2A(const std::string& str) {
         }
         if (!inside) {
             if (!isspace(ch)) {
-                is_valid = false;
+                //is_valid = false;
             }
             continue;
         }
@@ -211,7 +211,7 @@ std::string CrUnescapeStringA2A(const std::string& str) {
                     }
                 } else {
                     --i;
-                    is_valid = false; // invalid escape sequence
+                    //is_valid = false; // invalid escape sequence
                 }
                 auto n = std::stoul(hex, NULL, 16);
                 ret += static_cast<char>(n);
@@ -242,7 +242,7 @@ std::string CrUnescapeStringA2A(const std::string& str) {
 std::wstring CrUnescapeStringA2W(const std::string& str) {
     std::wstring ret;
     size_t siz = str.size();
-    bool inside = false, is_valid = true;
+    bool inside = false;
     for (size_t i = 0; i < siz; ++i) {
         char ch = str[i];
         if (ch == '\"') {
@@ -260,7 +260,7 @@ std::wstring CrUnescapeStringA2W(const std::string& str) {
         }
         if (!inside) {
             if (!isspace(ch)) {
-                is_valid = false;
+                //is_valid = false;
             }
             continue;
         }
@@ -305,7 +305,7 @@ std::wstring CrUnescapeStringA2W(const std::string& str) {
                     }
                 } else {
                     --i;
-                    is_valid = false; // invalid escape sequence
+                    //is_valid = false; // invalid escape sequence
                 }
                 auto n = std::stoul(hex, NULL, 16);
                 ret += static_cast<wchar_t>(n);
@@ -4172,7 +4172,7 @@ bool CR_NameScope::LoadFromFiles(
             }
 
             for (int i = 0; i < param_count; ++i) {
-                int j = 4 + i * 2;
+                int j = 5 + i * 2;
                 CR_TypeID tid = std::stol(fields[j + 0], NULL, 0);
                 std::string name = fields[j + 1];
                 func.m_params.emplace_back(tid, name);
