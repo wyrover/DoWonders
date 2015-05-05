@@ -574,18 +574,18 @@ std::string CrTabToSpace(const std::string& str, size_t tabstop/* = 4*/) {
 // CR_TypedValue
 
 CR_TypedValue::CR_TypedValue(const void *ptr, size_t size) :
-    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(cr_invalid_address)
+    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id)
 {
     assign(ptr, size);
 }
 
 CR_TypedValue::CR_TypedValue(const CR_TypedValue& value) :
-    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id), m_addr(cr_invalid_address)
+    m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id)
 {
     m_type_id = value.m_type_id;
     m_text = value.m_text;
     m_extra = value.m_extra;
-    m_addr = value.m_addr;
+    m_expr_addr = value.m_expr_addr;
     assign(value.m_ptr, value.m_size);
 }
 
@@ -594,7 +594,7 @@ CR_TypedValue& CR_TypedValue::operator=(const CR_TypedValue& value) {
         m_type_id = value.m_type_id;
         m_text = value.m_text;
         m_extra = value.m_extra;
-        m_addr = value.m_addr;
+        m_expr_addr = value.m_expr_addr;
         assign(value.m_ptr, value.m_size);
     }
     return *this;
@@ -605,7 +605,7 @@ CR_TypedValue::CR_TypedValue(CR_TypedValue&& value) : m_ptr(NULL), m_size(0) {
         std::swap(m_ptr, value.m_ptr);
         std::swap(m_size, value.m_size);
         m_type_id = value.m_type_id;
-        m_addr = value.m_addr;
+        m_expr_addr = std::move(value.m_expr_addr);
         std::swap(m_text, value.m_text);
         std::swap(m_extra, value.m_extra);
     }
@@ -616,7 +616,7 @@ CR_TypedValue& CR_TypedValue::operator=(CR_TypedValue&& value) {
         std::swap(m_ptr, value.m_ptr);
         std::swap(m_size, value.m_size);
         m_type_id = value.m_type_id;
-        m_addr = value.m_addr;
+        m_expr_addr = std::move(value.m_expr_addr);
         std::swap(m_text, value.m_text);
         std::swap(m_extra, value.m_extra);
     }
@@ -673,9 +673,9 @@ bool CR_LogType::operator!=(const CR_LogType& type) const {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-// CR_StructMember
+// CR_AccessMember
 
-bool operator==(const CR_StructMember& mem1, const CR_StructMember& mem2) {
+bool operator==(const CR_AccessMember& mem1, const CR_AccessMember& mem2) {
     return
         mem1.m_type_id      == mem2.m_type_id &&
         mem1.m_name         == mem2.m_name &&
@@ -684,7 +684,7 @@ bool operator==(const CR_StructMember& mem1, const CR_StructMember& mem2) {
 
 }
 
-bool operator!=(const CR_StructMember& mem1, const CR_StructMember& mem2) {
+bool operator!=(const CR_AccessMember& mem1, const CR_AccessMember& mem2) {
     return
         mem1.m_type_id      != mem2.m_type_id ||
         mem1.m_name         != mem2.m_name ||
@@ -2125,29 +2125,113 @@ std::string CR_NameScope::NameFromTypeID(CR_TypeID tid) const {
         return "";
 }
 
-void
-CR_NameScope::GetStructMemberList(
+void CR_NameScope::GetStructMemberList(
     CR_StructID sid, std::vector<CR_StructMember>& members) const
 {
     members.clear();
     auto& ls = LogStruct(sid);
+    // for all struct or union members
     for (auto& mem : ls.m_members) {
         if (mem.m_name.size()) {
+            // member has name
             members.emplace_back(mem);
         } else {
-            CR_TypeID tid = ResolveAlias(mem.m_type_id);
-            auto& type = LogType(tid);
-            if (type.m_flags & (TF_STRUCT | TF_UNION)) {
+            // member has no name (anonymous)
+            CR_TypeID rtid = ResolveAliasAndCV(mem.m_type_id);
+            auto& rtype = LogType(rtid);
+            if (rtype.m_flags & (TF_STRUCT | TF_UNION)) {
+                // struct or union type
+                // get member's children
                 std::vector<CR_StructMember> children;
-                GetStructMemberList(type.m_sub_id, children);
+                GetStructMemberList(rtype.m_sub_id, children);
                 for (auto& child : children) {
+                    // shift offsets
                     child.m_bit_offset += mem.m_bit_offset;
                 }
+                // add member's children
                 members.insert(members.end(),
-                    children.begin(), children.end());
+                               children.begin(), children.end());
             }
         }
     }
+}
+
+void CR_NameScope::GetAccessMemberList(
+    const std::string& name, CR_TypeID tid,
+    std::vector<CR_AccessMember>& members) const
+{
+    members.clear();
+    auto rtid = ResolveAliasAndCV(tid);
+    auto& rtype = LogType(rtid);
+    if (rtype.m_flags & TF_ARRAY) {
+        // array type
+        auto sub_id = rtype.m_sub_id;
+        auto item_size = LogType(sub_id).m_size;
+        for (size_t i = 0; i < rtype.m_count; ++i) {
+            // add an access member
+            CR_AccessMember member;
+            member.m_type_id = sub_id;
+            member.m_name = name + "[" + std::to_string(i) + "]";
+            member.m_bit_offset = int((item_size * 8) * i);
+            member.m_bits = item_size * 8;
+            members.emplace_back(member);
+            // add member's children
+            std::vector<CR_AccessMember> children;
+            GetAccessMemberList(member.m_name, sub_id, children);
+            for (auto& child : children) {
+                // shift offsets
+                child.m_bit_offset += member.m_bit_offset;
+            }
+            members.insert(members.end(),
+                           children.begin(), children.end());
+        }
+    } else if (rtype.m_flags & (TF_STRUCT | TF_UNION)) {
+        // struct or union type
+        auto sid = rtype.m_sub_id;
+        GetStructMemberList(sid, members);
+        std::vector<CR_AccessMember> new_members;
+        for (auto& mem : members) {
+            // add name if any
+            if (name.size()) {
+                mem.m_name = name + "." + mem.m_name;
+            }
+            // if m_bits == -1, then set m_bits to item size in bits
+            if (mem.m_bits == -1) {
+                auto& item_type = LogType(mem.m_type_id);
+                mem.m_bits = item_type.m_size * 8;
+            }
+            // add member's children
+            std::vector<CR_AccessMember> children;
+            GetAccessMemberList(mem.m_name, mem.m_type_id, children);
+            for (auto& child : children) {
+                child.m_bit_offset += mem.m_bit_offset;
+            }
+            new_members.insert(new_members.end(),
+                               children.begin(), children.end());
+        }
+        // append new members
+        members.insert(members.end(),
+                       new_members.begin(), new_members.end());
+    }
+    // add self
+    CR_AccessMember member;
+    member.m_type_id = rtid;
+    member.m_name = name;
+    member.m_bit_offset = 0;
+    member.m_bits = rtype.m_size * 8;
+    members.emplace_back(member);
+}
+
+void CR_NameScope::AddAccess(std::vector<CR_AccessMember>& members,
+    CR_TypeID tid, const std::string& name, int bit_offset/* = 0*/)
+{
+    std::vector<CR_AccessMember> children;
+    GetAccessMemberList(name, tid, children);
+    for (auto& child : children) {
+        child.m_bit_offset += bit_offset;
+    }
+    members.insert(members.end(),
+                   children.begin(), children.end());
 }
 
 CR_TypeID CR_NameScope::AddConstCharType() {
@@ -2551,10 +2635,11 @@ CR_NameScope::ArrayItem(const CR_TypedValue& array, size_t index) const {
         return ret;
     }
 
-    if (array.m_addr == cr_invalid_address) {
-        ret.m_addr = cr_invalid_address;
-    } else {
-        ret.m_addr = array.m_addr + index * item_type.m_size;
+    if (array.m_expr_addr.size()) {
+        unsigned long long ull;
+        ull = std::stoull(array.m_expr_addr, NULL, 0);
+        ull += index * item_type.m_size;
+        ret.m_expr_addr = std::to_string(ull);
     }
     const char *ptr = array.get_at<char>(
         index * item_type.m_size, item_type.m_size);
@@ -2575,7 +2660,7 @@ CR_TypedValue CR_NameScope::Dot(
     }
     auto tid = ResolveAlias(struct_value.m_type_id);
     auto& struct_type = LogType(tid);
-    std::vector<CR_StructMember> children;
+    std::vector<CR_AccessMember> children;
     GetStructMemberList(struct_type.m_sub_id, children);
     bool is_set = false;
     for (auto& child : children) {
@@ -2585,11 +2670,11 @@ CR_TypedValue CR_NameScope::Dot(
                 break;
             }
             ret.m_type_id = child.m_type_id;
-            if (struct_value.m_addr == cr_invalid_address) {
-                ret.m_addr = cr_invalid_address;
-            } else {
-                ret.m_addr = struct_value.m_addr +
-                    child.m_bit_offset / bits_of_one_byte;
+            if (struct_value.m_expr_addr.size()) {
+                unsigned long long ull;
+                ull = std::stoull(struct_value.m_expr_addr, NULL, 0);
+                ull += child.m_bit_offset / bits_of_one_byte;
+                ret.m_expr_addr = std::to_string(ull);
             }
             ret.m_size = SizeOfType(child.m_type_id);
             const char *ptr =
@@ -2618,8 +2703,8 @@ CR_NameScope::Asterisk(const CR_TypedValue& pointer_value) const {
         auto& type2 = LogType(tid2);
         if (HasValue(pointer_value)) {
             auto addr = GetULongLongValue(pointer_value);
-            const void *ptr = GetAddressPointer(addr, type2.m_size);
-            ret.m_addr = addr;
+            void *ptr = &addr;
+            ret.m_expr_addr = std::to_string(addr);
             SetValue(ret, tid2, ptr, type2.m_size);
         } else {
             ret.m_type_id = tid2;
@@ -2634,13 +2719,15 @@ CR_NameScope::Address(const CR_TypedValue& value) const {
     CR_TypedValue ret;
     if (value.m_type_id != cr_invalid_id) {
         ret.m_type_id = m_void_ptr_type;
-        if (value.m_addr != cr_invalid_address) {
+        if (value.m_expr_addr.size()) {
+            unsigned long long ull;
+            ull = std::stoull(value.m_expr_addr, NULL, 0);
             if (Is64Bit()) {
-                ret.assign<unsigned long long>(value.m_addr);
+                ret.assign<unsigned long long>(ull);
                 ret.m_extra = "LL";
             } else {
                 ret.assign<unsigned int>(
-                    static_cast<unsigned int>(value.m_addr));
+                    static_cast<unsigned int>(ull));
             }
         }
     }
@@ -3559,15 +3646,6 @@ void CR_NameScope::SetValue(
         value.assign(ptr, size);
         value.m_text.clear();
     }
-}
-
-void *CR_NameScope::GetAddressPointer(unsigned long long addr, size_t size) {
-    return NULL;
-}
-
-const void *
-CR_NameScope::GetAddressPointer(unsigned long long addr, size_t size) const {
-    return NULL;
 }
 
 CR_TypeID CR_NameScope::MakeSigned(CR_TypeID tid) const {
@@ -4567,18 +4645,14 @@ bool CR_NameScope::SaveToFiles(
                     binary = CrFormatBinary(binary);
                 } else if (IsPointerType(tid)) {
                     unsigned long long n = std::stoull(text, NULL, 0);
-                    if (n != cr_invalid_address) {
-                        value_type = "p";
-                        ptr = reinterpret_cast<const char *>(&n);
-                        if (type.m_size == 8) {
-                            binary.assign(ptr, 8);
-                        } else {
-                            binary.assign(ptr, 4);
-                        }
-                        binary = CrFormatBinary(binary);
+                    value_type = "p";
+                    ptr = reinterpret_cast<const char *>(&n);
+                    if (type.m_size == 8) {
+                        binary.assign(ptr, 8);
                     } else {
-                        text = "";
+                        binary.assign(ptr, 4);
                     }
+                    binary = CrFormatBinary(binary);
                 }
             }
 

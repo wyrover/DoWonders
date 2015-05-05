@@ -13,40 +13,38 @@
 
 typedef unsigned long CR_TypeFlags;
 
-static const CR_TypeFlags TF_VOID         = 0x00000001;
-static const CR_TypeFlags TF_CHAR         = 0x00000002;
-static const CR_TypeFlags TF_SHORT        = 0x00000004;
-static const CR_TypeFlags TF_LONG         = 0x00000008;
-static const CR_TypeFlags TF_LONGLONG     = 0x00000010;
-static const CR_TypeFlags TF_INT          = 0x00000020;
-//
-static const CR_TypeFlags TF_FLOAT        = 0x00000080;
-static const CR_TypeFlags TF_DOUBLE       = 0x00000100;
-static const CR_TypeFlags TF_SIGNED       = 0;
-static const CR_TypeFlags TF_UNSIGNED     = 0x00000200;
-static const CR_TypeFlags TF_PTR64        = 0x00000400;
-static const CR_TypeFlags TF_STRUCT       = 0x00000800;
-static const CR_TypeFlags TF_UNION        = 0x00001000;
-static const CR_TypeFlags TF_ENUM         = 0x00002000;
-static const CR_TypeFlags TF_POINTER      = 0x00004000;
-static const CR_TypeFlags TF_ARRAY        = 0x00008000;
-static const CR_TypeFlags TF_FUNCTION     = 0x00010000;
-static const CR_TypeFlags TF_INCOMPLETE   = 0x00020000;
-static const CR_TypeFlags TF_CDECL        = 0;
-static const CR_TypeFlags TF_STDCALL      = 0x00040000;
-static const CR_TypeFlags TF_FASTCALL     = 0x00080000;
-//
-static const CR_TypeFlags TF_CONST        = 0x00200000;
-static const CR_TypeFlags TF_COMPLEX      = 0x00400000;
-static const CR_TypeFlags TF_IMAGINARY    = 0x00800000;
-static const CR_TypeFlags TF_ATOMIC       = 0x01000000;
-static const CR_TypeFlags TF_PTR32        = 0x02000000;
-static const CR_TypeFlags TF_INACCURATE   = 0x04000000;
-static const CR_TypeFlags TF_VECTOR       = 0x08000000;
-static const CR_TypeFlags TF_BITFIELD     = 0x10000000;
-static const CR_TypeFlags TF_ALIAS        = 0x20000000;
-//
-static const CR_TypeFlags TF_INT128       = 0x80000000;
+static const CR_TypeFlags
+    TF_VOID         = 0x00000001,
+    TF_CHAR         = 0x00000002,
+    TF_SHORT        = 0x00000004,
+    TF_LONG         = 0x00000008,
+    TF_LONGLONG     = 0x00000010,
+    TF_INT          = 0x00000020,
+    TF_FLOAT        = 0x00000080,
+    TF_DOUBLE       = 0x00000100,
+    TF_SIGNED       = 0,
+    TF_UNSIGNED     = 0x00000200,
+    TF_PTR64        = 0x00000400,
+    TF_STRUCT       = 0x00000800,
+    TF_UNION        = 0x00001000,
+    TF_ENUM         = 0x00002000,
+    TF_POINTER      = 0x00004000,
+    TF_ARRAY        = 0x00008000,
+    TF_FUNCTION     = 0x00010000,
+    TF_INCOMPLETE   = 0x00020000,
+    TF_CDECL        = 0,
+    TF_STDCALL      = 0x00040000,
+    TF_FASTCALL     = 0x00080000,
+    TF_CONST        = 0x00200000,
+    TF_COMPLEX      = 0x00400000,
+    TF_IMAGINARY    = 0x00800000,
+    TF_ATOMIC       = 0x01000000,
+    TF_PTR32        = 0x02000000,
+    TF_INACCURATE   = 0x04000000,
+    TF_VECTOR       = 0x08000000,
+    TF_BITFIELD     = 0x10000000,
+    TF_ALIAS        = 0x20000000,
+    TF_INT128       = 0x80000000;
 
 ////////////////////////////////////////////////////////////////////////////
 // functions
@@ -75,7 +73,7 @@ std::string CrTabToSpace(const std::string& str, size_t tabstop = 4);
 typedef std::size_t             CR_ID;
 
 // cr_invalid_id --- invalid ID
-#define cr_invalid_id           static_cast<CR_ID>(-1)
+static const CR_ID cr_invalid_id = static_cast<CR_ID>(-1);
 
 // CR_TypeID --- type ID
 typedef CR_ID                   CR_TypeID;
@@ -98,28 +96,20 @@ typedef CR_VecSet<CR_ID>        CR_IDSet;
 // a set of type id
 typedef CR_VecSet<CR_TypeID>    CR_TypeSet;
 
-// invalid address
-#ifdef _WIN64
-    #define cr_invalid_address      0xDEADFACEDEADFACEULL
-#else
-    #define cr_invalid_address      0xDEADFACEUL
-#endif
-
 ////////////////////////////////////////////////////////////////////////////
 // CR_TypedValue --- typed value
 
 struct CR_TypedValue {
-    void *      m_ptr;
-    size_t      m_size;
-    CR_TypeID   m_type_id;
-    unsigned long long m_addr;
-    std::string m_text;
-    std::string m_extra;
+    void *          m_ptr;
+    size_t          m_size;
+    CR_TypeID       m_type_id;
+    std::string     m_expr_addr;    // expressed address
+    std::string     m_text;
+    std::string     m_extra;
 
-    CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id),
-                      m_addr(cr_invalid_address) { }
-    CR_TypedValue(CR_TypeID tid) : m_ptr(NULL), m_size(0), m_type_id(tid),
-                                   m_addr(cr_invalid_address) { }
+    CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id) { }
+    CR_TypedValue(CR_TypeID tid) : m_ptr(NULL), m_size(0), m_type_id(tid)
+    { }
     CR_TypedValue(const void *ptr, size_t size);
     virtual ~CR_TypedValue();
 
@@ -261,29 +251,29 @@ struct CR_LogFunc {
     CR_TypeID                   m_return_type;
     std::vector<CR_FuncParam>   m_params;
 
-    CR_LogFunc() :
-        m_ellipsis(false), m_return_type(0) { }
+    CR_LogFunc() : m_ellipsis(false), m_return_type(0) { }
 }; // struct CR_LogFunc
 
 ////////////////////////////////////////////////////////////////////////////
-// CR_StructMember --- member of structure
+// CR_StructMember --- accessible member
 
 struct CR_StructMember {
     CR_TypeID       m_type_id;
     std::string     m_name;
     int             m_bit_offset;
     int             m_bits;
-    CR_StructMember(
-        CR_TypeID tid, const std::string& name,
-        int bit_offset = 0, int bits = -1
-    ) : m_type_id(tid),
-        m_name(name),
-        m_bit_offset(bit_offset),
-        m_bits(bits) { }
+    CR_StructMember() = default;
+    CR_StructMember(CR_TypeID tid, const std::string& name,
+        int bit_offset = 0, int bits = -1) :
+            m_type_id(tid), m_name(name),
+                m_bit_offset(bit_offset), m_bits(bits) { }
 };
 
 bool operator==(const CR_StructMember& mem1, const CR_StructMember& mem2);
 bool operator!=(const CR_StructMember& mem1, const CR_StructMember& mem2);
+
+// NOTE: CR_AccessMember is same as CR_StructMember except meaning of m_bits.
+typedef CR_StructMember CR_AccessMember;
 
 ////////////////////////////////////////////////////////////////////////////
 // CR_LogStruct --- logical structure or union
@@ -514,9 +504,6 @@ public:
     // &var
     CR_TypedValue Address(const CR_TypedValue& value) const;
 
-          void *GetAddressPointer(unsigned long long addr, size_t size);
-    const void *GetAddressPointer(unsigned long long addr, size_t size) const;
-
     int GetIntValue(const CR_TypedValue& value) const;
     void SetIntValue(CR_TypedValue& value, int n) const;
     void SetValue(CR_TypedValue& value, CR_TypeID tid, const void *ptr,
@@ -621,6 +608,14 @@ public:
     // get member list of struct or union
     void GetStructMemberList(
         CR_StructID sid, std::vector<CR_StructMember>& members) const;
+
+    // get access member list of a type
+    void GetAccessMemberList(
+        const std::string& name, CR_TypeID tid, 
+        std::vector<CR_AccessMember>& members) const;
+
+    void AddAccess(std::vector<CR_AccessMember>& members,
+        CR_TypeID tid, const std::string& name, int bit_offset = 0);
 
     CR_TypeID AddConstCharType();
     CR_TypeID AddConstUCharType();
