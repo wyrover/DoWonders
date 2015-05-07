@@ -605,17 +605,14 @@ public:
     // get string of parameter list
     std::string StringOfParamList(const std::vector<CR_FuncParam>& params) const;
 
-    // get member list of struct or union
-    void GetStructMemberList(
-        CR_StructID sid, std::vector<CR_StructMember>& members) const;
+    // add members of struct or union
+    void AddStructMembers(std::vector<CR_StructMember>& members,
+        CR_StructID sid, const std::string& name = "", int bit_offset = 0) const;
 
-    // get access member list of a type
-    void GetAccessMemberList(
-        const std::string& name, CR_TypeID tid, 
-        std::vector<CR_AccessMember>& members) const;
-
-    void AddAccess(std::vector<CR_AccessMember>& members,
-        CR_TypeID tid, const std::string& name, int bit_offset = 0);
+    // add access members of a type
+    void AddAccessMembers(std::vector<CR_AccessMember>& members, 
+        CR_TypeID tid, const std::string& name,
+        int bit_offset = 0, int bits = -1) const;
 
     CR_TypeID AddConstCharType();
     CR_TypeID AddConstUCharType();
