@@ -21,6 +21,8 @@
 #include <sys/stat.h>
 #include <sys/timeb.h>
 #include <sys/types.h>
+#include <wchar.h>
+#include <locale.h>
 
 /* winsock version 2 */
 #include <winsock2.h>

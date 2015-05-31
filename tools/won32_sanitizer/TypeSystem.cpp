@@ -559,15 +559,15 @@ std::string CrIndent(const std::string& str) {
     katahiromz::replace_string(text, "\n", "\n\t");
     if (text.rfind("\n\t") == text.size() - 2) {
         text.resize(text.size() - 1);
-	}
+    }
     return "\t" + text;
 }
 
 std::string CrTabToSpace(const std::string& str, size_t tabstop/* = 4*/) {
-	std::string tab(tabstop, ' ');
-	std::string text(str);
-	katahiromz::replace_string(text, std::string("\t"), tab);
-	return text;
+    std::string tab(tabstop, ' ');
+    std::string text(str);
+    katahiromz::replace_string(text, std::string("\t"), tab);
+    return text;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -585,7 +585,7 @@ CR_TypedValue::CR_TypedValue(const CR_TypedValue& value) :
     m_type_id = value.m_type_id;
     m_text = value.m_text;
     m_extra = value.m_extra;
-    m_expr_addr = value.m_expr_addr;
+    m_addr = value.m_addr;
     assign(value.m_ptr, value.m_size);
 }
 
@@ -594,7 +594,7 @@ CR_TypedValue& CR_TypedValue::operator=(const CR_TypedValue& value) {
         m_type_id = value.m_type_id;
         m_text = value.m_text;
         m_extra = value.m_extra;
-        m_expr_addr = value.m_expr_addr;
+        m_addr = value.m_addr;
         assign(value.m_ptr, value.m_size);
     }
     return *this;
@@ -605,7 +605,7 @@ CR_TypedValue::CR_TypedValue(CR_TypedValue&& value) : m_ptr(NULL), m_size(0) {
         std::swap(m_ptr, value.m_ptr);
         std::swap(m_size, value.m_size);
         m_type_id = value.m_type_id;
-        m_expr_addr = std::move(value.m_expr_addr);
+        m_addr = std::move(value.m_addr);
         std::swap(m_text, value.m_text);
         std::swap(m_extra, value.m_extra);
     }
@@ -616,7 +616,7 @@ CR_TypedValue& CR_TypedValue::operator=(CR_TypedValue&& value) {
         std::swap(m_ptr, value.m_ptr);
         std::swap(m_size, value.m_size);
         m_type_id = value.m_type_id;
-        m_expr_addr = std::move(value.m_expr_addr);
+        m_addr = std::move(value.m_addr);
         std::swap(m_text, value.m_text);
         std::swap(m_extra, value.m_extra);
     }
@@ -2630,11 +2630,10 @@ CR_NameScope::ArrayItem(const CR_TypedValue& array, size_t index) const {
         return ret;
     }
 
-    if (array.m_expr_addr.size()) {
-        unsigned long long ull;
-        ull = std::stoull(array.m_expr_addr, NULL, 0);
+    if (array.m_addr) {
+        unsigned long long ull = *array.m_addr.get();
         ull += index * item_type.m_size;
-        ret.m_expr_addr = std::to_string(ull);
+        ret.m_addr = make_shared<unsigned long long>(ull);
     }
     const char *ptr = array.get_at<char>(
         index * item_type.m_size, item_type.m_size);
@@ -2665,11 +2664,10 @@ CR_TypedValue CR_NameScope::Dot(
                 break;
             }
             ret.m_type_id = child.m_type_id;
-            if (struct_value.m_expr_addr.size()) {
-                unsigned long long ull;
-                ull = std::stoull(struct_value.m_expr_addr, NULL, 0);
+            if (struct_value.m_addr) {
+                unsigned long long ull = *struct_value.m_addr.get();
                 ull += child.m_bit_offset / bits_of_one_byte;
-                ret.m_expr_addr = std::to_string(ull);
+                ret.m_addr = make_shared<unsigned long long>(ull);
             }
             ret.m_size = SizeOfType(child.m_type_id);
             const char *ptr =
@@ -2699,7 +2697,7 @@ CR_NameScope::Asterisk(const CR_TypedValue& pointer_value) const {
         if (HasValue(pointer_value)) {
             auto addr = GetULongLongValue(pointer_value);
             void *ptr = &addr;
-            ret.m_expr_addr = std::to_string(addr);
+            ret.m_addr = make_shared<unsigned long long>(addr);
             SetValue(ret, tid2, ptr, type2.m_size);
         } else {
             ret.m_type_id = tid2;
@@ -2714,9 +2712,8 @@ CR_NameScope::Address(const CR_TypedValue& value) const {
     CR_TypedValue ret;
     if (value.m_type_id != cr_invalid_id) {
         ret.m_type_id = m_void_ptr_type;
-        if (value.m_expr_addr.size()) {
-            unsigned long long ull;
-            ull = std::stoull(value.m_expr_addr, NULL, 0);
+        if (value.m_addr) {
+            unsigned long long ull = *value.m_addr.get();
             if (Is64Bit()) {
                 ret.assign<unsigned long long>(ull);
                 ret.m_extra = "LL";

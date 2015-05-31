@@ -100,12 +100,12 @@ typedef CR_VecSet<CR_TypeID>    CR_TypeSet;
 // CR_TypedValue --- typed value
 
 struct CR_TypedValue {
-    void *          m_ptr;
-    size_t          m_size;
-    CR_TypeID       m_type_id;
-    std::string     m_expr_addr;    // expressed address
-    std::string     m_text;
-    std::string     m_extra;
+    void *                          m_ptr;
+    size_t                          m_size;
+    CR_TypeID                       m_type_id;
+    shared_ptr<unsigned long long>  m_addr;
+    std::string                     m_text;
+    std::string                     m_extra;
 
     CR_TypedValue() : m_ptr(NULL), m_size(0), m_type_id(cr_invalid_id) { }
     CR_TypedValue(CR_TypeID tid) : m_ptr(NULL), m_size(0), m_type_id(tid)
